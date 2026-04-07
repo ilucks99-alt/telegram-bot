@@ -6,8 +6,8 @@ import os
 # =========================================================
 
 # 운영 시 환경변수 사용 권장
-#TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "").strip()
-TELEGRAM_TOKEN = "8626745530:AAErOzyIGiDj0DmQ0PjavJssfAXZbVPIemc"
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "").strip()
+#TELEGRAM_TOKEN = "8626745530:AAErOzyIGiDj0DmQ0PjavJssfAXZbVPIemc"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 
 OFFSET_FILE = os.getenv("OFFSET_FILE", "telegram_offset.txt").strip()
@@ -16,12 +16,12 @@ LOG_FILE = os.getenv("LOG_FILE", "telegram_bot.log").strip()
 
 MAIN_DB_XLSX = os.getenv(
     "MAIN_DB_XLSX",
-    "C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx"
+    "./Database/Data_Raw_2602.xlsx"
 ).strip()
 
 DETAIL_XLSX = os.getenv(
     "DETAIL_XLSX",
-    "C:/Users/Administrator/Downloads/Python/Database/Investment_Raw_2509.xlsx"
+    "./Database/Investment_Raw_2509.xlsx"
 ).strip()
 
 POLL_TIMEOUT = int(os.getenv("POLL_TIMEOUT", "50"))
