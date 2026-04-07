@@ -7,7 +7,6 @@ import os
 
 # 운영 시 환경변수 사용 권장
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "").strip()
-#TELEGRAM_TOKEN = "8626745530:AAErOzyIGiDj0DmQ0PjavJssfAXZbVPIemc"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 
 OFFSET_FILE = os.getenv("OFFSET_FILE", "telegram_offset.txt").strip()
