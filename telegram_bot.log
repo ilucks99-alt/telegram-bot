@@ -1,0 +1,1148 @@
+2026-03-27 17:48:35,721 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-27 17:48:37,778 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-27 17:48:37,780 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"vintage_from": 2024, "vintage_to": 2024}, "target_filters": {}, "metric": "commitment", "groupby": ["asset_class"], "metrics": ["commitment"], "sort_by": "commitment", "top_n": 20, "sort_order": "desc"}
+2026-03-27 17:48:51,459 | INFO | Stopped by user.
+2026-03-27 17:49:47,132 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-03-27 17:49:47,459 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-03-27 17:49:47,460 | INFO | Bot started.
+2026-03-27 17:50:00,181 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-27 17:50:02,981 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-27 17:50:02,984 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"vintage_from": 2024, "vintage_to": 2024}, "target_filters": {}, "metric": "commitment", "groupby": ["asset_class"], "metrics": ["commitment"], "sort_by": "commitment", "top_n": 20, "sort_order": "desc"}
+2026-03-27 17:51:52,127 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-27 17:51:54,173 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-27 17:53:04,788 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-27 17:53:09,667 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-27 17:54:29,505 | INFO | Stopped by user.2026-03-30 08:12:50,456 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-03-30 08:12:50,738 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-03-30 08:12:50,739 | INFO | Bot started.
+2026-03-30 08:58:34,685 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 08:58:36,440 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 08:58:36,443 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["현대인베스트먼트"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-30 08:59:13,892 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 08:59:16,051 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 08:59:16,053 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["PD"], "region": ["KOR"], "manager": ["현대인베스트먼트"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-30 09:33:33,709 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 09:33:37,318 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 09:33:37,320 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["Tiger"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-30 09:45:49,344 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 09:45:56,524 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 10:33:09,226 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 10:33:11,785 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 10:33:26,703 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 10:33:28,835 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 10:54:05,629 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 10:54:07,413 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 10:54:36,478 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 10:54:38,365 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 10:54:38,367 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["한화자산운용"], "fund_name_keywords": ["한화라이프"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-30 12:19:02,117 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 12:19:04,055 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 12:19:04,060 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"asset_class": ["Real_Estate", "Infrastructure"], "region": ["KOR"]}, "target_filters": {}, "metric": "commitment", "groupby": ["vintage"], "metrics": ["irr_weighted_commitment", "nav"], "sort_by": "irr_weighted_commitment", "top_n": 20, "sort_order": "desc"}
+2026-03-30 12:19:28,104 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 12:19:30,165 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 12:19:30,167 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"asset_class": ["Real_Estate", "Infrastructure"], "region": ["KOR"]}, "target_filters": {}, "metric": "commitment", "groupby": ["asset_class"], "metrics": ["irr_weighted_commitment", "nav"], "sort_by": "irr_weighted_commitment", "top_n": 20, "sort_order": "desc"}
+2026-03-30 13:17:04,309 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 13:17:06,163 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 13:17:28,688 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 13:17:30,678 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 13:17:54,561 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 13:17:57,018 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 13:18:18,691 | ERROR | detail pdf export failed. project_id=tiger globaL 펀드 수익률 및 투자금액, NAV
+Traceback (most recent call last):
+  File "c:\Users\Administrator\Downloads\Python\Investment_Manager_MVP_V2.py", line 2116, in handle_detail
+    pdf_path = util.export_project_pdf(project_id)
+  File "c:\Users\Administrator\Downloads\Python\util.py", line 264, in export_project_pdf
+    sheet_name = _find_sheet_name(config.DETAIL_XLSX, project_id)
+  File "c:\Users\Administrator\Downloads\Python\util.py", line 255, in _find_sheet_name
+    raise ValueError(f"시트를 찾을 수 없습니다: {project_id}")
+ValueError: 시트를 찾을 수 없습니다: tiger globaL 펀드 수익률 및 투자금액, NAV
+2026-03-30 14:16:49,102 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 14:16:51,056 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 14:17:01,394 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 14:17:03,743 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 14:17:07,737 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 14:17:08,942 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 14:21:29,915 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 14:21:32,217 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 14:21:32,219 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["Tiger"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-30 14:23:45,937 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 14:23:47,878 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 14:23:47,880 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["Infrastructure"], "region": ["KOR"], "strategy": ["BTL"], "maturity_year_to": 2027}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-30 14:28:21,302 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 14:28:24,456 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 14:30:09,902 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 14:30:12,278 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 14:30:12,281 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["VC"], "manager": ["Tiger"], "fund_name_keywords": ["Tiger"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-30 14:31:45,542 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 14:31:47,529 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 14:31:47,532 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["Real_Estate", "Infrastructure"], "region": ["KOR"], "vintage_from": 2026, "vintage_to": 2026}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-30 14:32:11,763 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 14:32:17,517 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 14:32:17,521 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["Real_Estate"], "region": ["KOR"], "sector": ["Data Center"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-30 14:33:52,268 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 14:33:55,156 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 14:33:55,159 | INFO | query_json={"query_type": "summary_with_list", "filters": {"region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"], "manager": ["PIMCO"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-30 14:36:39,552 | ERROR | detail pdf export failed. project_id=BS00001441
+Traceback (most recent call last):
+  File "c:\Users\Administrator\Downloads\Python\Investment_Manager_MVP_V2.py", line 2117, in handle_detail
+    util.send_document(chat_id, pdf_path, caption=f"{project_id} 상세 시트 PDF")
+    ^^^^^^^^^^^^^^^^^^
+AttributeError: module 'util' has no attribute 'send_document'
+2026-03-30 15:24:42,260 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 15:24:44,141 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 15:24:44,143 | INFO | query_json={"query_type": "summary_with_list", "filters": {"region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"], "sector": ["Cybersecurity"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-30 15:25:31,111 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 15:25:33,385 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 15:25:33,387 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"asset_class": ["PE", "VC"]}, "target_filters": {}, "metric": "commitment", "groupby": ["sector"], "metrics": ["irr_weighted_commitment"], "sort_by": "irr_weighted_commitment", "top_n": 20, "sort_order": "desc"}
+2026-03-30 15:26:18,163 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 15:26:20,549 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 15:26:20,552 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["PE", "VC"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"], "strategy": ["security"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-30 15:26:54,994 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-30 15:26:57,063 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-30 15:26:57,065 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["PE", "VC"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"], "sector": ["Security"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-30 17:45:03,568 | INFO | Stopped by user.
+2026-03-30 17:45:44,645 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-03-30 17:45:45,553 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-03-30 17:45:45,554 | INFO | Bot started.
+2026-03-31 08:10:46,749 | ERROR | main loop error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connection.py", line 204, in _new_conn
+    sock = connection.create_connection(
+        (self._dns_host, self.port),
+    ...<2 lines>...
+        socket_options=self.socket_options,
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\util\connection.py", line 60, in create_connection
+    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+               ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\socket.py", line 983, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 11001] getaddrinfo failed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+        conn,
+    ...<10 lines>...
+        **response_kw,
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 488, in _make_request
+    raise new_e
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 464, in _make_request
+    self._validate_conn(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 1093, in _validate_conn
+    conn.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connection.py", line 759, in connect
+    self.sock = sock = self._new_conn()
+                       ~~~~~~~~~~~~~~^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connection.py", line 211, in _new_conn
+    raise NameResolutionError(self.host, self, e) from e
+urllib3.exceptions.NameResolutionError: HTTPSConnection(host='api.telegram.org', port=443): Failed to resolve 'api.telegram.org' ([Errno 11001] getaddrinfo failed)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\adapters.py", line 644, in send
+    resp = conn.urlopen(
+        method=request.method,
+    ...<9 lines>...
+        chunked=chunked,
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 841, in urlopen
+    retries = retries.increment(
+        method, url, error=new_e, _pool=self, _stacktrace=sys.exc_info()[2]
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\util\retry.py", line 535, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.telegram.org', port=443): Max retries exceeded with url: /bot8626745530:AAErOzyIGiDj0DmQ0PjavJssfAXZbVPIemc/getUpdates?timeout=50&offset=315448463 (Caused by NameResolutionError("HTTPSConnection(host='api.telegram.org', port=443): Failed to resolve 'api.telegram.org' ([Errno 11001] getaddrinfo failed)"))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\Users\Administrator\Downloads\Python\Investment_Manager_MVP_V2.py", line 2215, in main
+    updates = get_updates(offset=offset, timeout=config.POLL_TIMEOUT)
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 109, in get_updates
+    data = telegram_get("getUpdates", params=params, timeout=timeout + 10)
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 31, in telegram_get
+    raise last_err
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 20, in telegram_get
+    r = requests.get(url, params=params, timeout=timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\adapters.py", line 677, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.telegram.org', port=443): Max retries exceeded with url: /bot8626745530:AAErOzyIGiDj0DmQ0PjavJssfAXZbVPIemc/getUpdates?timeout=50&offset=315448463 (Caused by NameResolutionError("HTTPSConnection(host='api.telegram.org', port=443): Failed to resolve 'api.telegram.org' ([Errno 11001] getaddrinfo failed)"))
+2026-03-31 08:11:40,253 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 08:11:43,640 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 08:14:51,262 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 08:14:56,425 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 08:21:35,900 | INFO | Stopped by user.
+2026-03-31 08:22:43,136 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-03-31 08:22:43,554 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-03-31 08:22:43,555 | INFO | Bot started.
+2026-03-31 08:23:08,758 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 08:23:11,594 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 08:25:00,416 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 08:25:03,209 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 08:25:58,424 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 08:26:01,490 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 09:22:03,541 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 09:22:05,465 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 09:22:05,468 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["KKR"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-31 10:20:29,205 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 10:20:31,372 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 10:20:31,373 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"asset_class": ["PE", "VC"]}, "target_filters": {}, "metric": "commitment", "groupby": ["manager"], "metrics": ["commitment", "irr_weighted_commitment"], "sort_by": "commitment", "top_n": 20, "sort_order": "desc"}
+2026-03-31 10:21:09,034 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 10:21:11,147 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 10:21:11,149 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"]}, "target_filters": {}, "metric": "commitment", "groupby": ["manager"], "metrics": ["commitment", "nav"], "sort_by": "commitment", "top_n": 20, "sort_order": "desc"}
+2026-03-31 10:22:04,909 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 10:22:06,993 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 10:22:06,994 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["Pantheon"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-31 10:23:32,572 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 10:23:34,614 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 10:23:34,617 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"]}, "target_filters": {}, "metric": "commitment", "groupby": ["manager"], "metrics": ["commitment"], "sort_by": "commitment", "top_n": 20, "sort_order": "desc"}
+2026-03-31 10:24:02,546 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 10:24:04,374 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 10:24:04,376 | INFO | query_json={"query_type": "summary_with_list", "filters": {"region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"], "manager": ["이지스자산운용"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-31 10:25:33,363 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 10:25:52,760 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 10:25:52,762 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["New York Life"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-31 10:26:12,078 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 10:26:13,929 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 10:26:13,932 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["NYLIM"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-31 10:27:04,702 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 10:27:06,697 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 10:27:06,700 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"asset_class": ["PD"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"]}, "target_filters": {}, "metric": "commitment", "groupby": ["manager"], "metrics": ["commitment"], "sort_by": "commitment", "top_n": 20, "sort_order": "desc"}
+2026-03-31 10:31:44,800 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 10:31:47,442 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 10:36:34,407 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 10:36:41,562 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 10:36:56,850 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 10:36:58,812 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 10:36:58,815 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["MCF"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-31 10:37:14,710 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 10:37:16,486 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 10:37:16,489 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["Apogem"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-31 10:38:06,959 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 10:38:08,958 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 10:39:52,184 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 10:39:54,011 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 10:39:54,013 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["Goldpoint"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-31 10:54:43,989 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 10:54:46,780 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 13:12:58,352 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 13:13:00,687 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 13:13:00,691 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["Rockpoint"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-31 16:08:02,323 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 16:08:09,582 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 16:08:09,589 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["Goldman Sachs"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-31 16:38:53,904 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 16:38:55,157 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 16:39:16,092 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 16:39:17,693 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 16:39:17,695 | INFO | query_json={"query_type": "summary_with_list", "filters": {"region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"], "manager": ["이지스"], "fund_name_keywords": ["221호"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-31 16:49:26,171 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 16:49:28,606 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 16:49:28,608 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["Real_Estate"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"], "manager": ["한화자산운용"], "fund_name_keywords": ["해외부동산 2호"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-31 16:49:53,703 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 16:49:56,074 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 16:49:56,077 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["Real_Estate"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"], "manager": ["Hanwha"], "fund_name_keywords": ["2호"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-31 16:50:12,480 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 16:50:13,995 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 16:50:13,997 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["Real_Estate"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"], "manager": ["한화자산운용"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-31 16:50:49,084 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 16:50:51,157 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 16:50:51,158 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"asset_class": ["Real_Estate"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"]}, "target_filters": {}, "metric": "commitment", "groupby": ["vintage"], "metrics": ["irr_weighted_commitment"], "sort_by": "irr_weighted_commitment", "top_n": 20, "sort_order": "desc"}
+2026-03-31 17:03:31,377 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 17:03:33,409 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 17:03:33,412 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"asset_class": ["Real_Estate"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"]}, "target_filters": {}, "metric": "commitment", "groupby": ["manager"], "metrics": ["nav", "irr_weighted_commitment"], "sort_by": "nav", "top_n": 20, "sort_order": "desc"}
+2026-03-31 17:04:50,289 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 17:04:52,569 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 17:04:52,571 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["PIMCO"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-03-31 17:05:21,654 | INFO | AFC is enabled with max remote calls: 10.
+2026-03-31 17:05:24,510 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-31 17:05:24,512 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"asset_class": ["Real_Estate"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"]}, "target_filters": {}, "metric": "commitment", "groupby": ["manager"], "metrics": ["commitment", "irr_weighted_commitment"], "sort_by": "commitment", "top_n": 20, "sort_order": "desc"}
+2026-04-01 08:06:15,743 | ERROR | main loop error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connection.py", line 204, in _new_conn
+    sock = connection.create_connection(
+        (self._dns_host, self.port),
+    ...<2 lines>...
+        socket_options=self.socket_options,
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\util\connection.py", line 60, in create_connection
+    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+               ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\socket.py", line 983, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 11001] getaddrinfo failed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+        conn,
+    ...<10 lines>...
+        **response_kw,
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 488, in _make_request
+    raise new_e
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 464, in _make_request
+    self._validate_conn(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 1093, in _validate_conn
+    conn.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connection.py", line 759, in connect
+    self.sock = sock = self._new_conn()
+                       ~~~~~~~~~~~~~~^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connection.py", line 211, in _new_conn
+    raise NameResolutionError(self.host, self, e) from e
+urllib3.exceptions.NameResolutionError: HTTPSConnection(host='api.telegram.org', port=443): Failed to resolve 'api.telegram.org' ([Errno 11001] getaddrinfo failed)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\adapters.py", line 644, in send
+    resp = conn.urlopen(
+        method=request.method,
+    ...<9 lines>...
+        chunked=chunked,
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 841, in urlopen
+    retries = retries.increment(
+        method, url, error=new_e, _pool=self, _stacktrace=sys.exc_info()[2]
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\util\retry.py", line 535, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.telegram.org', port=443): Max retries exceeded with url: /bot8626745530:AAErOzyIGiDj0DmQ0PjavJssfAXZbVPIemc/getUpdates?timeout=50&offset=315448498 (Caused by NameResolutionError("HTTPSConnection(host='api.telegram.org', port=443): Failed to resolve 'api.telegram.org' ([Errno 11001] getaddrinfo failed)"))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\Users\Administrator\Downloads\Python\Investment_Manager_MVP_V2.py", line 2215, in main
+    updates = get_updates(offset=offset, timeout=config.POLL_TIMEOUT)
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 109, in get_updates
+    data = telegram_get("getUpdates", params=params, timeout=timeout + 10)
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 31, in telegram_get
+    raise last_err
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 20, in telegram_get
+    r = requests.get(url, params=params, timeout=timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\adapters.py", line 677, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.telegram.org', port=443): Max retries exceeded with url: /bot8626745530:AAErOzyIGiDj0DmQ0PjavJssfAXZbVPIemc/getUpdates?timeout=50&offset=315448498 (Caused by NameResolutionError("HTTPSConnection(host='api.telegram.org', port=443): Failed to resolve 'api.telegram.org' ([Errno 11001] getaddrinfo failed)"))
+2026-04-01 08:06:31,578 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 08:06:34,564 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 08:12:42,605 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-01 08:12:43,595 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-01 08:12:43,598 | INFO | Bot started.
+2026-04-01 08:13:00,459 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 08:13:01,842 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 08:13:02,023 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 08:13:13,531 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 08:13:32,874 | ERROR | main loop error
+Traceback (most recent call last):
+  File "c:\Users\Administrator\Downloads\Python\Investment_Manager_MVP_V2.py", line 2209, in main
+    updates = get_updates(offset=offset, timeout=config.POLL_TIMEOUT)
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 109, in get_updates
+    data = telegram_get("getUpdates", params=params, timeout=timeout + 10)
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 31, in telegram_get
+    raise last_err
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 21, in telegram_get
+    r.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 409 Client Error: Conflict for url: https://api.telegram.org/bot8626745530:AAErOzyIGiDj0DmQ0PjavJssfAXZbVPIemc/getUpdates?timeout=50&offset=315448500
+2026-04-01 08:13:37,164 | ERROR | main loop error
+Traceback (most recent call last):
+  File "c:\Users\Administrator\Downloads\Python\Investment_Manager_MVP_V2.py", line 2215, in main
+    ctx = util.extract_message_context(upd)
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 109, in get_updates
+    data = telegram_get("getUpdates", params=params, timeout=timeout + 10)
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 31, in telegram_get
+    raise last_err
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 21, in telegram_get
+    r.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 409 Client Error: Conflict for url: https://api.telegram.org/bot8626745530:AAErOzyIGiDj0DmQ0PjavJssfAXZbVPIemc/getUpdates?timeout=50&offset=315448500
+2026-04-01 08:14:03,072 | INFO | Stopped by user.
+2026-04-01 08:15:44,965 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-01 08:15:45,231 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-01 08:15:45,233 | INFO | Bot started.
+2026-04-01 08:16:33,376 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 08:16:38,709 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 08:16:59,229 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 08:17:01,634 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 08:17:01,636 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"asset_class": ["Real_Estate"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"]}, "target_filters": {}, "metric": "commitment", "groupby": ["manager"], "metrics": ["commitment", "irr_weighted_commitment"], "sort_by": "commitment", "top_n": 20, "sort_order": "desc"}
+2026-04-01 08:17:16,730 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 08:17:18,663 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 08:17:18,664 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"asset_class": ["Real_Estate"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"]}, "target_filters": {}, "metric": "commitment", "groupby": ["manager"], "metrics": ["commitment", "irr_weighted_commitment"], "sort_by": "commitment", "top_n": 50, "sort_order": "desc"}
+2026-04-01 09:32:17,830 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 09:32:21,849 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 09:32:21,851 | INFO | analysis_json={"analysis_type": "share", "base_filters": {"asset_class": ["Infrastructure"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"]}, "target_filters": {"sector": ["Gas"]}, "metric": "commitment", "groupby": [], "metrics": [], "sort_by": "", "top_n": 50, "sort_order": "desc"}
+2026-04-01 09:32:47,461 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 09:33:04,733 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 09:33:04,736 | INFO | analysis_json={"analysis_type": "share", "base_filters": {"asset_class": ["Infrastructure"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"]}, "target_filters": {"sector": ["Gas"]}, "metric": "nav", "groupby": [], "metrics": [], "sort_by": "", "top_n": 50, "sort_order": "desc"}
+2026-04-01 09:33:47,353 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 09:33:49,760 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 09:33:49,764 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["Infrastructure"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"], "sector": ["Gas"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-01 12:35:09,335 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 12:35:12,871 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 13:13:02,550 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 13:13:03,829 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 13:13:03,831 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["HPS"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-01 13:42:01,122 | INFO | Stopped by user.
+2026-04-01 13:45:02,602 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-01 13:45:03,446 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-01 13:45:03,447 | INFO | Bot started.
+2026-04-01 13:45:12,864 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 13:45:14,648 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 13:45:14,649 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["BlackRock"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-01 13:45:14,650 | INFO | manager expansion | input=['BlackRock'] | expanded=['BlackRock', 'HPS', 'HPS Investment', 'HPS Investment Partners', 'GIP', 'Global Infrastructure Partners', '블랙락']
+2026-04-01 13:45:14,651 | INFO | manager filter | raw=['BlackRock'] | expanded=['BlackRock', 'HPS', 'HPS Investment', 'HPS Investment Partners', 'GIP', 'Global Infrastructure Partners', '블랙락']
+2026-04-01 13:46:04,956 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 13:46:07,138 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 13:46:07,140 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["New York Life"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-01 13:46:07,142 | INFO | manager expansion | input=['New York Life'] | expanded=['New York Life', 'Apogem', 'Apogem Capital', 'Apogem Capital LLC', 'MCF', 'Madison Capital Funding', 'nyl']
+2026-04-01 13:46:07,142 | INFO | manager filter | raw=['New York Life'] | expanded=['New York Life', 'Apogem', 'Apogem Capital', 'Apogem Capital LLC', 'MCF', 'Madison Capital Funding', 'nyl']
+2026-04-01 13:51:04,244 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 13:51:06,183 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 13:51:06,185 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["HPS"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-01 13:51:06,187 | INFO | manager expansion | input=['HPS'] | expanded=['BlackRock', 'HPS', 'HPS Investment', 'HPS Investment Partners', 'GIP', 'Global Infrastructure Partners', '블랙락']
+2026-04-01 13:51:06,188 | INFO | manager filter | raw=['HPS'] | expanded=['BlackRock', 'HPS', 'HPS Investment', 'HPS Investment Partners', 'GIP', 'Global Infrastructure Partners', '블랙락']
+2026-04-01 13:51:59,953 | INFO | Stopped by user.
+2026-04-01 13:52:08,989 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-01 13:52:09,273 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-01 13:52:09,275 | INFO | Bot started.
+2026-04-01 13:52:27,547 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 13:52:29,301 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 13:52:29,304 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["New York Life"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-01 13:52:29,306 | INFO | manager expansion | input=['New York Life'] | expanded=['New York Life', 'Apogem', 'Apogem Capital', 'Apogem Capital LLC', 'MCF', 'Goldpoint', 'Madison Capital Funding', 'nylim']
+2026-04-01 13:52:29,306 | INFO | manager filter | raw=['New York Life'] | expanded=['New York Life', 'Apogem', 'Apogem Capital', 'Apogem Capital LLC', 'MCF', 'Goldpoint', 'Madison Capital Funding', 'nylim']
+2026-04-01 13:52:58,974 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 13:53:07,356 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 13:53:07,359 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"]}, "target_filters": {}, "metric": "commitment", "groupby": ["manager"], "metrics": ["commitment", "nav"], "sort_by": "commitment", "top_n": 50, "sort_order": "desc"}
+2026-04-01 13:56:28,008 | INFO | Stopped by user.
+2026-04-01 13:56:35,430 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-01 13:56:35,736 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-01 13:56:35,739 | INFO | Bot started.
+2026-04-01 13:56:58,603 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 13:57:01,993 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 13:57:01,995 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"]}, "target_filters": {}, "metric": "commitment", "groupby": ["manager"], "metrics": ["nav", "commitment"], "sort_by": "nav", "top_n": 30, "sort_order": "desc"}
+2026-04-01 13:58:02,874 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 13:58:05,635 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 13:58:05,637 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["Ares"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-01 13:58:05,638 | INFO | manager expansion | input=['Ares'] | expanded=['Ares', 'Ares Management', 'Ares Capital']
+2026-04-01 13:58:05,639 | INFO | manager filter | raw=['Ares'] | expanded=['Ares', 'Ares Management', 'Ares Capital']
+2026-04-01 13:58:19,609 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 13:58:21,388 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 13:58:21,390 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["Apogem"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-01 13:58:21,391 | INFO | manager expansion | input=['Apogem'] | expanded=['New York Life', 'Apogem', 'Apogem Capital', 'Apogem Capital LLC', 'MCF', 'Goldpoint', 'Madison Capital Funding', 'nylim']
+2026-04-01 13:58:21,392 | INFO | manager filter | raw=['Apogem'] | expanded=['New York Life', 'Apogem', 'Apogem Capital', 'Apogem Capital LLC', 'MCF', 'Goldpoint', 'Madison Capital Funding', 'nylim']
+2026-04-01 15:00:06,700 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 15:00:09,225 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 15:26:36,628 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 15:26:39,029 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 15:27:14,534 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 15:27:16,883 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 15:38:13,467 | ERROR | handle_task_document_reply failed
+Traceback (most recent call last):
+  File "c:\Users\Administrator\Downloads\Python\task_service.py", line 453, in handle_task_document_reply
+    extracted_text = extract_text_from_file(local_path)
+  File "c:\Users\Administrator\Downloads\Python\file_extract_service.py", line 46, in extract_text_from_file
+    raise ValueError(f"지원하지 않는 파일 형식입니다: {ext}")
+ValueError: 지원하지 않는 파일 형식입니다: .pptx
+2026-04-01 15:39:17,249 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 15:39:34,910 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 503 Service Unavailable"
+2026-04-01 15:39:34,912 | ERROR | handle_task_text_reply failed
+Traceback (most recent call last):
+  File "c:\Users\Administrator\Downloads\Python\task_service.py", line 364, in handle_task_text_reply
+    result = evaluate_task_response_with_gemini(session, latest_reply)
+  File "c:\Users\Administrator\Downloads\Python\task_service.py", line 291, in evaluate_task_response_with_gemini
+    resp = client.models.generate_content(
+        model=config.GEMINI_MODEL,
+        contents=prompt,
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\genai\models.py", line 5644, in generate_content
+    response = self._generate_content(
+        model=model, contents=contents, config=parsed_config
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\genai\models.py", line 4306, in _generate_content
+    response = self._api_client.request(
+        'post', path, request_dict, http_options
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\genai\_api_client.py", line 1401, in request
+    response = self._request(http_request, http_options, stream=False)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\genai\_api_client.py", line 1237, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\tenacity\__init__.py", line 470, in __call__
+    do = self.iter(retry_state=retry_state)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\tenacity\__init__.py", line 371, in iter
+    result = action(retry_state)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\tenacity\__init__.py", line 413, in exc_check
+    raise retry_exc.reraise()
+          ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\tenacity\__init__.py", line 184, in reraise
+    raise self.last_attempt.result()
+          ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\concurrent\futures\_base.py", line 443, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\concurrent\futures\_base.py", line 395, in __get_result
+    raise self._exception
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\tenacity\__init__.py", line 473, in __call__
+    result = fn(*args, **kwargs)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\genai\_api_client.py", line 1214, in _request_once
+    errors.APIError.raise_for_response(response)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\genai\errors.py", line 134, in raise_for_response
+    cls.raise_error(response.status_code, response_json, response)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\genai\errors.py", line 161, in raise_error
+    raise ServerError(status_code, response_json, response)
+google.genai.errors.ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}
+2026-04-01 15:40:24,492 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 15:40:39,427 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 16:07:18,070 | INFO | Stopped by user.
+2026-04-01 16:08:08,146 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-01 16:08:09,184 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-01 16:08:09,186 | INFO | Bot started.
+2026-04-01 16:13:27,314 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 16:13:29,514 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 16:17:38,839 | INFO | Stopped by user.
+2026-04-01 16:19:00,972 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-01 16:19:01,401 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-01 16:19:01,402 | INFO | Bot started.
+2026-04-01 16:22:03,737 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 16:22:05,623 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 16:24:37,653 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 16:24:39,443 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 16:24:59,642 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 16:25:02,185 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 16:25:21,673 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 16:25:23,510 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 16:29:37,146 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 16:29:38,866 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 16:29:38,869 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["Greystar"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-01 16:29:38,870 | INFO | manager expansion | input=['Greystar'] | expanded=['Greystar']
+2026-04-01 16:29:38,870 | INFO | manager filter | raw=['Greystar'] | expanded=['Greystar']
+2026-04-01 16:31:57,580 | ERROR | detail pdf export failed. project_id=BS00001531
+Traceback (most recent call last):
+  File "c:\Users\Administrator\Downloads\Python\Investment_Manager_MVP_V2.py", line 2338, in handle_detail
+    util.send_document(chat_id, pdf_path, caption=f"{project_id} 상세 시트 PDF")
+    ^^^^^^^^^^^^^^^^^^
+AttributeError: module 'util' has no attribute 'send_document'
+2026-04-01 16:32:03,874 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 16:32:06,483 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 16:32:10,872 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 16:32:13,198 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 16:32:18,688 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 16:32:20,912 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 16:32:20,914 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["Infrastructure"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"], "strategy": ["senior"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-01 16:34:56,425 | INFO | Stopped by user.
+2026-04-01 16:35:16,052 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-01 16:35:16,354 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-01 16:35:16,355 | INFO | Bot started.
+2026-04-01 16:35:44,055 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 16:35:48,120 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 16:35:48,122 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["Infrastructure"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"]}, "sort": {"by": "irr", "order": "desc"}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-01 16:36:01,920 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 16:36:03,819 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 16:36:03,821 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"asset_class": ["Infrastructure"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"]}, "target_filters": {}, "metric": "commitment", "groupby": ["strategy"], "metrics": ["irr_weighted_commitment", "nav"], "sort_by": "irr_weighted_commitment", "top_n": 20, "sort_order": "desc"}
+2026-04-01 16:37:23,211 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 16:37:25,289 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 16:37:25,292 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"asset_class": ["Infrastructure"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"]}, "target_filters": {}, "metric": "commitment", "groupby": ["region"], "metrics": ["irr_weighted_commitment", "nav"], "sort_by": "irr_weighted_commitment", "top_n": 20, "sort_order": "desc"}
+2026-04-01 16:37:46,496 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 16:37:48,453 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 16:37:48,455 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["Infrastructure"], "region": ["Asia"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-01 16:39:55,007 | ERROR | detail pdf export failed. project_id=BS00000436
+Traceback (most recent call last):
+  File "c:\Users\Administrator\Downloads\Python\Investment_Manager_MVP_V2.py", line 2338, in handle_detail
+    util.send_document(chat_id, pdf_path, caption=f"{project_id} 상세 시트 PDF")
+    ^^^^^^^^^^^^^^^^^^
+AttributeError: module 'util' has no attribute 'send_document'
+2026-04-01 17:57:51,118 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 17:57:52,749 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 17:57:52,755 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["Hanwha"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-01 17:57:52,768 | INFO | manager expansion | input=['Hanwha'] | expanded=['Hanwha']
+2026-04-01 17:57:52,769 | INFO | manager filter | raw=['Hanwha'] | expanded=['Hanwha']
+2026-04-01 17:58:02,037 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-01 17:58:03,851 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-01 17:58:03,852 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["한화투자증권"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-01 17:58:03,854 | INFO | manager expansion | input=['한화투자증권'] | expanded=['한화투자증권']
+2026-04-01 17:58:03,854 | INFO | manager filter | raw=['한화투자증권'] | expanded=['한화투자증권']
+2026-04-02 08:06:36,899 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 08:06:39,658 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 10:28:11,505 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 10:28:13,107 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 10:28:13,112 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["Peakbridge"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-02 10:28:13,129 | INFO | manager expansion | input=['Peakbridge'] | expanded=['Apollo', 'Bridge Investment Group', 'Bridge']
+2026-04-02 10:28:13,130 | INFO | manager filter | raw=['Peakbridge'] | expanded=['Apollo', 'Bridge Investment Group', 'Bridge']
+2026-04-02 12:33:25,967 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 12:33:27,861 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 12:33:27,862 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["Peakbridge"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-02 12:33:27,864 | INFO | manager expansion | input=['Peakbridge'] | expanded=['Apollo', 'Bridge Investment Group', 'Bridge']
+2026-04-02 12:33:27,864 | INFO | manager filter | raw=['Peakbridge'] | expanded=['Apollo', 'Bridge Investment Group', 'Bridge']
+2026-04-02 12:34:52,478 | INFO | Stopped by user.
+2026-04-02 12:35:18,664 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-02 12:35:19,522 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-02 12:35:19,524 | INFO | Bot started.
+2026-04-02 12:35:26,572 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 12:35:28,558 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 12:35:28,560 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["Peakbridge"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-02 12:35:28,561 | INFO | manager expansion | input=['Peakbridge'] | expanded=['Peakbridge']
+2026-04-02 12:35:28,562 | INFO | manager filter | raw=['Peakbridge'] | expanded=['Peakbridge']
+2026-04-02 12:36:44,229 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 12:36:45,529 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 12:36:45,531 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["Peakbridge"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-02 12:36:45,532 | INFO | manager expansion | input=['Peakbridge'] | expanded=['Peakbridge']
+2026-04-02 12:36:45,532 | INFO | manager filter | raw=['Peakbridge'] | expanded=['Peakbridge']
+2026-04-02 12:50:15,910 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-02 12:50:20,673 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 12:50:22,653 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 12:50:22,655 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["Peakbridge"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-02 12:50:22,656 | INFO | manager expansion | input=['Peakbridge'] | expanded=['Peakbridge']
+2026-04-02 12:50:22,656 | INFO | manager filter | raw=['Peakbridge'] | expanded=['Peakbridge']
+2026-04-02 13:17:59,787 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 13:18:01,765 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 13:21:25,955 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 13:21:27,671 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 13:23:12,449 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 13:23:15,091 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 13:27:31,043 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 13:27:33,321 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 13:28:56,083 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 13:28:58,693 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 13:30:36,233 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 13:30:38,689 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 13:36:43,249 | INFO | Stopped by user.
+2026-04-02 13:37:13,479 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-02 13:37:13,806 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-02 13:37:13,808 | INFO | Bot started.
+2026-04-02 13:37:34,809 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 13:37:38,025 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 15:52:57,188 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 15:52:59,356 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 15:53:22,224 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 15:53:25,097 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 15:53:58,289 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 15:54:01,220 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 15:56:24,786 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 15:56:26,552 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 15:56:26,555 | INFO | query_json={"query_type": "summary_with_list", "filters": {"sector": ["AgriTech"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-02 15:56:52,126 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 15:56:54,091 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 15:56:54,094 | INFO | query_json={"query_type": "summary_with_list", "filters": {"sector": ["agri-tech"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-02 15:57:24,373 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 15:57:26,720 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 15:57:26,722 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["VC"], "sector": ["Agri"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-02 15:58:03,313 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 15:58:06,188 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 15:58:06,191 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"asset_class": ["VC"]}, "target_filters": {}, "metric": "commitment", "groupby": ["sector"], "metrics": ["irr_weighted_commitment", "nav"], "sort_by": "irr_weighted_commitment", "top_n": 20, "sort_order": "desc"}
+2026-04-02 15:58:22,988 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-02 15:58:29,488 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-02 15:58:29,490 | INFO | query_json={"query_type": "summary_with_list", "filters": {"sector": ["Synthetic Bio", "Ag-tech"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-03 08:21:55,218 | ERROR | main loop error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connection.py", line 204, in _new_conn
+    sock = connection.create_connection(
+        (self._dns_host, self.port),
+    ...<2 lines>...
+        socket_options=self.socket_options,
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\util\connection.py", line 60, in create_connection
+    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+               ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\socket.py", line 983, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 11001] getaddrinfo failed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+        conn,
+    ...<10 lines>...
+        **response_kw,
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 488, in _make_request
+    raise new_e
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 464, in _make_request
+    self._validate_conn(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 1093, in _validate_conn
+    conn.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connection.py", line 759, in connect
+    self.sock = sock = self._new_conn()
+                       ~~~~~~~~~~~~~~^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connection.py", line 211, in _new_conn
+    raise NameResolutionError(self.host, self, e) from e
+urllib3.exceptions.NameResolutionError: HTTPSConnection(host='api.telegram.org', port=443): Failed to resolve 'api.telegram.org' ([Errno 11001] getaddrinfo failed)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\adapters.py", line 644, in send
+    resp = conn.urlopen(
+        method=request.method,
+    ...<9 lines>...
+        chunked=chunked,
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 841, in urlopen
+    retries = retries.increment(
+        method, url, error=new_e, _pool=self, _stacktrace=sys.exc_info()[2]
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\util\retry.py", line 535, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.telegram.org', port=443): Max retries exceeded with url: /bot8626745530:AAErOzyIGiDj0DmQ0PjavJssfAXZbVPIemc/getUpdates?timeout=50&offset=315448580 (Caused by NameResolutionError("HTTPSConnection(host='api.telegram.org', port=443): Failed to resolve 'api.telegram.org' ([Errno 11001] getaddrinfo failed)"))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\Users\Administrator\Downloads\Python\Investment_Manager_MVP_V2.py", line 2434, in main
+    updates = get_updates(offset=offset, timeout=config.POLL_TIMEOUT)
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 109, in get_updates
+    data = telegram_get("getUpdates", params=params, timeout=timeout + 10)
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 31, in telegram_get
+    raise last_err
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 20, in telegram_get
+    r = requests.get(url, params=params, timeout=timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\adapters.py", line 677, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.telegram.org', port=443): Max retries exceeded with url: /bot8626745530:AAErOzyIGiDj0DmQ0PjavJssfAXZbVPIemc/getUpdates?timeout=50&offset=315448580 (Caused by NameResolutionError("HTTPSConnection(host='api.telegram.org', port=443): Failed to resolve 'api.telegram.org' ([Errno 11001] getaddrinfo failed)"))
+2026-04-03 08:22:48,994 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-03 08:22:49,964 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-03 08:22:49,965 | INFO | Bot started.
+2026-04-03 08:22:51,370 | INFO | Stopped by user.
+2026-04-03 08:24:24,879 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 08:24:27,091 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 08:24:55,835 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 08:24:58,648 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 08:27:29,578 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-03 08:51:14,118 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 08:51:16,174 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 08:52:23,402 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 08:52:24,758 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 08:53:15,380 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 08:53:17,531 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 08:53:29,688 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 08:53:33,754 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 08:53:47,930 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 08:53:51,439 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 09:03:21,608 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 09:03:32,682 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 09:05:47,932 | INFO | Stopped by user.
+2026-04-03 09:06:09,208 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-03 09:06:09,481 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-03 09:06:09,482 | INFO | Bot started.
+2026-04-03 09:06:13,709 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 09:06:23,280 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 09:14:39,197 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 09:14:41,390 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 09:14:41,392 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"asset_class": ["Infrastructure"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"]}, "target_filters": {}, "metric": "commitment", "groupby": ["strategy", "sector"], "metrics": ["irr_weighted_commitment", "commitment"], "sort_by": "irr_weighted_commitment", "top_n": 20, "sort_order": "desc"}
+2026-04-03 09:14:56,140 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 09:14:58,455 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 09:14:58,457 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["Infrastructure"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-03 09:27:07,760 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 09:27:11,150 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 09:28:19,604 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 09:28:21,870 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 09:52:20,490 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 09:52:23,193 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 10:01:34,407 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 10:01:37,466 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 10:01:37,468 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["Ares"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-03 10:01:37,471 | INFO | manager expansion | input=['Ares'] | expanded=['Ares', 'Ares Management', 'Ares Capital']
+2026-04-03 10:01:37,472 | INFO | manager filter | raw=['Ares'] | expanded=['Ares', 'Ares Management', 'Ares Capital']
+2026-04-03 10:03:37,763 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 10:03:39,954 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 10:03:39,956 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["Real_Estate"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"], "manager": ["Ares"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-03 10:03:39,962 | INFO | manager expansion | input=['Ares'] | expanded=['Ares', 'Ares Management', 'Ares Capital']
+2026-04-03 10:03:39,963 | INFO | manager filter | raw=['Ares'] | expanded=['Ares', 'Ares Management', 'Ares Capital']
+2026-04-03 10:06:42,599 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 10:06:44,411 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 10:06:44,413 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["PIMCO"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-03 10:06:44,414 | INFO | manager expansion | input=['PIMCO'] | expanded=['Allianz', 'PIMCO']
+2026-04-03 10:06:44,415 | INFO | manager filter | raw=['PIMCO'] | expanded=['Allianz', 'PIMCO']
+2026-04-03 10:08:19,435 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 10:08:21,456 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 10:08:21,457 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["Real_Estate"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"], "strategy": ["bridge"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-03 10:08:40,793 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 10:08:43,093 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 10:08:43,096 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["Real_Estate"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"], "manager": ["Bridge"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-03 10:08:43,101 | INFO | manager expansion | input=['Bridge'] | expanded=['Apollo', 'Bridge Investment Group']
+2026-04-03 10:08:43,102 | INFO | manager filter | raw=['Bridge'] | expanded=['Apollo', 'Bridge Investment Group']
+2026-04-03 10:10:57,322 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 10:11:04,745 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 10:11:04,748 | INFO | query_json={"query_type": "summary_with_list", "filters": {"manager": ["Mesa West"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-03 10:11:04,750 | INFO | manager expansion | input=['Mesa West'] | expanded=['Morgan Stanley', 'Mesa West', 'Mesa West Capital']
+2026-04-03 10:11:04,750 | INFO | manager filter | raw=['Mesa West'] | expanded=['Morgan Stanley', 'Mesa West', 'Mesa West Capital']
+2026-04-03 10:28:58,602 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 10:29:00,477 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 10:29:00,480 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["PE", "VC"], "manager": ["Hanwha Asset Management"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-03 10:29:00,483 | INFO | manager expansion | input=['Hanwha Asset Management'] | expanded=['Hanwha Asset Management']
+2026-04-03 10:29:00,484 | INFO | manager filter | raw=['Hanwha Asset Management'] | expanded=['Hanwha Asset Management']
+2026-04-03 10:29:12,590 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 10:29:14,625 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 10:29:14,627 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["PE", "VC"], "manager": ["한화자산운용"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-03 10:29:14,632 | INFO | manager expansion | input=['한화자산운용'] | expanded=['한화자산운용']
+2026-04-03 10:29:14,632 | INFO | manager filter | raw=['한화자산운용'] | expanded=['한화자산운용']
+2026-04-03 10:30:52,670 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 10:30:54,912 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 10:30:54,914 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["PE", "VC"], "manager": ["Hanwha Asset Management"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-03 10:30:54,918 | INFO | manager expansion | input=['Hanwha Asset Management'] | expanded=['Hanwha Asset Management']
+2026-04-03 10:30:54,919 | INFO | manager filter | raw=['Hanwha Asset Management'] | expanded=['Hanwha Asset Management']
+2026-04-03 11:01:37,833 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 11:01:41,785 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 15:00:22,190 | INFO | Stopped by user.
+2026-04-03 15:05:05,268 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-03 15:05:06,077 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-03 15:05:06,080 | INFO | Bot started.
+2026-04-03 15:09:30,451 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 15:09:33,366 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 15:09:56,010 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 15:09:59,279 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 15:12:59,466 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 15:13:03,620 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 15:13:54,274 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 15:13:56,499 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 15:14:18,348 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 15:14:19,639 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 15:14:39,863 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 15:14:42,157 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 15:15:16,413 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 15:15:18,533 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 15:16:30,953 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 15:16:33,586 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 15:16:50,070 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 15:16:51,876 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 15:18:27,046 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 15:18:29,096 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 15:19:51,252 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 15:19:53,543 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 15:21:07,421 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 15:21:14,163 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 15:26:50,436 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 15:26:52,427 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 15:32:03,140 | INFO | Stopped by user.
+2026-04-03 15:32:24,364 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-03 15:32:24,623 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-03 15:32:24,624 | INFO | Bot started.
+2026-04-03 15:34:23,735 | INFO | Stopped by user.
+2026-04-03 15:37:19,906 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-03 15:37:20,163 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-03 15:37:20,164 | INFO | Bot started.
+2026-04-03 15:41:34,854 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 15:41:35,994 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 15:43:30,809 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 15:43:32,089 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 15:44:18,155 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 15:44:21,462 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 15:44:27,166 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-03 15:44:28,867 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-03 18:32:57,260 | ERROR | main loop error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connection.py", line 204, in _new_conn
+    sock = connection.create_connection(
+        (self._dns_host, self.port),
+    ...<2 lines>...
+        socket_options=self.socket_options,
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\util\connection.py", line 60, in create_connection
+    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+               ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\socket.py", line 983, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 11001] getaddrinfo failed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+        conn,
+    ...<10 lines>...
+        **response_kw,
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 488, in _make_request
+    raise new_e
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 464, in _make_request
+    self._validate_conn(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 1093, in _validate_conn
+    conn.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connection.py", line 759, in connect
+    self.sock = sock = self._new_conn()
+                       ~~~~~~~~~~~~~~^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connection.py", line 211, in _new_conn
+    raise NameResolutionError(self.host, self, e) from e
+urllib3.exceptions.NameResolutionError: HTTPSConnection(host='api.telegram.org', port=443): Failed to resolve 'api.telegram.org' ([Errno 11001] getaddrinfo failed)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\adapters.py", line 644, in send
+    resp = conn.urlopen(
+        method=request.method,
+    ...<9 lines>...
+        chunked=chunked,
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 841, in urlopen
+    retries = retries.increment(
+        method, url, error=new_e, _pool=self, _stacktrace=sys.exc_info()[2]
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\util\retry.py", line 535, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.telegram.org', port=443): Max retries exceeded with url: /bot8626745530:AAErOzyIGiDj0DmQ0PjavJssfAXZbVPIemc/getUpdates?timeout=50&offset=315448643 (Caused by NameResolutionError("HTTPSConnection(host='api.telegram.org', port=443): Failed to resolve 'api.telegram.org' ([Errno 11001] getaddrinfo failed)"))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\Users\Administrator\Downloads\Python\Investment_Manager_MVP_V2.py", line 2435, in main
+    updates = get_updates(offset=offset, timeout=config.POLL_TIMEOUT)
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 109, in get_updates
+    data = telegram_get("getUpdates", params=params, timeout=timeout + 10)
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 31, in telegram_get
+    raise last_err
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 20, in telegram_get
+    r = requests.get(url, params=params, timeout=timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\adapters.py", line 677, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.telegram.org', port=443): Max retries exceeded with url: /bot8626745530:AAErOzyIGiDj0DmQ0PjavJssfAXZbVPIemc/getUpdates?timeout=50&offset=315448643 (Caused by NameResolutionError("HTTPSConnection(host='api.telegram.org', port=443): Failed to resolve 'api.telegram.org' ([Errno 11001] getaddrinfo failed)"))
+2026-04-05 23:25:54,434 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-05 23:25:55,272 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-05 23:25:55,273 | INFO | Bot started.
+2026-04-05 23:39:36,834 | INFO | Stopped by user.
+2026-04-05 23:40:14,340 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-05 23:40:14,742 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-05 23:40:14,744 | INFO | Bot started.
+2026-04-06 08:55:24,321 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 08:55:29,143 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 09:03:47,178 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 09:03:48,563 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 09:03:48,565 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["Real_Estate"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"], "manager": ["Hanwha Asset Management"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-06 09:03:48,570 | INFO | manager expansion | input=['Hanwha Asset Management'] | expanded=['Hanwha Asset Management']
+2026-04-06 09:03:48,570 | INFO | manager filter | raw=['Hanwha Asset Management'] | expanded=['Hanwha Asset Management']
+2026-04-06 09:04:06,582 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 09:04:47,575 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 09:04:47,577 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["Real_Estate"], "region": ["US", "Europe", "Asia", "Global", "MENA", "Canada"], "manager": ["한화자산운용"]}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-06 09:04:47,580 | INFO | manager expansion | input=['한화자산운용'] | expanded=['한화자산운용']
+2026-04-06 09:04:47,580 | INFO | manager filter | raw=['한화자산운용'] | expanded=['한화자산운용']
+2026-04-06 11:02:56,965 | INFO | Stopped by user.
+2026-04-06 11:06:56,595 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-06 11:06:57,477 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-06 11:06:57,478 | INFO | Bot started.
+2026-04-06 11:10:12,602 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 11:10:14,425 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 11:10:48,525 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 11:10:50,595 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 11:11:43,609 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 11:11:45,601 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 11:12:05,683 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 11:12:07,468 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 11:17:08,243 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 11:17:11,878 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 11:21:02,656 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 11:21:04,655 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 11:21:41,489 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 11:21:43,724 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 11:22:35,764 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 11:22:37,886 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 13:12:22,025 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 13:12:23,399 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 13:14:21,167 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 13:14:24,233 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 13:15:29,130 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 13:15:30,745 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 13:35:07,597 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 13:35:09,667 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 13:35:09,669 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["Infrastructure"], "vintage_from": 2019, "vintage_to": 2021}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-06 13:36:15,003 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 13:36:16,856 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 13:50:13,456 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 13:50:16,707 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 14:43:45,797 | INFO | Stopped by user.
+2026-04-06 14:44:00,754 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-06 14:44:01,628 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-06 14:44:01,630 | INFO | Bot started.
+2026-04-06 14:44:26,857 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 14:44:42,258 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 14:44:42,261 | INFO | query_json={"query_type": "summary_with_list", "filters": {"asset_class": ["Infrastructure"], "manager": ["한화자산운용"], "vintage_from": 2019, "vintage_to": 2022}, "sort": {}, "output": {"include_summary": true, "include_list": true, "limit": 9999}}
+2026-04-06 14:44:42,266 | INFO | manager expansion | input=['한화자산운용'] | expanded=['한화자산운용']
+2026-04-06 14:44:42,267 | INFO | manager filter | raw=['한화자산운용'] | expanded=['한화자산운용']
+2026-04-06 14:45:22,173 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 14:45:23,625 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 14:45:23,628 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"manager": ["Hanwha Asset Management"], "vintage_from": 2019, "vintage_to": 2022}, "target_filters": {}, "metric": "commitment", "groupby": ["asset_class"], "metrics": ["irr_weighted_commitment", "commitment"], "sort_by": "irr_weighted_commitment", "top_n": 20, "sort_order": "desc"}
+2026-04-06 14:45:23,629 | INFO | manager expansion | input=['Hanwha Asset Management'] | expanded=['Hanwha Asset Management']
+2026-04-06 14:45:23,630 | INFO | manager filter | raw=['Hanwha Asset Management'] | expanded=['Hanwha Asset Management']
+2026-04-06 14:45:44,161 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 14:45:46,163 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 14:45:46,164 | INFO | analysis_json={"analysis_type": "grouped_metric", "base_filters": {"manager": ["한화자산운용"], "vintage_from": 2019, "vintage_to": 2022}, "target_filters": {}, "metric": "commitment", "groupby": ["asset_class"], "metrics": ["irr_weighted_commitment", "commitment"], "sort_by": "irr_weighted_commitment", "top_n": 20, "sort_order": "desc"}
+2026-04-06 14:45:46,165 | INFO | manager expansion | input=['한화자산운용'] | expanded=['한화자산운용']
+2026-04-06 14:45:46,166 | INFO | manager filter | raw=['한화자산운용'] | expanded=['한화자산운용']
+2026-04-06 15:20:45,863 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 15:20:50,904 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 18:12:45,310 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 18:12:48,814 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 18:13:17,747 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 18:13:20,774 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 18:33:21,768 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 18:33:24,892 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 18:34:03,081 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 18:34:04,915 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 18:34:22,627 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 18:34:24,557 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 18:35:34,267 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 18:35:35,403 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-06 18:38:06,548 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-06 18:38:09,206 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-07 08:37:50,253 | ERROR | main loop error
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connection.py", line 204, in _new_conn
+    sock = connection.create_connection(
+        (self._dns_host, self.port),
+    ...<2 lines>...
+        socket_options=self.socket_options,
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\util\connection.py", line 60, in create_connection
+    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+               ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\socket.py", line 983, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 11001] getaddrinfo failed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+        conn,
+    ...<10 lines>...
+        **response_kw,
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 488, in _make_request
+    raise new_e
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 464, in _make_request
+    self._validate_conn(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 1093, in _validate_conn
+    conn.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connection.py", line 759, in connect
+    self.sock = sock = self._new_conn()
+                       ~~~~~~~~~~~~~~^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connection.py", line 211, in _new_conn
+    raise NameResolutionError(self.host, self, e) from e
+urllib3.exceptions.NameResolutionError: HTTPSConnection(host='api.telegram.org', port=443): Failed to resolve 'api.telegram.org' ([Errno 11001] getaddrinfo failed)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\adapters.py", line 644, in send
+    resp = conn.urlopen(
+        method=request.method,
+    ...<9 lines>...
+        chunked=chunked,
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py", line 841, in urlopen
+    retries = retries.increment(
+        method, url, error=new_e, _pool=self, _stacktrace=sys.exc_info()[2]
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\util\retry.py", line 535, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.telegram.org', port=443): Max retries exceeded with url: /bot8626745530:AAErOzyIGiDj0DmQ0PjavJssfAXZbVPIemc/getUpdates?timeout=50&offset=315448680 (Caused by NameResolutionError("HTTPSConnection(host='api.telegram.org', port=443): Failed to resolve 'api.telegram.org' ([Errno 11001] getaddrinfo failed)"))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\Users\Administrator\Downloads\Python\Investment_Manager_MVP_V2.py", line 2435, in main
+    updates = get_updates(offset=offset, timeout=config.POLL_TIMEOUT)
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 109, in get_updates
+    data = telegram_get("getUpdates", params=params, timeout=timeout + 10)
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 31, in telegram_get
+    raise last_err
+  File "c:\Users\Administrator\Downloads\Python\telegram_service.py", line 20, in telegram_get
+    r = requests.get(url, params=params, timeout=timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\requests\adapters.py", line 677, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.telegram.org', port=443): Max retries exceeded with url: /bot8626745530:AAErOzyIGiDj0DmQ0PjavJssfAXZbVPIemc/getUpdates?timeout=50&offset=315448680 (Caused by NameResolutionError("HTTPSConnection(host='api.telegram.org', port=443): Failed to resolve 'api.telegram.org' ([Errno 11001] getaddrinfo failed)"))
+2026-04-07 08:38:45,931 | INFO | Stopped by user.
+2026-04-07 08:39:22,185 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-07 08:39:23,172 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-07 08:39:23,174 | INFO | Bot started.
+2026-04-07 08:50:57,580 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-07 08:51:03,924 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
+2026-04-07 08:52:04,404 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-07 08:52:04,689 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-07 08:52:04,690 | INFO | Bot started.
+2026-04-07 08:52:15,326 | INFO | Stopped by user.
+2026-04-07 08:52:49,070 | INFO | Gemini 사용 가능 | model=gemini-3.1-flash-lite-preview
+2026-04-07 08:52:49,379 | INFO | DB loaded | rows=388 | file=C:/Users/Administrator/Downloads/Python/Database/Data_Raw_2602.xlsx
+2026-04-07 08:52:49,381 | INFO | Bot started.
+2026-04-07 09:00:58,954 | INFO | AFC is enabled with max remote calls: 10.
+2026-04-07 09:01:27,502 | INFO | HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent "HTTP/1.1 200 OK"
