@@ -22,6 +22,8 @@ from task_service import (
 )
 from news_service import handle_news_search_command, maybe_run_scheduled_news
 from task_service import check_and_report_overdue_tasks
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 try:
     from google import genai
@@ -981,6 +983,17 @@ class InvestmentDB:
             "base_project_count": int(base_project_df["Project_ID"].nunique())
         }
 
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+def run_server():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), Handler)
+    server.serve_forever()
 
 # =========================================================
 # Gemini 질문 해석
@@ -2474,4 +2487,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    threading.Thread(target=run_server, daemon=True).start()
     main()
