@@ -150,6 +150,7 @@ async def admin_diag(authorization: Optional[str] = Header(None)):
     from app.services import gemini, sheets
     result: dict = {
         "ok": True,
+        "diag_version": "v3-2026-04-14",
         "gemini_available": gemini.is_available(),
         "gemini_model": config.GEMINI_MODEL,
         "sheets_available": sheets.is_available(),
