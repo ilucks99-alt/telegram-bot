@@ -8,7 +8,7 @@ from app import config
 from app.db_engine import InvestmentDB
 from app.handlers.news import run_scheduled_news_report
 from app.handlers.router import process_user_message
-from app.handlers.task import check_and_report_overdue_tasks, check_due_date_reminders
+from app.handlers.task import check_and_report_overdue_tasks
 from app.logger import get_logger, setup_logging
 from app.services import sheets
 from app.util import extract_message_context
@@ -134,8 +134,7 @@ async def cron_task_check(authorization: Optional[str] = Header(None)):
 
     def _worker():
         try:
-            check_and_report_overdue_tasks()
-            check_due_date_reminders()
+            check_and_report_overdue_tasks(get_db())
         except Exception:
             logger.exception("cron_task_check worker failed")
 

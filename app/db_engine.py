@@ -458,3 +458,23 @@ class InvestmentDB:
         if not rows:
             return None
         return rows[0]
+
+    def top_managers_by_outstanding(self, limit: int = 10) -> List[str]:
+        import re as _re
+        df = self.df
+        if df is None or df.empty or "Manager" not in df.columns:
+            return []
+        normalized = (
+            df["Manager"]
+            .fillna("")
+            .astype(str)
+            .map(lambda s: _re.sub(r"\s+", " ", s).strip())
+        )
+        grouped = (
+            df.assign(_Manager=normalized)
+            .loc[lambda d: d["_Manager"].ne("") & d["_Manager"].ne("-")]
+            .groupby("_Manager")["Outstanding"]
+            .sum()
+            .sort_values(ascending=False)
+        )
+        return [str(m) for m in grouped.head(limit).index.tolist()]

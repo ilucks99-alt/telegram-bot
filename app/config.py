@@ -51,7 +51,6 @@ DAILY_QUESTION_LIMIT = _env_int("DAILY_QUESTION_LIMIT", 50)
 # Owner / Permissions
 # =========================================================
 OWNER_CHAT_ID = _env("OWNER_CHAT_ID", "315716158")
-NOTIFY_OWNER_STATUS_UPDATES = _env_bool("NOTIFY_OWNER_STATUS_UPDATES", True)
 
 # =========================================================
 # Task workflow
@@ -59,7 +58,6 @@ NOTIFY_OWNER_STATUS_UPDATES = _env_bool("NOTIFY_OWNER_STATUS_UPDATES", True)
 MAX_TASK_FEEDBACK_ROUND = _env_int("MAX_TASK_FEEDBACK_ROUND", 3)
 TASK_NO_REPLY_MINUTES = _env_int("TASK_NO_REPLY_MINUTES", 30)
 TASK_REPORT_COOLDOWN_MINUTES = _env_int("TASK_REPORT_COOLDOWN_MINUTES", 60)
-TASK_DUE_REMINDER_MINUTES = _env_int("TASK_DUE_REMINDER_MINUTES", 30)
 
 # =========================================================
 # News auto-report
@@ -77,6 +75,7 @@ NEWS_KEYWORDS = [
 
 NEWS_PER_KEYWORD_LIMIT = _env_int("NEWS_PER_KEYWORD_LIMIT", 10)
 NEWS_REPORT_MAX_ARTICLES = _env_int("NEWS_REPORT_MAX_ARTICLES", 20)
+NEWS_MANAGER_KEYWORD_LIMIT = _env_int("NEWS_MANAGER_KEYWORD_LIMIT", 10)
 
 # =========================================================
 # Google Sheets

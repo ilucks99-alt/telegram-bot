@@ -235,9 +235,8 @@ def create_task(
     assignee_chat_id,
     owner_chat_id,
     instruction: str,
-    priority: str = "normal",
-    due_at: Optional[str] = None,
     project_id: Optional[str] = None,
+    initial_status: str = "waiting_for_reply",
 ) -> Dict[str, Any]:
     ws = _tab("Tasks")
     if ws is None:
@@ -250,10 +249,10 @@ def create_task(
         "assignee_chat_id": str(assignee_chat_id),
         "owner_chat_id": str(owner_chat_id),
         "instruction": instruction,
-        "status": "waiting_for_reply",
+        "status": initial_status,
         "feedback_round": "0",
-        "priority": priority or "normal",
-        "due_at": due_at or "",
+        "priority": "",
+        "due_at": "",
         "project_id": project_id or "",
         "created_at": ts,
         "updated_at": ts,
@@ -274,8 +273,28 @@ def get_task_by_assignee(chat_id) -> Optional[Dict[str, Any]]:
     active = [t for t in tasks if t.get("assignee_chat_id") == chat_id_str and t.get("status") in ACTIVE_STATUSES]
     if not active:
         return None
-    active.sort(key=lambda t: t.get("updated_at", ""), reverse=True)
+    active.sort(key=lambda t: t.get("created_at", ""))
     return active[0]
+
+
+def has_active_task_for_assignee(chat_id) -> bool:
+    chat_id_str = str(chat_id)
+    for t in _read_all_tasks():
+        if t.get("assignee_chat_id") == chat_id_str and t.get("status") in ACTIVE_STATUSES:
+            return True
+    return False
+
+
+def get_oldest_queued_task(chat_id) -> Optional[Dict[str, Any]]:
+    chat_id_str = str(chat_id)
+    queued = [
+        t for t in _read_all_tasks()
+        if t.get("assignee_chat_id") == chat_id_str and t.get("status") == "queued"
+    ]
+    if not queued:
+        return None
+    queued.sort(key=lambda t: t.get("created_at", ""))
+    return queued[0]
 
 
 def get_task_by_id(task_id: str) -> Optional[Dict[str, Any]]:
@@ -363,27 +382,6 @@ def get_overdue_tasks(no_reply_minutes: int, cooldown_minutes: int) -> List[Dict
         overdue.append(t)
 
     return overdue
-
-
-def get_tasks_due_soon(within_minutes: int) -> List[Dict[str, Any]]:
-    from datetime import datetime, timedelta
-    tasks = _read_all_tasks()
-    now = datetime.now()
-    soon = []
-    for t in tasks:
-        if t.get("status") not in ACTIVE_STATUSES:
-            continue
-        due_raw = t.get("due_at", "")
-        if not due_raw or t.get("due_reminder_sent"):
-            continue
-        try:
-            dt = datetime.strptime(due_raw[:16], "%Y-%m-%d %H:%M")
-        except ValueError:
-            continue
-        delta = (dt - now).total_seconds() / 60
-        if 0 < delta <= within_minutes:
-            soon.append(t)
-    return soon
 
 
 # =========================================================

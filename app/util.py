@@ -120,26 +120,3 @@ def get_kst_today_year() -> int:
 
 def now_ts() -> str:
     return datetime.now(KST).strftime("%Y-%m-%d %H:%M:%S")
-
-
-def parse_due_at(raw: str) -> Optional[datetime]:
-    raw = (raw or "").strip()
-    if not raw:
-        return None
-    fmts = [
-        "%Y-%m-%d %H:%M",
-        "%Y-%m-%d %H:%M:%S",
-        "%Y-%m-%dT%H:%M",
-        "%Y-%m-%d",
-        "%Y/%m/%d %H:%M",
-        "%m-%d %H:%M",
-    ]
-    for fmt in fmts:
-        try:
-            dt = datetime.strptime(raw, fmt)
-            if dt.year == 1900:
-                dt = dt.replace(year=get_kst_today_year())
-            return dt.replace(tzinfo=KST)
-        except ValueError:
-            continue
-    return None

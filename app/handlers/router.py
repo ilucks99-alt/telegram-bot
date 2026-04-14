@@ -10,6 +10,7 @@ from app.handlers.task import (
     handle_cancel_command,
     handle_task_command,
     handle_task_document_reply,
+    handle_task_history_command,
     handle_task_text_reply,
 )
 from app.handlers.team import handle_register_command
@@ -43,7 +44,9 @@ HELP_TEXT = """
 
 [업무 지시]
 /등록 이름
-/지시 이름 | 업무내용 [| priority=high] [| due=2026-04-20 10:00] [| project=BS00001505]
+/지시 이름 | 업무내용 [| project=BS00001505]
+/이력 TASK-20260415-103000 (특정 업무 히스토리 조회)
+/이력 (최근 완료 업무 5건)
 /cancel (업무 세션 중 담당자가 종료)
 
 [분석 예시]
@@ -90,7 +93,7 @@ def process_user_message(db: InvestmentDB, chat_id: int, text: str, ctx: Dict[st
 
     # 1) /cancel (업무 세션 중이 아니어도 동작)
     if raw == "/cancel":
-        handle_cancel_command(chat_id)
+        handle_cancel_command(db, chat_id)
         return
 
     # 2) 업무 세션 중 파일 답변
@@ -122,6 +125,14 @@ def process_user_message(db: InvestmentDB, chat_id: int, text: str, ctx: Dict[st
             send_message(chat_id, "너가 뭔데 지시하고 지랄이냐")
             return
         handle_task_command(db, chat_id, raw)
+        return
+
+    # 5-1) 업무 이력 조회 (owner 전용)
+    if raw.startswith("/이력"):
+        if str(chat_id) != str(config.OWNER_CHAT_ID):
+            send_message(chat_id, "이력 조회 권한이 없습니다.")
+            return
+        handle_task_history_command(chat_id, raw)
         return
 
     # 6) 기존 명령어

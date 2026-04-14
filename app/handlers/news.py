@@ -4,11 +4,7 @@ from typing import Any, Dict, List
 from app import config
 from app.db_engine import InvestmentDB
 from app.logger import get_logger
-from app.parsers.news_summary import (
-    extract_entities_from_news,
-    match_portfolio_impact,
-    summarize_news,
-)
+from app.parsers.news_summary import summarize_news
 from app.services.news_rss import search_google_news_rss
 from app.services.telegram import send_long_message, send_message
 from app.util import KST
@@ -35,11 +31,24 @@ def handle_news_search_command(chat_id, raw: str) -> None:
         send_message(chat_id, "뉴스 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
 
 
-def collect_news_for_keywords() -> List[Dict[str, Any]]:
+def _build_portfolio_keywords(db: InvestmentDB) -> List[str]:
+    try:
+        keywords = db.top_managers_by_outstanding(config.NEWS_MANAGER_KEYWORD_LIMIT)
+    except Exception:
+        logger.exception("manager keyword build failed; using fallback")
+        keywords = []
+    if not keywords:
+        keywords = list(config.NEWS_KEYWORDS[:10])
+    return keywords
+
+
+def collect_news_for_keywords(db: InvestmentDB) -> List[Dict[str, Any]]:
+    keywords = _build_portfolio_keywords(db)
+
     all_items: List[Dict[str, Any]] = []
     seen = set()
 
-    for kw in config.NEWS_KEYWORDS[:10]:
+    for kw in keywords:
         try:
             items = search_google_news_rss(kw, limit=config.NEWS_PER_KEYWORD_LIMIT)
             for item in items:
@@ -83,21 +92,12 @@ def run_scheduled_news_report(db: InvestmentDB, chat_id, force: bool = False) ->
         return "skipped"
 
     try:
-        news_items = collect_news_for_keywords()
+        news_items = collect_news_for_keywords(db)
         if not news_items:
             send_message(chat_id, "신규 뉴스 없음")
             return "empty"
 
-        # Entity extraction + portfolio impact
-        portfolio_impact = []
-        try:
-            entities = extract_entities_from_news(news_items)
-            if entities:
-                portfolio_impact = match_portfolio_impact(entities, db)
-        except Exception:
-            logger.exception("portfolio impact matching failed; falling back to plain summary")
-
-        summary = summarize_news("자동 뉴스 보고", news_items, portfolio_impact=portfolio_impact)
+        summary = summarize_news("자동 뉴스 보고", news_items)
 
         slot = datetime.now(KST).strftime("%Y-%m-%d %H:%M")
         report = f"📰 뉴스 자동 보고 ({slot})\n\n{summary}\n\n[수집 기사 {len(news_items)}건]\n"
