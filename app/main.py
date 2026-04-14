@@ -108,19 +108,22 @@ def _check_cron_secret(authorization: Optional[str]) -> None:
 
 
 @app.post("/cron/news")
-async def cron_news(authorization: Optional[str] = Header(None)):
+async def cron_news(
+    authorization: Optional[str] = Header(None),
+    force: bool = Query(False),
+):
     _check_cron_secret(authorization)
 
     import threading
 
     def _worker():
         try:
-            run_scheduled_news_report(get_db(), config.OWNER_CHAT_ID)
+            run_scheduled_news_report(get_db(), config.OWNER_CHAT_ID, force=force)
         except Exception:
             logger.exception("cron_news worker failed")
 
     threading.Thread(target=_worker, daemon=True).start()
-    return {"ok": True, "status": "scheduled"}
+    return {"ok": True, "status": "scheduled", "force": force}
 
 
 @app.post("/cron/task-check")

@@ -70,15 +70,16 @@ def _matches_scheduled_slot() -> bool:
     return False
 
 
-def run_scheduled_news_report(db: InvestmentDB, chat_id) -> str:
+def run_scheduled_news_report(db: InvestmentDB, chat_id, force: bool = False) -> str:
     """
     GitHub Actions cron 호출 시 실행. 성공 시 "ok", 슬롯 아니면 "skipped".
     뉴스→포트폴리오 임팩트 매칭을 포함.
+    force=True 이면 스케줄 슬롯 체크를 우회 (관리자 테스트용).
     """
     if not config.NEWS_AUTO_REPORT_ENABLED:
         return "disabled"
 
-    if not _matches_scheduled_slot():
+    if not force and not _matches_scheduled_slot():
         return "skipped"
 
     try:
