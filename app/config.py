@@ -31,6 +31,7 @@ TELEGRAM_TOKEN = _env("TELEGRAM_TOKEN")
 TELEGRAM_WEBHOOK_SECRET = _env("TELEGRAM_WEBHOOK_SECRET", "change-me")
 GEMINI_API_KEY = _env("GEMINI_API_KEY")
 GEMINI_MODEL = _env("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
+GEMINI_FALLBACK_MODEL = _env("GEMINI_FALLBACK_MODEL", "gemini-2.5-flash-lite")
 
 # =========================================================
 # Paths
