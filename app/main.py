@@ -2,7 +2,7 @@ import os
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Query, Request
 
 from app import config
 from app.db_engine import InvestmentDB
@@ -126,8 +126,56 @@ async def cron_task_check(authorization: Optional[str] = Header(None)):
 # Admin: set webhook (manual trigger)
 # =========================================================
 @app.post("/admin/set-webhook")
-async def admin_set_webhook(url: str, authorization: Optional[str] = Header(None)):
+async def admin_set_webhook(
+    url: str = Query(...),
+    authorization: Optional[str] = Header(None),
+):
     _check_cron_secret(authorization)
     from app.services.telegram import set_webhook
-    result = set_webhook(url)
-    return {"ok": True, "result": result}
+    try:
+        result = set_webhook(url)
+        return {"ok": True, "result": result}
+    except Exception as e:
+        logger.exception("set_webhook failed")
+        return {"ok": False, "error": str(e)}
+
+
+# =========================================================
+# Admin: diagnostics
+# =========================================================
+@app.get("/admin/diag")
+async def admin_diag(authorization: Optional[str] = Header(None)):
+    _check_cron_secret(authorization)
+
+    from app.services import gemini, sheets
+    result: dict = {
+        "ok": True,
+        "gemini_available": gemini.is_available(),
+        "gemini_model": config.GEMINI_MODEL,
+        "sheets_available": sheets.is_available(),
+        "owner_chat_id": config.OWNER_CHAT_ID,
+        "db_rows": len(get_db().df) if _db is not None else 0,
+    }
+
+    # Quick Gemini smoke test
+    try:
+        raw = gemini.generate_json(
+            'Return this exact JSON and nothing else: {"ok":true,"echo":"hi"}',
+            max_output_tokens=100,
+        )
+        result["gemini_test_raw"] = (raw or "")[:500]
+        result["gemini_test_ok"] = bool(raw)
+    except Exception as e:
+        result["gemini_test_ok"] = False
+        result["gemini_test_error"] = f"{type(e).__name__}: {str(e)[:300]}"
+
+    # Sheets smoke test
+    try:
+        ss = sheets.get_spreadsheet()
+        if ss is not None:
+            result["sheets_title"] = ss.title
+            result["sheets_tabs"] = [w.title for w in ss.worksheets()]
+    except Exception as e:
+        result["sheets_error"] = f"{type(e).__name__}: {str(e)[:300]}"
+
+    return result
