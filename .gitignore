@@ -18,6 +18,6 @@ telegram_bot.log
 daily_question_usage.json
 task_sessions.json
 team_members.json
-state/
+/state/
 telegram_files/
 /tmp/
