@@ -157,17 +157,31 @@ async def admin_diag(authorization: Optional[str] = Header(None)):
         "db_rows": len(get_db().df) if _db is not None else 0,
     }
 
-    # Quick Gemini smoke test
+    # Quick Gemini smoke test — bypass the wrapper so exceptions surface
     try:
-        raw = gemini.generate_json(
-            'Return this exact JSON and nothing else: {"ok":true,"echo":"hi"}',
-            max_output_tokens=100,
-        )
-        result["gemini_test_raw"] = (raw or "")[:500]
-        result["gemini_test_ok"] = bool(raw)
+        client = gemini.get_client()
+        types = gemini.get_types()
+        if client is None or types is None:
+            result["gemini_test_ok"] = False
+            result["gemini_test_error"] = "client or types is None"
+        else:
+            resp = client.models.generate_content(
+                model=config.GEMINI_MODEL,
+                contents='Return this exact JSON and nothing else: {"ok":true,"echo":"hi"}',
+                config=types.GenerateContentConfig(
+                    temperature=0.1,
+                    max_output_tokens=100,
+                    response_mime_type="application/json",
+                ),
+            )
+            txt = (getattr(resp, "text", "") or "").strip()
+            result["gemini_test_raw"] = txt[:500]
+            result["gemini_test_ok"] = bool(txt)
     except Exception as e:
+        import traceback
         result["gemini_test_ok"] = False
-        result["gemini_test_error"] = f"{type(e).__name__}: {str(e)[:300]}"
+        result["gemini_test_error"] = f"{type(e).__name__}: {str(e)[:600]}"
+        result["gemini_test_tb_tail"] = traceback.format_exc()[-1500:]
 
     # Sheets smoke test
     try:
