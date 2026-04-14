@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.venv/
+venv/
+env/
+.env
+.env.*
+.DS_Store
+
+# Runtime state (ephemeral)
+telegram_offset.txt
+telegram_bot.lock
+telegram_bot.log
+daily_question_usage.json
+task_sessions.json
+team_members.json
+state/
+telegram_files/
+/tmp/

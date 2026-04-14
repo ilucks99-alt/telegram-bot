@@ -1,0 +1,23 @@
+다음 뉴스 기사 목록에서 대체투자 포트폴리오와 연결될 가능성이 있는 엔티티를 추출하라.
+JSON 한 개만 출력.
+
+[출력 스키마]
+{
+  "items": [
+    {
+      "keyword": "원본 키워드 또는 이슈 타이틀",
+      "managers": ["BlackRock", ...],
+      "asset_classes": ["Real_Estate|PE|VC|PD|Infrastructure", ...],
+      "regions": ["US|Europe|Asia|Global|KOR|MENA|Canada", ...]
+    }
+  ]
+}
+
+[규칙]
+- 기사 제목에 명시적으로 등장한 운용사/자산군/지역만 추출. 추측 금지.
+- asset_classes, regions는 허용된 값만 사용 (없으면 빈 배열).
+- managers는 뉴스에 나온 공식 이름 그대로.
+- 대체투자와 무관한 일반 뉴스는 items 에서 생략.
+
+[뉴스 목록]
+{articles}

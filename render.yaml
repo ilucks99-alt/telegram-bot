@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: telegram-bot
+    env: python
+    plan: free
+    region: singapore
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: TELEGRAM_TOKEN
+        sync: false
+      - key: TELEGRAM_WEBHOOK_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.1-flash-lite-preview
+      - key: OWNER_CHAT_ID
+        sync: false
+      - key: GOOGLE_SA_JSON
+        sync: false
+      - key: GOOGLE_SHEET_ID
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+      - key: MAIN_DB_XLSX
+        value: ./Database/Data_Raw_2602.xlsx
+      - key: DETAIL_XLSX
+        value: ./Database/Investment_Raw_2509.xlsx
+      - key: TELEGRAM_FILE_DIR
+        value: /tmp/telegram_files
+      - key: DAILY_QUESTION_LIMIT
+        value: "50"
+      - key: NOTIFY_OWNER_STATUS_UPDATES
+        value: "1"
+      - key: NEWS_REPORT_TIMES
+        value: "09:10,15:30"

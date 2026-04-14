@@ -1,0 +1,42 @@
+name: telegram-bot-cron
+
+on:
+  schedule:
+    # KST 09:10 → UTC 00:10
+    - cron: '10 0 * * *'
+    # KST 15:30 → UTC 06:30
+    - cron: '30 6 * * *'
+    # Every 15 min: overdue/due reminder
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  news:
+    if: github.event.schedule == '10 0 * * *' || github.event.schedule == '30 6 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call /cron/news
+        env:
+          RENDER_URL: ${{ secrets.RENDER_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -sS -X POST "${RENDER_URL}/cron/news" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            --max-time 60
+
+  task_check:
+    if: github.event.schedule == '*/15 * * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call /cron/task-check
+        env:
+          RENDER_URL: ${{ secrets.RENDER_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -sS -X POST "${RENDER_URL}/cron/task-check" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            --max-time 60
