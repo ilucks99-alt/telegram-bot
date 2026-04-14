@@ -170,13 +170,37 @@ async def admin_diag(authorization: Optional[str] = Header(None)):
                 contents='Return this exact JSON and nothing else: {"ok":true,"echo":"hi"}',
                 config=types.GenerateContentConfig(
                     temperature=0.1,
-                    max_output_tokens=100,
+                    max_output_tokens=2000,
                     response_mime_type="application/json",
                 ),
             )
             txt = (getattr(resp, "text", "") or "").strip()
             result["gemini_test_raw"] = txt[:500]
             result["gemini_test_ok"] = bool(txt)
+
+            # Surface finish_reason, prompt_feedback, usage
+            try:
+                candidates = getattr(resp, "candidates", None) or []
+                if candidates:
+                    c0 = candidates[0]
+                    fr = getattr(c0, "finish_reason", None)
+                    result["gemini_finish_reason"] = str(fr)
+                    content = getattr(c0, "content", None)
+                    parts = getattr(content, "parts", None) if content else None
+                    if parts:
+                        result["gemini_parts"] = [
+                            (getattr(p, "text", None) or "")[:200] for p in parts
+                        ]
+                    else:
+                        result["gemini_parts"] = []
+                pf = getattr(resp, "prompt_feedback", None)
+                if pf is not None:
+                    result["gemini_prompt_feedback"] = str(pf)[:400]
+                usage = getattr(resp, "usage_metadata", None)
+                if usage is not None:
+                    result["gemini_usage"] = str(usage)[:400]
+            except Exception as inner:
+                result["gemini_inspect_error"] = f"{type(inner).__name__}: {str(inner)[:300]}"
     except Exception as e:
         import traceback
         result["gemini_test_ok"] = False
