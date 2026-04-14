@@ -24,7 +24,7 @@ jobs:
             -H "Authorization: Bearer ${CRON_SECRET}" \
             -H "Content-Type: application/json" \
             -d '{}' \
-            --max-time 60
+            --max-time 180
 
   task_check:
     if: github.event.schedule == '*/15 * * * *' || github.event_name == 'workflow_dispatch'
@@ -39,4 +39,4 @@ jobs:
             -H "Authorization: Bearer ${CRON_SECRET}" \
             -H "Content-Type: application/json" \
             -d '{}' \
-            --max-time 60
+            --max-time 180

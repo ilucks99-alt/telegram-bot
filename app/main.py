@@ -110,16 +110,34 @@ def _check_cron_secret(authorization: Optional[str]) -> None:
 @app.post("/cron/news")
 async def cron_news(authorization: Optional[str] = Header(None)):
     _check_cron_secret(authorization)
-    status = run_scheduled_news_report(get_db(), config.OWNER_CHAT_ID)
-    return {"ok": True, "status": status}
+
+    import threading
+
+    def _worker():
+        try:
+            run_scheduled_news_report(get_db(), config.OWNER_CHAT_ID)
+        except Exception:
+            logger.exception("cron_news worker failed")
+
+    threading.Thread(target=_worker, daemon=True).start()
+    return {"ok": True, "status": "scheduled"}
 
 
 @app.post("/cron/task-check")
 async def cron_task_check(authorization: Optional[str] = Header(None)):
     _check_cron_secret(authorization)
-    overdue_count = check_and_report_overdue_tasks()
-    reminder_count = check_due_date_reminders()
-    return {"ok": True, "overdue": overdue_count, "reminders": reminder_count}
+
+    import threading
+
+    def _worker():
+        try:
+            check_and_report_overdue_tasks()
+            check_due_date_reminders()
+        except Exception:
+            logger.exception("cron_task_check worker failed")
+
+    threading.Thread(target=_worker, daemon=True).start()
+    return {"ok": True, "status": "scheduled"}
 
 
 # =========================================================
