@@ -31,20 +31,25 @@ def handle_news_search_command(chat_id, raw: str) -> None:
         send_message(chat_id, "뉴스 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
 
 
-def _build_portfolio_keywords(db: InvestmentDB) -> List[str]:
+# =========================================================
+# Keyword sources
+# =========================================================
+def _macro_keywords() -> List[str]:
+    return list(config.NEWS_KEYWORDS[:10])
+
+
+def _manager_keywords(db: InvestmentDB) -> List[str]:
     try:
-        keywords = db.top_managers_by_outstanding(config.NEWS_MANAGER_KEYWORD_LIMIT)
+        return db.top_managers_by_outstanding(config.NEWS_MANAGER_KEYWORD_LIMIT)
     except Exception:
-        logger.exception("manager keyword build failed; using fallback")
-        keywords = []
-    if not keywords:
-        keywords = list(config.NEWS_KEYWORDS[:10])
-    return keywords
+        logger.exception("manager keyword build failed")
+        return []
 
 
-def collect_news_for_keywords(db: InvestmentDB) -> List[Dict[str, Any]]:
-    keywords = _build_portfolio_keywords(db)
-
+# =========================================================
+# Collection
+# =========================================================
+def _collect_articles(keywords: List[str]) -> List[Dict[str, Any]]:
     all_items: List[Dict[str, Any]] = []
     seen = set()
 
@@ -65,11 +70,28 @@ def collect_news_for_keywords(db: InvestmentDB) -> List[Dict[str, Any]]:
     return all_items[:config.NEWS_REPORT_MAX_ARTICLES]
 
 
-def _matches_scheduled_slot() -> bool:
-    """KST 기준으로 현재 시각이 NEWS_REPORT_TIMES 중 하나와 ±15분 이내인지."""
+def collect_news_for_keywords(db: InvestmentDB) -> List[Dict[str, Any]]:
+    """거시 키워드(NEWS_KEYWORDS) 기반 수집 — 09:10/15:30 슬롯."""
+    return _collect_articles(_macro_keywords())
+
+
+def collect_manager_news(db: InvestmentDB) -> List[Dict[str, Any]]:
+    """포트폴리오 운용사(top Managers by Outstanding) 기반 수집 — 09:00 슬롯."""
+    keywords = _manager_keywords(db)
+    if not keywords:
+        logger.warning("manager keyword list empty; skipping manager news report")
+        return []
+    return _collect_articles(keywords)
+
+
+# =========================================================
+# Slot checks
+# =========================================================
+def _matches_slot(slot_times: List[str]) -> bool:
+    """KST 기준으로 현재 시각이 주어진 시간 목록 중 하나와 ±15분 이내인지."""
     now = datetime.now(KST)
     today = now.strftime("%Y-%m-%d")
-    for t in config.NEWS_REPORT_TIMES:
+    for t in slot_times:
         try:
             base = datetime.strptime(f"{today} {t}", "%Y-%m-%d %H:%M").replace(tzinfo=KST)
         except ValueError:
@@ -79,34 +101,49 @@ def _matches_scheduled_slot() -> bool:
     return False
 
 
-def run_scheduled_news_report(db: InvestmentDB, chat_id, force: bool = False) -> str:
-    """
-    GitHub Actions cron 호출 시 실행. 성공 시 "ok", 슬롯 아니면 "skipped".
-    뉴스→포트폴리오 임팩트 매칭을 포함.
-    force=True 이면 스케줄 슬롯 체크를 우회 (관리자 테스트용).
-    """
-    if not config.NEWS_AUTO_REPORT_ENABLED:
-        return "disabled"
-
-    if not force and not _matches_scheduled_slot():
-        return "skipped"
-
+# =========================================================
+# Reports
+# =========================================================
+def _send_report(chat_id, header: str, news_items: List[Dict[str, Any]], query: str) -> str:
     try:
-        news_items = collect_news_for_keywords(db)
         if not news_items:
-            send_message(chat_id, "신규 뉴스 없음")
+            send_message(chat_id, f"{header}: 신규 뉴스 없음")
             return "empty"
 
-        summary = summarize_news("자동 뉴스 보고", news_items)
+        summary = summarize_news(query, news_items)
 
         slot = datetime.now(KST).strftime("%Y-%m-%d %H:%M")
-        report = f"📰 뉴스 자동 보고 ({slot})\n\n{summary}\n\n[수집 기사 {len(news_items)}건]\n"
+        report = f"{header} ({slot})\n\n{summary}\n\n[수집 기사 {len(news_items)}건]\n"
         for i, item in enumerate(news_items[:10], 1):
             report += f"\n{i}. {item['title']}\n   - {item['link']}"
 
         send_long_message(chat_id, report)
         return "ok"
     except Exception:
-        logger.exception("뉴스 자동 보고 실패")
-        send_message(chat_id, "뉴스 자동 보고 처리 중 오류가 발생했습니다.")
+        logger.exception("뉴스 자동 보고 실패 | header=%s", header)
+        send_message(chat_id, f"{header} 처리 중 오류가 발생했습니다.")
         return "error"
+
+
+def run_scheduled_news_report(db: InvestmentDB, chat_id, force: bool = False) -> str:
+    """거시 뉴스 자동 보고. NEWS_REPORT_TIMES 슬롯에만 실행."""
+    if not config.NEWS_AUTO_REPORT_ENABLED:
+        return "disabled"
+
+    if not force and not _matches_slot(config.NEWS_REPORT_TIMES):
+        return "skipped"
+
+    news_items = collect_news_for_keywords(db)
+    return _send_report(chat_id, "📰 거시 뉴스 자동 보고", news_items, "거시 뉴스")
+
+
+def run_manager_news_report(db: InvestmentDB, chat_id, force: bool = False) -> str:
+    """운용사 뉴스 자동 보고. NEWS_MANAGER_REPORT_TIMES 슬롯에만 실행."""
+    if not config.NEWS_AUTO_REPORT_ENABLED:
+        return "disabled"
+
+    if not force and not _matches_slot(config.NEWS_MANAGER_REPORT_TIMES):
+        return "skipped"
+
+    news_items = collect_manager_news(db)
+    return _send_report(chat_id, "🏦 운용사 뉴스 자동 보고", news_items, "포트폴리오 운용사 뉴스")

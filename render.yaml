@@ -32,7 +32,7 @@ services:
         value: /tmp/telegram_files
       - key: DAILY_QUESTION_LIMIT
         value: "50"
-      - key: NOTIFY_OWNER_STATUS_UPDATES
-        value: "1"
       - key: NEWS_REPORT_TIMES
         value: "09:10,15:30"
+      - key: NEWS_MANAGER_REPORT_TIMES
+        value: "09:00"

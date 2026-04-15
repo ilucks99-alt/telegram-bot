@@ -64,6 +64,7 @@ TASK_REPORT_COOLDOWN_MINUTES = _env_int("TASK_REPORT_COOLDOWN_MINUTES", 60)
 # =========================================================
 NEWS_AUTO_REPORT_ENABLED = _env_bool("NEWS_AUTO_REPORT_ENABLED", True)
 NEWS_REPORT_TIMES = [t.strip() for t in _env("NEWS_REPORT_TIMES", "09:10,15:30").split(",") if t.strip()]
+NEWS_MANAGER_REPORT_TIMES = [t.strip() for t in _env("NEWS_MANAGER_REPORT_TIMES", "09:00").split(",") if t.strip()]
 
 NEWS_KEYWORDS = [
     "US interest rate Fed",

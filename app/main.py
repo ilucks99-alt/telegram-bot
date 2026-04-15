@@ -6,7 +6,7 @@ from fastapi import FastAPI, Header, HTTPException, Query, Request
 
 from app import config
 from app.db_engine import InvestmentDB
-from app.handlers.news import run_scheduled_news_report
+from app.handlers.news import run_manager_news_report, run_scheduled_news_report
 from app.handlers.router import process_user_message
 from app.handlers.task import check_and_report_overdue_tasks
 from app.logger import get_logger, setup_logging
@@ -121,6 +121,25 @@ async def cron_news(
             run_scheduled_news_report(get_db(), config.OWNER_CHAT_ID, force=force)
         except Exception:
             logger.exception("cron_news worker failed")
+
+    threading.Thread(target=_worker, daemon=True).start()
+    return {"ok": True, "status": "scheduled", "force": force}
+
+
+@app.post("/cron/news-managers")
+async def cron_news_managers(
+    authorization: Optional[str] = Header(None),
+    force: bool = Query(False),
+):
+    _check_cron_secret(authorization)
+
+    import threading
+
+    def _worker():
+        try:
+            run_manager_news_report(get_db(), config.OWNER_CHAT_ID, force=force)
+        except Exception:
+            logger.exception("cron_news_managers worker failed")
 
     threading.Thread(target=_worker, daemon=True).start()
     return {"ok": True, "status": "scheduled", "force": force}
