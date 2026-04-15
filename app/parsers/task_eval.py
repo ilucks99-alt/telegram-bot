@@ -7,6 +7,13 @@ from app.services import gemini
 logger = get_logger(__name__)
 
 
+_ROLE_LABELS = {
+    "user": "팀원 답변",
+    "assistant": "AI 메시지(이전 평가 결과 - 절대 팀원 답변으로 취급 금지)",
+    "system": "시스템",
+}
+
+
 def _format_history(history: List[Dict[str, Any]]) -> str:
     if not history:
         return "(이전 대화 없음)"
@@ -14,8 +21,9 @@ def _format_history(history: List[Dict[str, Any]]) -> str:
     for item in history[-10:]:
         role = item.get("role", "")
         text = item.get("text", "")
-        parts.append(f"[{role}] {text}")
-    return "\n".join(parts)
+        label = _ROLE_LABELS.get(role, role)
+        parts.append(f"[{label}]\n{text}")
+    return "\n\n".join(parts)
 
 
 def _format_project_context(ctx: Optional[Dict[str, Any]]) -> str:

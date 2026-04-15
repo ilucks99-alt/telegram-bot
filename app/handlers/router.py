@@ -98,6 +98,10 @@ def process_user_message(db: InvestmentDB, chat_id: int, text: str, ctx: Dict[st
         handle_cancel_command(db, chat_id)
         return
 
+    # 슬래시 명령어는 항상 업무 답변보다 우선. 업무 세션 중에도 /help /지시 /조회 등을
+    # 사용해야 하므로, 슬래시로 시작하는 텍스트는 task reply 라우팅을 건너뛴다.
+    is_command = raw.startswith("/")
+
     # 2) 업무 세션 중 파일 답변
     if document and sheets.is_task_active(chat_id):
         try:
@@ -107,8 +111,8 @@ def process_user_message(db: InvestmentDB, chat_id: int, text: str, ctx: Dict[st
             send_message(chat_id, "파일 처리 중 오류가 발생했습니다.")
         return
 
-    # 3) 업무 세션 중 텍스트 답변 (명령어도 답변으로 해석되지만 /cancel 은 위에서 이미 처리)
-    if raw and sheets.is_task_active(chat_id):
+    # 3) 업무 세션 중 텍스트 답변 (슬래시 명령어는 제외)
+    if raw and not is_command and sheets.is_task_active(chat_id):
         try:
             handle_task_text_reply(db, chat_id, raw)
         except Exception:

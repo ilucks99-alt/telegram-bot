@@ -179,19 +179,6 @@ def _activate_next_queued_task(db: InvestmentDB, assignee_chat_id) -> None:
 
 
 # =========================================================
-# 알림
-# =========================================================
-def _notify_assignee(chat_id, stage: str, detail: str = "") -> None:
-    try:
-        msg = f"[처리 상태]\n- 상태: {stage}"
-        if detail:
-            msg += f"\n- 상세: {detail}"
-        send_message(chat_id, msg)
-    except Exception:
-        logger.exception("notify_assignee failed")
-
-
-# =========================================================
 # 답변 평가 공통
 # =========================================================
 def _collect_user_replies_text(history: List[Dict[str, Any]], max_chars: int = 4000) -> str:
@@ -283,6 +270,11 @@ def _process_eval_result(
 def _build_evaluation_inputs(db: InvestmentDB, task: Dict[str, Any]):
     history = sheets.get_task_history(task["task_id"])
 
+    # 방금 append 한 최신 user 답변은 latest_reply 로 따로 전달되므로 history 에서 제외.
+    # LLM 이 같은 답변을 두 번 보면 자기 피드백/보고 내용을 팀원 답변으로 오해할 여지가 생긴다.
+    if history and history[-1].get("role") == "user":
+        history = history[:-1]
+
     project_ctx = None
     if task.get("project_id"):
         try:
@@ -316,8 +308,6 @@ def handle_task_text_reply(db: InvestmentDB, chat_id, text: str) -> None:
     sheets.append_task_history(task["task_id"], "user", normalized)
     sheets.update_task_fields(task["task_id"], {"status": "reviewing", "last_activity_at": now_ts()})
     task["status"] = "reviewing"
-
-    _notify_assignee(chat_id, "AI 검토 중", "제출한 텍스트 답변을 검토하고 있습니다.")
 
     history, project_ctx, similar = _build_evaluation_inputs(db, task)
     latest = normalized[:12000]
@@ -361,30 +351,22 @@ def handle_task_document_reply(db: InvestmentDB, chat_id, document: Dict[str, An
         return
 
     sheets.update_task_fields(task["task_id"], {"status": "processing_file", "last_activity_at": now_ts()})
-    _notify_assignee(chat_id, "파일 접수", f"파일명: {file_name}")
 
     local_path: Optional[str] = None
     try:
-        _notify_assignee(chat_id, "파일 다운로드 중", file_name)
         local_path = download_telegram_file(file_id, file_name=file_name)
-
-        _notify_assignee(chat_id, "텍스트 추출 중", file_name)
 
         extracted = extract_text_from_file(local_path)
         if not extracted or len(extracted.strip()) < 50:
-            _notify_assignee(chat_id, "텍스트 추출 실패", "추출된 내용이 너무 짧습니다.")
             send_message(chat_id, "파일에서 텍스트를 충분히 추출하지 못했습니다. 텍스트로 다시 보내주세요.")
             sheets.update_task_fields(task["task_id"], {"status": "waiting_for_reply"})
             return
-
-        _notify_assignee(chat_id, "텍스트 추출 완료", f"추출 글자 수: {len(extracted)}")
 
         content = f"[파일 제출]\n- 파일명: {file_name}\n\n{extracted[:12000]}"
         sheets.append_task_history(task["task_id"], "user", content)
 
         sheets.update_task_fields(task["task_id"], {"status": "reviewing"})
         task["status"] = "reviewing"
-        _notify_assignee(chat_id, "AI 검토 중", "제출한 파일 내용을 검토하고 있습니다.")
 
         history, project_ctx, similar = _build_evaluation_inputs(db, task)
         result = evaluate_response(
