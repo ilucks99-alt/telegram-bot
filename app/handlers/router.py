@@ -4,7 +4,7 @@ from app import config
 from app.db_engine import InvestmentDB
 from app.handlers.analysis import handle_analysis_command, handle_analysis_followup
 from app.handlers.detail import handle_detail
-from app.handlers.news import handle_news_search_command
+from app.handlers.news import handle_manager_news_command, handle_news_search_command
 from app.handlers.query import handle_query_command, handle_search_followup
 from app.handlers.task import (
     handle_cancel_command,
@@ -31,6 +31,7 @@ HELP_TEXT = """
 - /분석: 비중/평균/그룹별 집계 등 포트폴리오 분석용입니다.
 - /조회: 조건에 맞는 건을 조회합니다.
 - /검색: 입력한 키워드 관련 뉴스를 요약, 정리하여 볼 수 있습니다.
+- /운용사뉴스: 포트폴리오 상위 운용사 기반 뉴스 리포트를 즉시 생성합니다.
 - 조회/분석 직후 5분 이내에는 자연어로 후속 질문이 가능합니다. (예: "그 중에 IRR 높은 순 3개")
 - AI API 정책 상 조회/분석 수가 제한될 수 있습니다.
 
@@ -38,6 +39,7 @@ HELP_TEXT = """
 /분석 포트폴리오 분석하고 싶은 내용
 /조회 조회하고 싶은 내용
 /검색 검색 키워드
+/운용사뉴스
 /help 도움말
 /refresh DB Refresh
 /상세조회 BS00001505 (점검 중)
@@ -159,6 +161,13 @@ def process_user_message(db: InvestmentDB, chat_id: int, text: str, ctx: Dict[st
 
     if raw.startswith("/분석"):
         handle_analysis_command(db, chat_id, raw, ctx)
+        return
+
+    if raw.startswith("/운용사뉴스"):
+        if str(chat_id) != str(config.OWNER_CHAT_ID):
+            send_message(chat_id, "운용사 뉴스 호출 권한이 없습니다.")
+            return
+        handle_manager_news_command(db, chat_id)
         return
 
     if raw.startswith("/검색"):
