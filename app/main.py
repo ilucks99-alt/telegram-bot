@@ -88,11 +88,15 @@ async def webhook(secret: str, request: Request):
     if chat_id is None or (not text and not document):
         return {"ok": True, "skipped": True}
 
-    try:
-        process_user_message(get_db(), chat_id, text, msg_ctx)
-    except Exception:
-        logger.exception("process_user_message failed")
+    import threading
 
+    def _worker():
+        try:
+            process_user_message(get_db(), chat_id, text, msg_ctx)
+        except Exception:
+            logger.exception("process_user_message failed")
+
+    threading.Thread(target=_worker, daemon=True).start()
     return {"ok": True}
 
 

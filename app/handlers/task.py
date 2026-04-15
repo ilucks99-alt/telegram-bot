@@ -268,12 +268,9 @@ def _process_eval_result(
 
 
 def _build_evaluation_inputs(db: InvestmentDB, task: Dict[str, Any]):
+    # 최신 user 답변은 latest_reply 로 따로 전달되므로 Gemini 평가 성공 후에 history 에 append 한다.
+    # (실패 시 찌꺼기가 남아 재시도 시 중복되거나, LLM 이 자기 피드백을 팀원 답변으로 오해하는 걸 방지)
     history = sheets.get_task_history(task["task_id"])
-
-    # 방금 append 한 최신 user 답변은 latest_reply 로 따로 전달되므로 history 에서 제외.
-    # LLM 이 같은 답변을 두 번 보면 자기 피드백/보고 내용을 팀원 답변으로 오해할 여지가 생긴다.
-    if history and history[-1].get("role") == "user":
-        history = history[:-1]
 
     project_ctx = None
     if task.get("project_id"):
@@ -305,7 +302,6 @@ def handle_task_text_reply(db: InvestmentDB, chat_id, text: str) -> None:
         send_message(chat_id, "내용이 비어 있습니다.")
         return
 
-    sheets.append_task_history(task["task_id"], "user", normalized)
     sheets.update_task_fields(task["task_id"], {"status": "reviewing", "last_activity_at": now_ts()})
     task["status"] = "reviewing"
 
@@ -323,9 +319,10 @@ def handle_task_text_reply(db: InvestmentDB, chat_id, text: str) -> None:
     except Exception:
         logger.exception("handle_task_text_reply failed")
         send_message(chat_id, "답변 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
-        sheets.update_task_fields(task["task_id"], {"status": "feedback_sent"})
+        sheets.update_task_fields(task["task_id"], {"status": "waiting_for_reply"})
         return
 
+    sheets.append_task_history(task["task_id"], "user", normalized)
     _process_eval_result(db, task, result)
 
 
@@ -353,6 +350,7 @@ def handle_task_document_reply(db: InvestmentDB, chat_id, document: Dict[str, An
     sheets.update_task_fields(task["task_id"], {"status": "processing_file", "last_activity_at": now_ts()})
 
     local_path: Optional[str] = None
+    content: Optional[str] = None
     try:
         local_path = download_telegram_file(file_id, file_name=file_name)
 
@@ -363,7 +361,6 @@ def handle_task_document_reply(db: InvestmentDB, chat_id, document: Dict[str, An
             return
 
         content = f"[파일 제출]\n- 파일명: {file_name}\n\n{extracted[:12000]}"
-        sheets.append_task_history(task["task_id"], "user", content)
 
         sheets.update_task_fields(task["task_id"], {"status": "reviewing"})
         task["status"] = "reviewing"
@@ -388,6 +385,7 @@ def handle_task_document_reply(db: InvestmentDB, chat_id, document: Dict[str, An
             except OSError:
                 logger.warning("failed to cleanup temp file: %s", local_path)
 
+    sheets.append_task_history(task["task_id"], "user", content)
     _process_eval_result(db, task, result)
 
 
