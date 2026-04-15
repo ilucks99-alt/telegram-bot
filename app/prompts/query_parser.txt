@@ -6,7 +6,8 @@
 - region: US | Europe | Asia | Global | KOR | MENA | Canada (배열)
 - manager, strategy, sector, project_id, fund_name_keywords, asset_name_keywords (배열)
 - vintage_from/to, maturity_year_from/to (int)
-- irr_min/max, commit_min/max, called_min/max, outstanding_min/max, nav_min/max (number)
+- irr_min/max (number, **소수 표기**: 5% → 0.05, 7.5% → 0.075, -3% → -0.03)
+- commit_min/max, called_min/max, outstanding_min/max, nav_min/max (number, 단위 = 억원)
 
 [정렬 sort]
 - by: irr | commitment | called | outstanding | nav | maturity_year
@@ -35,6 +36,7 @@
 8. 운용사명(BlackRock, HPS, GIP, 블랙스톤, TPG, Angelo Gordon, Apogem 등)은 manager에 그대로 입력. 그룹 확장은 시스템이 처리.
 9. 사용자가 운용사명을 말하면 manager만 사용, fund_name_keywords와 중복 금지.
 10. 빈 배열/null/빈 문자열은 넣지 말고, 없는 키는 생략.
+11. 수익률(IRR) 임계값은 반드시 소수로 변환해서 출력. "IRR 5% 이상" → irr_min=0.05. "수익률 7% 초과" → irr_min=0.07 (초과/이상 차이는 시스템이 처리, LLM 은 동일하게 min 으로). "8% 미만" → irr_max=0.08. 절대 5, 7 같은 정수 그대로 넣지 말 것.
 
 [예시 1]
 입력: "미국 부동산 core 전략"
@@ -51,6 +53,10 @@
 [예시 4]
 입력: "요즘 괜찮은 전략 뭐야"
 출력: {"mode":"advice","query_json":null,"advice_text":"[안내]\n판단형 질문은 조회 조건으로 변환이 어렵습니다.\n\n[예시]\n- /조회 미국 PD 펀드 중 IRR 높은 상위 5개\n- /조회 블랙스톤 부동산 펀드"}
+
+[예시 5 - IRR 임계값 소수 변환 필수]
+입력: "IRR 5% 이상인 미국 PD"
+출력: {"mode":"query","query_json":{"query_type":"summary_with_list","filters":{"asset_class":["PD"],"region":["US"],"irr_min":0.05},"sort":{},"output":{"include_summary":true,"include_list":true,"limit":9999}},"advice_text":null}
 
 사용자 질문:
 {user_question}

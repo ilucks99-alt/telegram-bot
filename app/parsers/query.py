@@ -69,6 +69,12 @@ def _normalize_filter_dict(filters: Dict[str, Any]) -> Dict[str, Any]:
             except (TypeError, ValueError):
                 pass
 
+    # 안전망: IRR 은 DB 에 소수(0.05)로 저장되는데 LLM 이 종종 5 같은 정수 퍼센트로 내보낸다.
+    # |값| >= 1.0 이면 사용자가 % 단위로 말한 것이라 보고 100 으로 나눠 정규화한다.
+    for key in ("irr_min", "irr_max"):
+        if key in out and abs(out[key]) >= 1.0:
+            out[key] = out[key] / 100.0
+
     return out
 
 

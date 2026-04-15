@@ -23,6 +23,8 @@
 }
 
 [필터 키] asset_class, region, manager, strategy, sector, project_id, fund_name_keywords, asset_name_keywords, vintage_from/to, maturity_year_from/to, irr_min/max, commit_min/max, called_min/max, outstanding_min/max, nav_min/max
+- irr_min/max 는 **반드시 소수**로 변환: "5% 이상" → irr_min=0.05, "7.5% 미만" → irr_max=0.075. 절대 5, 7 같은 정수 그대로 넣지 말 것.
+- commit/called/outstanding/nav 는 단위가 억원.
 
 [규칙]
 1. "비중"→share. "평균 수익률/IRR", "X별"→grouped_metric.
