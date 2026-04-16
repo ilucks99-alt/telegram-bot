@@ -353,8 +353,10 @@ def get_task_history(task_id: str) -> List[Dict[str, Any]]:
 
 def get_overdue_tasks(no_reply_minutes: int, cooldown_minutes: int) -> List[Dict[str, Any]]:
     from datetime import datetime
+    from app.util import KST
+
     tasks = _read_all_tasks()
-    now = datetime.now()
+    now = datetime.now(KST)
     overdue = []
 
     for t in tasks:
@@ -362,7 +364,7 @@ def get_overdue_tasks(no_reply_minutes: int, cooldown_minutes: int) -> List[Dict
             continue
         updated_at = t.get("updated_at", "")
         try:
-            dt = datetime.strptime(updated_at, "%Y-%m-%d %H:%M:%S")
+            dt = datetime.strptime(updated_at, "%Y-%m-%d %H:%M:%S").replace(tzinfo=KST)
         except ValueError:
             continue
         diff_min = (now - dt).total_seconds() / 60
@@ -372,7 +374,7 @@ def get_overdue_tasks(no_reply_minutes: int, cooldown_minutes: int) -> List[Dict
         last_report = t.get("owner_reported_at", "")
         if last_report:
             try:
-                last_dt = datetime.strptime(last_report, "%Y-%m-%d %H:%M:%S")
+                last_dt = datetime.strptime(last_report, "%Y-%m-%d %H:%M:%S").replace(tzinfo=KST)
                 if (now - last_dt).total_seconds() / 60 < cooldown_minutes:
                     continue
             except ValueError:

@@ -8,8 +8,8 @@ on:
     - cron: '10 0 * * *'
     # KST 15:30 → UTC 06:30  (macro news)
     - cron: '30 6 * * *'
-    # Every 15 min: overdue task check
-    - cron: '*/15 * * * *'
+    # Every 15 min (offset to avoid overlap with news crons at :00/:10/:30)
+    - cron: '5,20,35,50 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -44,7 +44,7 @@ jobs:
             --max-time 180
 
   task_check:
-    if: github.event.schedule == '*/15 * * * *' || github.event_name == 'workflow_dispatch'
+    if: github.event.schedule == '5,20,35,50 * * * *' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Call /cron/task-check
