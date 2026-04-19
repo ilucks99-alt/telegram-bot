@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -35,11 +36,11 @@ def handle_manager_news_command(db: InvestmentDB, chat_id) -> None:
     """/운용사뉴스 — 포트폴리오 운용사 기반 뉴스 리포트 수동 호출."""
     import threading
 
-    send_message(chat_id, "🏦 운용사 뉴스 수집 중... (20~40초 소요)")
+    send_message(chat_id, "🏦 운용사 뉴스 수집 중...")
 
     def _worker():
         try:
-            run_manager_news_report(db, chat_id, force=True)
+            run_manager_news_report(db, chat_id)
         except Exception:
             logger.exception("manager news command worker failed")
             try:
@@ -66,58 +67,48 @@ def _manager_keywords(db: InvestmentDB) -> List[str]:
 
 
 # =========================================================
-# Collection
+# Collection (parallel RSS fetching)
 # =========================================================
+def _fetch_for_keyword(kw: str) -> List[Dict[str, Any]]:
+    """단일 키워드에 대해 RSS 수집 (스레드풀에서 병렬 실행)."""
+    try:
+        items = search_google_news_rss(kw, limit=config.NEWS_PER_KEYWORD_LIMIT)
+        for item in items:
+            item["keyword"] = kw
+        return items
+    except Exception:
+        logger.exception("뉴스 수집 실패 | keyword=%s", kw)
+        return []
+
+
 def _collect_articles(keywords: List[str]) -> List[Dict[str, Any]]:
     all_items: List[Dict[str, Any]] = []
     seen = set()
 
-    for kw in keywords:
-        try:
-            items = search_google_news_rss(kw, limit=config.NEWS_PER_KEYWORD_LIMIT)
-            for item in items:
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        futures = {pool.submit(_fetch_for_keyword, kw): kw for kw in keywords}
+        for future in as_completed(futures):
+            for item in future.result():
                 key = (item["title"].lower(), item.get("source", ""))
                 if key in seen:
                     continue
                 seen.add(key)
-                item["keyword"] = kw
                 all_items.append(item)
-        except Exception:
-            logger.exception("뉴스 수집 실패 | keyword=%s", kw)
 
     all_items.sort(key=lambda x: x["published_at"], reverse=True)
     return all_items[:config.NEWS_REPORT_MAX_ARTICLES]
 
 
 def collect_news_for_keywords(db: InvestmentDB) -> List[Dict[str, Any]]:
-    """거시 키워드(NEWS_KEYWORDS) 기반 수집 — 09:10/15:30 슬롯."""
     return _collect_articles(_macro_keywords())
 
 
 def collect_manager_news(db: InvestmentDB) -> List[Dict[str, Any]]:
-    """포트폴리오 운용사(top Managers by Outstanding) 기반 수집 — 09:00 슬롯."""
     keywords = _manager_keywords(db)
     if not keywords:
         logger.warning("manager keyword list empty; skipping manager news report")
         return []
     return _collect_articles(keywords)
-
-
-# =========================================================
-# Slot checks
-# =========================================================
-def _matches_slot(slot_times: List[str]) -> bool:
-    """KST 기준으로 현재 시각이 주어진 시간 목록 중 하나와 ±15분 이내인지."""
-    now = datetime.now(KST)
-    today = now.strftime("%Y-%m-%d")
-    for t in slot_times:
-        try:
-            base = datetime.strptime(f"{today} {t}", "%Y-%m-%d %H:%M").replace(tzinfo=KST)
-        except ValueError:
-            continue
-        if abs((now - base).total_seconds()) <= 900:
-            return True
-    return False
 
 
 # =========================================================
@@ -144,25 +135,19 @@ def _send_report(chat_id, header: str, news_items: List[Dict[str, Any]], query: 
         return "error"
 
 
-def run_scheduled_news_report(db: InvestmentDB, chat_id, force: bool = False) -> str:
-    """거시 뉴스 자동 보고. NEWS_REPORT_TIMES 슬롯에만 실행."""
+def run_scheduled_news_report(db: InvestmentDB, chat_id, **_kw) -> str:
+    """거시 뉴스 자동 보고."""
     if not config.NEWS_AUTO_REPORT_ENABLED:
         return "disabled"
-
-    if not force and not _matches_slot(config.NEWS_REPORT_TIMES):
-        return "skipped"
 
     news_items = collect_news_for_keywords(db)
     return _send_report(chat_id, "📰 거시 뉴스 자동 보고", news_items, "거시 뉴스")
 
 
-def run_manager_news_report(db: InvestmentDB, chat_id, force: bool = False) -> str:
-    """운용사 뉴스 자동 보고. NEWS_MANAGER_REPORT_TIMES 슬롯에만 실행."""
+def run_manager_news_report(db: InvestmentDB, chat_id, **_kw) -> str:
+    """운용사 뉴스 자동 보고."""
     if not config.NEWS_AUTO_REPORT_ENABLED:
         return "disabled"
-
-    if not force and not _matches_slot(config.NEWS_MANAGER_REPORT_TIMES):
-        return "skipped"
 
     news_items = collect_manager_news(db)
     return _send_report(chat_id, "🏦 운용사 뉴스 자동 보고", news_items, "포트폴리오 운용사 뉴스")
