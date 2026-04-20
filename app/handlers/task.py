@@ -438,41 +438,44 @@ def check_and_report_overdue_tasks(db: InvestmentDB) -> int:
 
     count = 0
     for task in overdue_list:
-        diff_min = task.get("_diff_min", 0)
-        owner_msg = (
-            f"⚠️ 미완료 업무 종료 알림\n"
-            f"- 업무번호: {task['task_id']}\n"
-            f"- 담당자: {task['assignee_name']}\n"
-            f"- 업무: {task['instruction'][:100]}\n"
-            f"- 마지막 업데이트: {task.get('updated_at','')}\n"
-            f"- 경과시간: {diff_min}분\n"
-            f"- 상태: {task.get('status','')}\n\n"
-            f"응답 지연으로 해당 업무 세션을 종료합니다."
-        )
-        assignee_msg = (
-            f"[업무 종료]\n"
-            f"- 업무번호: {task['task_id']}\n"
-            f"- 사유: 일정 시간 동안 응답이 없어 업무 세션이 종료되었습니다.\n"
-            f"- 필요 시 사업부장님께 다시 보고 후 재지시 받아주시기 바랍니다."
-        )
+        status = task.get("status", "")
+        has_replies = status in ("feedback_sent", "reviewing")
 
-        try:
-            send_long_message(task["owner_chat_id"], owner_msg)
-        except Exception:
-            logger.exception("overdue owner send failed")
-        try:
-            send_message(task["assignee_chat_id"], assignee_msg)
-        except Exception:
-            logger.exception("overdue assignee send failed")
+        if has_replies:
+            # 답변이 있는 상태 → 기존 답변 기반으로 최종 보고 + 완료 처리
+            _finalize_due_to_feedback_limit(db, task)
+        else:
+            # 답변 없음(waiting_for_reply 등) → 타임아웃 종료
+            diff_min = task.get("_diff_min", 0)
+            owner_msg = (
+                f"⚠️ 미완료 업무 종료 알림\n"
+                f"- 업무번호: {task['task_id']}\n"
+                f"- 담당자: {task['assignee_name']}\n"
+                f"- 업무: {task['instruction'][:100]}\n"
+                f"- 마지막 업데이트: {task.get('updated_at','')}\n"
+                f"- 경과시간: {diff_min}분\n\n"
+                f"응답 없음으로 해당 업무 세션을 종료합니다."
+            )
+            assignee_msg = (
+                f"[업무 종료]\n"
+                f"- 업무번호: {task['task_id']}\n"
+                f"- 사유: 일정 시간 동안 응답이 없어 업무 세션이 종료되었습니다.\n"
+                f"- 필요 시 사업부장님께 다시 보고 후 재지시 받아주시기 바랍니다."
+            )
+            try:
+                send_long_message(task["owner_chat_id"], owner_msg)
+            except Exception:
+                logger.exception("overdue owner send failed")
+            try:
+                send_message(task["assignee_chat_id"], assignee_msg)
+            except Exception:
+                logger.exception("overdue assignee send failed")
+            sheets.update_task_fields(
+                task["task_id"],
+                {"status": "closed_due_to_timeout", "closed_at": now_ts()},
+            )
+            _activate_next_queued_task(db, task["assignee_chat_id"])
 
-        sheets.update_task_fields(
-            task["task_id"],
-            {
-                "status": "closed_due_to_timeout",
-                "closed_at": now_ts(),
-            },
-        )
-        _activate_next_queued_task(db, task["assignee_chat_id"])
         count += 1
     return count
 

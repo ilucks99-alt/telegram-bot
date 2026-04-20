@@ -111,33 +111,40 @@ def _check_cron_secret(authorization: Optional[str]) -> None:
         raise HTTPException(status_code=401, detail="invalid cron secret")
 
 
+def _run_tick():
+    """통합 tick 로직 — 업무체크(매번) + 뉴스(슬롯 매칭 시)."""
+    db = get_db()
+    chat_id = config.OWNER_CHAT_ID
+    try:
+        check_and_report_overdue_tasks(db)
+    except Exception:
+        logger.exception("cron tick: task-check failed")
+    try:
+        run_manager_news_report(db, chat_id)
+    except Exception:
+        logger.exception("cron tick: manager-news failed")
+    try:
+        run_scheduled_news_report(db, chat_id)
+    except Exception:
+        logger.exception("cron tick: macro-news failed")
+
+
 @app.post("/cron/tick")
 async def cron_tick(authorization: Optional[str] = Header(None)):
-    """통합 cron 엔드포인트 — 매 15분 호출, 시간에 따라 뉴스+업무체크 실행."""
+    """통합 cron 엔드포인트 (GitHub Actions — Bearer 인증)."""
     _check_cron_secret(authorization)
-
     import threading
+    threading.Thread(target=_run_tick, daemon=True).start()
+    return {"ok": True, "status": "scheduled"}
 
-    def _worker():
-        db = get_db()
-        chat_id = config.OWNER_CHAT_ID
-        # 업무 타임아웃 체크 (매번)
-        try:
-            check_and_report_overdue_tasks(db)
-        except Exception:
-            logger.exception("cron tick: task-check failed")
-        # 운용사 뉴스 (슬롯 매칭 시)
-        try:
-            run_manager_news_report(db, chat_id)
-        except Exception:
-            logger.exception("cron tick: manager-news failed")
-        # 거시 뉴스 (슬롯 매칭 시)
-        try:
-            run_scheduled_news_report(db, chat_id)
-        except Exception:
-            logger.exception("cron tick: macro-news failed")
 
-    threading.Thread(target=_worker, daemon=True).start()
+@app.get("/cron/tick/{secret}")
+async def cron_tick_url(secret: str):
+    """통합 cron 엔드포인트 (cron-job.org 등 — URL 시크릿)."""
+    if secret != config.CRON_SECRET:
+        raise HTTPException(status_code=401, detail="invalid secret")
+    import threading
+    threading.Thread(target=_run_tick, daemon=True).start()
     return {"ok": True, "status": "scheduled"}
 
 
