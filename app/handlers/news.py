@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 
 from app import config
 from app.db_engine import InvestmentDB
@@ -11,6 +11,9 @@ from app.services.telegram import send_long_message, send_message
 from app.util import KST
 
 logger = get_logger(__name__)
+
+# Dedup: track which slots have already been sent (reset on server restart)
+_sent_slots: Set[str] = set()
 
 
 def handle_news_search_command(chat_id, raw: str) -> None:
@@ -135,19 +138,47 @@ def _send_report(chat_id, header: str, news_items: List[Dict[str, Any]], query: 
         return "error"
 
 
+def _matches_slot(slot_times: List[str], slot_name: str) -> bool:
+    """KST 기준 현재 시각이 슬롯 ±15분 이내이고 아직 미전송인지 확인."""
+    now = datetime.now(KST)
+    today = now.strftime("%Y-%m-%d")
+    for t in slot_times:
+        slot_key = f"{slot_name}:{today}:{t}"
+        if slot_key in _sent_slots:
+            continue
+        try:
+            base = datetime.strptime(f"{today} {t}", "%Y-%m-%d %H:%M").replace(tzinfo=KST)
+        except ValueError:
+            continue
+        if abs((now - base).total_seconds()) <= 900:
+            _sent_slots.add(slot_key)
+            # 이전 날짜 키 정리
+            for k in list(_sent_slots):
+                if k.startswith(slot_name) and today not in k:
+                    _sent_slots.discard(k)
+            return True
+    return False
+
+
 def run_scheduled_news_report(db: InvestmentDB, chat_id, **_kw) -> str:
-    """거시 뉴스 자동 보고."""
+    """거시 뉴스 자동 보고. tick에서 호출 — 슬롯+중복 체크 포함."""
     if not config.NEWS_AUTO_REPORT_ENABLED:
         return "disabled"
+
+    if not _matches_slot(config.NEWS_REPORT_TIMES, "macro_news"):
+        return "skipped"
 
     news_items = collect_news_for_keywords(db)
     return _send_report(chat_id, "📰 거시 뉴스 자동 보고", news_items, "거시 뉴스")
 
 
 def run_manager_news_report(db: InvestmentDB, chat_id, **_kw) -> str:
-    """운용사 뉴스 자동 보고."""
+    """운용사 뉴스 자동 보고. tick에서 호출 — 슬롯+중복 체크 포함."""
     if not config.NEWS_AUTO_REPORT_ENABLED:
         return "disabled"
+
+    if not _matches_slot(config.NEWS_MANAGER_REPORT_TIMES, "manager_news"):
+        return "skipped"
 
     news_items = collect_manager_news(db)
     return _send_report(chat_id, "🏦 운용사 뉴스 자동 보고", news_items, "포트폴리오 운용사 뉴스")

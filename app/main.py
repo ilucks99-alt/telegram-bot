@@ -111,57 +111,67 @@ def _check_cron_secret(authorization: Optional[str]) -> None:
         raise HTTPException(status_code=401, detail="invalid cron secret")
 
 
-@app.post("/cron/news")
-async def cron_news(
-    authorization: Optional[str] = Header(None),
-    force: bool = Query(False),
-):
+@app.post("/cron/tick")
+async def cron_tick(authorization: Optional[str] = Header(None)):
+    """통합 cron 엔드포인트 — 매 15분 호출, 시간에 따라 뉴스+업무체크 실행."""
     _check_cron_secret(authorization)
 
     import threading
 
     def _worker():
+        db = get_db()
+        chat_id = config.OWNER_CHAT_ID
+        # 업무 타임아웃 체크 (매번)
         try:
-            run_scheduled_news_report(get_db(), config.OWNER_CHAT_ID, force=force)
+            check_and_report_overdue_tasks(db)
         except Exception:
-            logger.exception("cron_news worker failed")
+            logger.exception("cron tick: task-check failed")
+        # 운용사 뉴스 (슬롯 매칭 시)
+        try:
+            run_manager_news_report(db, chat_id)
+        except Exception:
+            logger.exception("cron tick: manager-news failed")
+        # 거시 뉴스 (슬롯 매칭 시)
+        try:
+            run_scheduled_news_report(db, chat_id)
+        except Exception:
+            logger.exception("cron tick: macro-news failed")
 
     threading.Thread(target=_worker, daemon=True).start()
-    return {"ok": True, "status": "scheduled", "force": force}
+    return {"ok": True, "status": "scheduled"}
+
+
+# Legacy endpoints (kept for manual testing)
+@app.post("/cron/news")
+async def cron_news(authorization: Optional[str] = Header(None)):
+    _check_cron_secret(authorization)
+    import threading
+    threading.Thread(
+        target=lambda: run_scheduled_news_report(get_db(), config.OWNER_CHAT_ID),
+        daemon=True,
+    ).start()
+    return {"ok": True, "status": "scheduled"}
 
 
 @app.post("/cron/news-managers")
-async def cron_news_managers(
-    authorization: Optional[str] = Header(None),
-    force: bool = Query(False),
-):
+async def cron_news_managers(authorization: Optional[str] = Header(None)):
     _check_cron_secret(authorization)
-
     import threading
-
-    def _worker():
-        try:
-            run_manager_news_report(get_db(), config.OWNER_CHAT_ID, force=force)
-        except Exception:
-            logger.exception("cron_news_managers worker failed")
-
-    threading.Thread(target=_worker, daemon=True).start()
-    return {"ok": True, "status": "scheduled", "force": force}
+    threading.Thread(
+        target=lambda: run_manager_news_report(get_db(), config.OWNER_CHAT_ID),
+        daemon=True,
+    ).start()
+    return {"ok": True, "status": "scheduled"}
 
 
 @app.post("/cron/task-check")
 async def cron_task_check(authorization: Optional[str] = Header(None)):
     _check_cron_secret(authorization)
-
     import threading
-
-    def _worker():
-        try:
-            check_and_report_overdue_tasks(get_db())
-        except Exception:
-            logger.exception("cron_task_check worker failed")
-
-    threading.Thread(target=_worker, daemon=True).start()
+    threading.Thread(
+        target=lambda: check_and_report_overdue_tasks(get_db()),
+        daemon=True,
+    ).start()
     return {"ok": True, "status": "scheduled"}
 
 

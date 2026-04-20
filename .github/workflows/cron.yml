@@ -2,57 +2,21 @@ name: telegram-bot-cron
 
 on:
   schedule:
-    # KST 09:00 → UTC 00:00  (manager news)
-    - cron: '0 0 * * *'
-    # KST 09:10 → UTC 00:10  (macro news)
-    - cron: '10 0 * * *'
-    # KST 15:30 → UTC 06:30  (macro news)
-    - cron: '30 6 * * *'
-    # Every 15 min (offset to avoid overlap with news crons at :00/:10/:30)
+    # Every 15 min — single cron drives all work (news + task check)
+    # Server-side logic decides what to run based on KST time
     - cron: '5,20,35,50 * * * *'
   workflow_dispatch:
 
 jobs:
-  manager_news:
-    if: github.event.schedule == '0 0 * * *' || github.event_name == 'workflow_dispatch'
+  tick:
     runs-on: ubuntu-latest
     steps:
-      - name: Call /cron/news-managers
+      - name: Call /cron/tick
         env:
           RENDER_URL: ${{ secrets.RENDER_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          curl -sS -X POST "${RENDER_URL}/cron/news-managers" \
-            -H "Authorization: Bearer ${CRON_SECRET}" \
-            -H "Content-Type: application/json" \
-            -d '{}' \
-            --max-time 180
-
-  news:
-    if: github.event.schedule == '10 0 * * *' || github.event.schedule == '30 6 * * *' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Call /cron/news
-        env:
-          RENDER_URL: ${{ secrets.RENDER_URL }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
-        run: |
-          curl -sS -X POST "${RENDER_URL}/cron/news" \
-            -H "Authorization: Bearer ${CRON_SECRET}" \
-            -H "Content-Type: application/json" \
-            -d '{}' \
-            --max-time 180
-
-  task_check:
-    if: github.event.schedule == '5,20,35,50 * * * *' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Call /cron/task-check
-        env:
-          RENDER_URL: ${{ secrets.RENDER_URL }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
-        run: |
-          curl -sS -X POST "${RENDER_URL}/cron/task-check" \
+          curl -sS -X POST "${RENDER_URL}/cron/tick" \
             -H "Authorization: Bearer ${CRON_SECRET}" \
             -H "Content-Type: application/json" \
             -d '{}' \
