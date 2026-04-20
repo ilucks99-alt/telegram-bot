@@ -43,7 +43,7 @@ def handle_manager_news_command(db: InvestmentDB, chat_id) -> None:
 
     def _worker():
         try:
-            run_manager_news_report(db, chat_id)
+            run_manager_news_report(db, chat_id, force=True)
         except Exception:
             logger.exception("manager news command worker failed")
             try:
@@ -160,24 +160,24 @@ def _matches_slot(slot_times: List[str], slot_name: str) -> bool:
     return False
 
 
-def run_scheduled_news_report(db: InvestmentDB, chat_id, **_kw) -> str:
+def run_scheduled_news_report(db: InvestmentDB, chat_id, force: bool = False) -> str:
     """거시 뉴스 자동 보고. tick에서 호출 — 슬롯+중복 체크 포함."""
     if not config.NEWS_AUTO_REPORT_ENABLED:
         return "disabled"
 
-    if not _matches_slot(config.NEWS_REPORT_TIMES, "macro_news"):
+    if not force and not _matches_slot(config.NEWS_REPORT_TIMES, "macro_news"):
         return "skipped"
 
     news_items = collect_news_for_keywords(db)
     return _send_report(chat_id, "📰 거시 뉴스 자동 보고", news_items, "거시 뉴스")
 
 
-def run_manager_news_report(db: InvestmentDB, chat_id, **_kw) -> str:
+def run_manager_news_report(db: InvestmentDB, chat_id, force: bool = False) -> str:
     """운용사 뉴스 자동 보고. tick에서 호출 — 슬롯+중복 체크 포함."""
     if not config.NEWS_AUTO_REPORT_ENABLED:
         return "disabled"
 
-    if not _matches_slot(config.NEWS_MANAGER_REPORT_TIMES, "manager_news"):
+    if not force and not _matches_slot(config.NEWS_MANAGER_REPORT_TIMES, "manager_news"):
         return "skipped"
 
     news_items = collect_manager_news(db)
