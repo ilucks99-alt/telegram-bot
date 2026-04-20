@@ -63,7 +63,7 @@ def _macro_keywords() -> List[str]:
 
 def _manager_keywords(db: InvestmentDB) -> List[str]:
     try:
-        return db.top_managers_by_outstanding(config.NEWS_MANAGER_KEYWORD_LIMIT)
+        return db.top_managers_by_outstanding(config.NEWS_MANAGER_KEYWORD_LIMIT, overseas_only=True)
     except Exception:
         logger.exception("manager keyword build failed")
         return []

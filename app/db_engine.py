@@ -459,11 +459,14 @@ class InvestmentDB:
             return None
         return rows[0]
 
-    def top_managers_by_outstanding(self, limit: int = 10) -> List[str]:
+    def top_managers_by_outstanding(self, limit: int = 10, overseas_only: bool = False) -> List[str]:
         import re as _re
+        from app.constants import OVERSEAS_REGIONS
         df = self.df
         if df is None or df.empty or "Manager" not in df.columns:
             return []
+        if overseas_only and "Region_Std" in df.columns:
+            df = df[df["Region_Std"].isin(OVERSEAS_REGIONS)]
         normalized = (
             df["Manager"]
             .fillna("")
