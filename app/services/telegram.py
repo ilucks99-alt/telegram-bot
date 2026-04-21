@@ -111,11 +111,12 @@ def send_message(chat_id: ChatId, text: str) -> None:
 
 
 def send_long_message(chat_id: ChatId, text: str, chunk_size: int = 3500) -> None:
+    # send_message 가 이미 split_text(limit=3900)로 줄 단위 안전 분할을 수행하므로
+    # 여기서 추가 하드 청킹을 하면 길이 3500~3900 구간의 단일 보고가 불필요하게
+    # 2개 메시지로 쪼개져 "완료 보고가 2번 온 것처럼" 보이는 문제가 생긴다.
     if not text or chat_id is None:
         return
-    text = str(text)
-    for i in range(0, len(text), chunk_size):
-        send_message(chat_id, text[i:i + chunk_size])
+    send_message(chat_id, str(text))
 
 
 def send_document(chat_id: ChatId, file_path: str, caption: str = "") -> None:

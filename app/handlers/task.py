@@ -1,4 +1,5 @@
 import os
+import threading
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -16,6 +17,11 @@ from app.services.telegram import (
 from app.util import now_ts
 
 logger = get_logger(__name__)
+
+# 동일 task 에 대해 finalize 가 두 스레드에서 거의 동시에 호출되는 걸 프로세스 내에서 직렬화.
+# (예: cron 두 개가 동시에 overdue 를 줍거나, 팀원이 같은 답변을 중복 전송한 경우)
+# Sheets 가 트랜잭션을 지원하지 않아 재조회 가드만으로는 얇은 race window 를 못 막으므로 락을 덧붙인다.
+_finalize_lock = threading.Lock()
 
 
 # =========================================================
@@ -195,18 +201,31 @@ def _finalize_task_completed(
     owner_msg: str,
     assignee_msg: str,
 ) -> None:
-    sheets.update_task_fields(
-        task["task_id"],
-        {
-            "status": "completed",
-            "closed_at": now_ts(),
-            "final_report": owner_msg[:10000],
-        },
-    )
-    sheets.append_task_history(task["task_id"], "assistant", owner_msg)
-    send_long_message(task["owner_chat_id"], owner_msg)
-    send_message(task["assignee_chat_id"], assignee_msg)
-    _activate_next_queued_task(db, task["assignee_chat_id"])
+    # 전역 락 + 재조회 가드 조합.
+    # cron 이중 발사 / webhook 중복 전송 등으로 동일 task 의 finalize 가 두 번 호출돼도
+    # 락을 잡은 쪽만 Sheets 상태를 업데이트하고 메시지를 보낸다. 두 번째는 status="completed"
+    # 를 보고 조용히 빠져나온다.
+    with _finalize_lock:
+        current = sheets.get_task_by_id(task["task_id"])
+        if current and current.get("status") == "completed":
+            logger.info(
+                "task %s already completed, skipping duplicate finalize",
+                task["task_id"],
+            )
+            return
+
+        sheets.update_task_fields(
+            task["task_id"],
+            {
+                "status": "completed",
+                "closed_at": now_ts(),
+                "final_report": owner_msg[:10000],
+            },
+        )
+        sheets.append_task_history(task["task_id"], "assistant", owner_msg)
+        send_long_message(task["owner_chat_id"], owner_msg)
+        send_message(task["assignee_chat_id"], assignee_msg)
+        _activate_next_queued_task(db, task["assignee_chat_id"])
 
 
 def _finalize_due_to_feedback_limit(db: InvestmentDB, task: Dict[str, Any]) -> None:

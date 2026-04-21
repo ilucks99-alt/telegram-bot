@@ -1,4 +1,5 @@
 import os
+import threading
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -18,6 +19,10 @@ logger = get_logger(__name__)
 
 
 _db: Optional[InvestmentDB] = None
+
+# GH Actions 와 cron-job.org 가 거의 동시에 /cron/tick* 을 때리는 경우 같은 overdue task 를
+# 두 스레드가 집어 두 번 보고를 내보내는 문제를 막는다. 논블로킹 락이므로 이미 실행 중이면 스킵.
+_tick_lock = threading.Lock()
 
 
 def get_db() -> InvestmentDB:
@@ -113,20 +118,27 @@ def _check_cron_secret(authorization: Optional[str]) -> None:
 
 def _run_tick():
     """통합 tick 로직 — 업무체크(매번) + 뉴스(슬롯 매칭 시)."""
-    db = get_db()
-    chat_id = config.OWNER_CHAT_ID
+    # 두 cron 엔드포인트가 동시에 호출돼도 tick 본체는 한 번만 돈다.
+    if not _tick_lock.acquire(blocking=False):
+        logger.info("cron tick already running, skipping duplicate call")
+        return
     try:
-        check_and_report_overdue_tasks(db)
-    except Exception:
-        logger.exception("cron tick: task-check failed")
-    try:
-        run_manager_news_report(db, chat_id)
-    except Exception:
-        logger.exception("cron tick: manager-news failed")
-    try:
-        run_scheduled_news_report(db, chat_id)
-    except Exception:
-        logger.exception("cron tick: macro-news failed")
+        db = get_db()
+        chat_id = config.OWNER_CHAT_ID
+        try:
+            check_and_report_overdue_tasks(db)
+        except Exception:
+            logger.exception("cron tick: task-check failed")
+        try:
+            run_manager_news_report(db, chat_id)
+        except Exception:
+            logger.exception("cron tick: manager-news failed")
+        try:
+            run_scheduled_news_report(db, chat_id)
+        except Exception:
+            logger.exception("cron tick: macro-news failed")
+    finally:
+        _tick_lock.release()
 
 
 @app.post("/cron/tick")
