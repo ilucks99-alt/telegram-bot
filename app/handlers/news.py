@@ -6,7 +6,7 @@ from app import config
 from app.db_engine import InvestmentDB
 from app.logger import get_logger
 from app.parsers.news_summary import summarize_news
-from app.services import sheets
+from app.services import market_data, sheets
 from app.services.news_rss import search_google_news_rss
 from app.services.telegram import send_long_message, send_message
 from app.util import KST
@@ -119,16 +119,28 @@ def collect_manager_news(db: InvestmentDB) -> List[Dict[str, Any]]:
 # =========================================================
 # Reports
 # =========================================================
-def _send_report(chat_id, header: str, news_items: List[Dict[str, Any]], query: str) -> str:
+def _send_report(
+    chat_id,
+    header: str,
+    news_items: List[Dict[str, Any]],
+    query: str,
+    macro_prefix: str = "",
+) -> str:
     try:
+        slot = datetime.now(KST).strftime("%Y-%m-%d %H:%M")
+        prefix = f"{macro_prefix}\n\n" if macro_prefix else ""
+
         if not news_items:
-            send_message(chat_id, f"{header}: 신규 뉴스 없음")
+            # 뉴스가 없어도 매크로 지표는 쓸모 있으므로 함께 보낸다
+            if macro_prefix:
+                send_long_message(chat_id, f"{header} ({slot})\n\n{macro_prefix}\n\n[신규 뉴스 없음]")
+            else:
+                send_message(chat_id, f"{header}: 신규 뉴스 없음")
             return "empty"
 
         summary = summarize_news(query, news_items)
 
-        slot = datetime.now(KST).strftime("%Y-%m-%d %H:%M")
-        report = f"{header} ({slot})\n\n{summary}\n\n[수집 기사 {len(news_items)}건]\n"
+        report = f"{header} ({slot})\n\n{prefix}{summary}\n\n[수집 기사 {len(news_items)}건]\n"
         for i, item in enumerate(news_items[:10], 1):
             report += f"\n{i}. {item['title']}\n   - {item['link']}"
 
@@ -187,15 +199,28 @@ def _matches_slot(slot_times: List[str], slot_name: str) -> bool:
 
 
 def run_scheduled_news_report(db: InvestmentDB, chat_id, force: bool = False) -> str:
-    """거시 뉴스 자동 보고. tick에서 호출 — 슬롯+중복 체크 포함."""
+    """거시 뉴스 자동 보고. tick에서 호출 — 슬롯+중복 체크 + 매크로 지표 포함."""
     if not config.NEWS_AUTO_REPORT_ENABLED:
         return "disabled"
 
     if not force and not _matches_slot(config.NEWS_REPORT_TIMES, "macro_news"):
         return "skipped"
 
+    # Yahoo Finance 에서 주요 매크로 지표 스냅샷 (실패해도 뉴스 보고는 진행)
+    try:
+        macro_prefix = market_data.build_macro_briefing() or ""
+    except Exception:
+        logger.exception("macro prefix build failed")
+        macro_prefix = ""
+
     news_items = collect_news_for_keywords(db)
-    return _send_report(chat_id, "📰 거시 뉴스 자동 보고", news_items, "거시 뉴스")
+    return _send_report(
+        chat_id,
+        "📰 거시 뉴스 자동 보고",
+        news_items,
+        "거시 뉴스",
+        macro_prefix=macro_prefix,
+    )
 
 
 def run_manager_news_report(db: InvestmentDB, chat_id, force: bool = False) -> str:

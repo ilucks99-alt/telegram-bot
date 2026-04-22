@@ -45,6 +45,13 @@ _members_cache: Optional[Dict[str, str]] = None
 _members_cache_at: float = 0.0
 _MEMBERS_CACHE_TTL = 60.0
 
+# Tasks 시트는 webhook 1건 처리 시 3~5번 읽힌다(has_active, get_by_assignee, get_overdue 등).
+# 짧은 TTL 캐시로 동일 요청 burst 를 줄이고 Google Sheets read quota 를 아낀다.
+# Mutation(create_task / update_task_fields) 시 즉시 무효화해서 stale 읽기를 막는다.
+_tasks_cache: Optional[List[Dict[str, Any]]] = None
+_tasks_cache_at: float = 0.0
+_TASKS_CACHE_TTL = 15.0
+
 
 def _load_sa_credentials() -> Optional["Credentials"]:
     if Credentials is None:
@@ -210,15 +217,31 @@ def _row_to_dict(headers: List[str], row: List[str]) -> Dict[str, Any]:
     return d
 
 
-def _read_all_tasks() -> List[Dict[str, Any]]:
+def _invalidate_tasks_cache() -> None:
+    global _tasks_cache, _tasks_cache_at
+    _tasks_cache = None
+    _tasks_cache_at = 0.0
+
+
+def _read_all_tasks(force: bool = False) -> List[Dict[str, Any]]:
+    global _tasks_cache, _tasks_cache_at
+    now = time.time()
+    if not force and _tasks_cache is not None and (now - _tasks_cache_at) < _TASKS_CACHE_TTL:
+        return _tasks_cache
+
     ws = _tab("Tasks")
     if ws is None:
         return []
     values = ws.get_all_values()
     if not values:
-        return []
+        _tasks_cache = []
+        _tasks_cache_at = now
+        return _tasks_cache
     headers = values[0]
-    return [_row_to_dict(headers, row) for row in values[1:] if any(row)]
+    result = [_row_to_dict(headers, row) for row in values[1:] if any(row)]
+    _tasks_cache = result
+    _tasks_cache_at = now
+    return result
 
 
 def _find_task_row_index(ws, task_id: str) -> int:
@@ -266,6 +289,7 @@ def create_task(
     }
     row = [task.get(h, "") for h in TASKS_HEADERS]
     ws.append_row(row, value_input_option="USER_ENTERED")
+    _invalidate_tasks_cache()
     return task
 
 
@@ -326,6 +350,7 @@ def update_task_fields(task_id: str, updates: Dict[str, Any]) -> None:
         if key in headers:
             col = headers.index(key) + 1
             ws.update_cell(idx, col, str(val) if val is not None else "")
+    _invalidate_tasks_cache()
 
 
 def append_task_history(task_id: str, role: str, text: str) -> None:

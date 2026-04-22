@@ -1,5 +1,6 @@
 import os
 import threading
+from collections import OrderedDict
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -23,6 +24,25 @@ _db: Optional[InvestmentDB] = None
 # GH Actions 와 cron-job.org 가 거의 동시에 /cron/tick* 을 때리는 경우 같은 overdue task 를
 # 두 스레드가 집어 두 번 보고를 내보내는 문제를 막는다. 논블로킹 락이므로 이미 실행 중이면 스킵.
 _tick_lock = threading.Lock()
+
+# Telegram 이 2xx 응답 전에 타임아웃나면 같은 update_id 를 재전송한다. 동일 webhook 을
+# 두 번 처리하면 /지시 중복 생성, 평가 중복 실행 등이 일어나므로 update_id 기반 LRU 로 거른다.
+_SEEN_UPDATE_IDS_MAX = 1000
+_seen_update_ids: "OrderedDict[int, None]" = OrderedDict()
+_seen_update_ids_lock = threading.Lock()
+
+
+def _is_duplicate_update(update_id: Optional[int]) -> bool:
+    if update_id is None:
+        return False
+    with _seen_update_ids_lock:
+        if update_id in _seen_update_ids:
+            _seen_update_ids.move_to_end(update_id)
+            return True
+        _seen_update_ids[update_id] = None
+        while len(_seen_update_ids) > _SEEN_UPDATE_IDS_MAX:
+            _seen_update_ids.popitem(last=False)
+    return False
 
 
 def get_db() -> InvestmentDB:
@@ -84,6 +104,11 @@ async def webhook(secret: str, request: Request):
         update = await request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="invalid json")
+
+    update_id = update.get("update_id") if isinstance(update, dict) else None
+    if _is_duplicate_update(update_id):
+        logger.info("duplicate telegram update_id=%s ignored", update_id)
+        return {"ok": True, "duplicate": True}
 
     msg_ctx = extract_message_context(update)
     chat_id = msg_ctx.get("chat_id")
