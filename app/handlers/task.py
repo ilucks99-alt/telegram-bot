@@ -90,6 +90,18 @@ def handle_task_command(db: InvestmentDB, owner_chat_id, raw: str) -> None:
     queue_this = sheets.has_active_task_for_assignee(assignee_chat_id)
     initial_status = "queued" if queue_this else "waiting_for_reply"
 
+    # 큐 상한 체크 — 상한 초과 시 생성 자체를 거부해 담당자가 밀리지 않게 한다
+    if queue_this:
+        current_queue = sheets.count_queued_tasks_for_assignee(assignee_chat_id)
+        if current_queue >= config.TASK_QUEUE_MAX:
+            send_message(
+                owner_chat_id,
+                f"⚠️ {parsed['assignee_name']} 님의 대기열이 이미 {current_queue}건입니다 "
+                f"(상한 {config.TASK_QUEUE_MAX}건).\n"
+                f"앞 업무가 완료된 뒤 다시 지시해주세요.",
+            )
+            return
+
     task_id = f"TASK-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     try:
         task = sheets.create_task(
@@ -109,6 +121,12 @@ def handle_task_command(db: InvestmentDB, owner_chat_id, raw: str) -> None:
     sheets.append_task_history(task_id, "system", f"업무 지시됨: {parsed['instruction']}")
 
     if queue_this:
+        # 새로 추가됐으므로 방금 생성된 task 도 count 에 포함됨
+        try:
+            queue_position = sheets.count_queued_tasks_for_assignee(assignee_chat_id)
+        except Exception:
+            logger.exception("count_queued_tasks_for_assignee failed")
+            queue_position = 0
         try:
             send_message(
                 owner_chat_id,
@@ -116,8 +134,8 @@ def handle_task_command(db: InvestmentDB, owner_chat_id, raw: str) -> None:
                 f"- 업무번호: {task['task_id']}\n"
                 f"- 담당자: {task['assignee_name']}\n"
                 f"- 내용: {task['instruction']}\n"
-                f"- 사유: 해당 담당자의 이전 업무가 아직 진행 중입니다. "
-                f"앞 업무가 종료되는 즉시 자동 발송됩니다.",
+                f"- 대기순번: {queue_position}번째 (진행 중 업무 뒤)\n"
+                f"- 앞 업무가 종료되는 즉시 자동 발송됩니다.",
             )
         except Exception:
             logger.exception("queue owner notify failed")

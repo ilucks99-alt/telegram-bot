@@ -29,6 +29,7 @@ TASKS_HEADERS = [
 ]
 TASK_HISTORY_HEADERS = ["task_id", "ts", "role", "text"]
 MEMBERS_HEADERS = ["name", "chat_id", "registered_at"]
+NEWS_DEDUP_HEADERS = ["slot_key", "sent_at"]
 
 ACTIVE_STATUSES = {"waiting_for_reply", "feedback_sent", "processing_file", "reviewing"}
 
@@ -120,6 +121,7 @@ def ensure_tabs_initialized(seed_members: Optional[Dict[str, str]] = None) -> No
     with _lock:
         _ensure_worksheet(sheet, "Tasks", TASKS_HEADERS)
         _ensure_worksheet(sheet, "TaskHistory", TASK_HISTORY_HEADERS)
+        _ensure_worksheet(sheet, "NewsDedup", NEWS_DEDUP_HEADERS)
         members_ws = _ensure_worksheet(sheet, "Members", MEMBERS_HEADERS)
 
         if seed_members:
@@ -419,3 +421,66 @@ def find_similar_past_tasks(instruction: str, limit: int = 3) -> List[Dict[str, 
 
     scored.sort(key=lambda x: x[0], reverse=True)
     return [t for _, t in scored[:limit]]
+
+
+# =========================================================
+# News dedup (persistent across restarts)
+# =========================================================
+def count_active_tasks_for_assignee(chat_id) -> int:
+    chat_id_str = str(chat_id)
+    return sum(
+        1 for t in _read_all_tasks()
+        if t.get("assignee_chat_id") == chat_id_str and t.get("status") in ACTIVE_STATUSES
+    )
+
+
+def count_queued_tasks_for_assignee(chat_id) -> int:
+    chat_id_str = str(chat_id)
+    return sum(
+        1 for t in _read_all_tasks()
+        if t.get("assignee_chat_id") == chat_id_str and t.get("status") == "queued"
+    )
+
+
+def is_news_slot_sent(slot_key: str) -> bool:
+    ws = _tab("NewsDedup")
+    if ws is None:
+        return False
+    try:
+        col = ws.col_values(1)
+    except Exception:
+        logger.exception("is_news_slot_sent read failed | key=%s", slot_key)
+        return False
+    return slot_key in col[1:] if col else False
+
+
+def mark_news_slot_sent(slot_key: str) -> None:
+    ws = _tab("NewsDedup")
+    if ws is None:
+        return
+    try:
+        ws.append_row([slot_key, now_ts()], value_input_option="USER_ENTERED")
+    except Exception:
+        logger.exception("mark_news_slot_sent failed | key=%s", slot_key)
+
+
+def prune_news_dedup(keep_prefixes: List[str]) -> None:
+    """Keep only rows whose slot_key starts with any of the given prefixes (e.g. today's date).
+    Called opportunistically to avoid unbounded growth."""
+    ws = _tab("NewsDedup")
+    if ws is None:
+        return
+    try:
+        values = ws.get_all_values()
+        if len(values) <= 1:
+            return
+        keep = [values[0]]
+        for row in values[1:]:
+            if row and any(row[0].endswith(p) or p in row[0] for p in keep_prefixes):
+                keep.append(row)
+        if len(keep) == len(values):
+            return
+        ws.clear()
+        ws.append_rows(keep, value_input_option="USER_ENTERED")
+    except Exception:
+        logger.exception("prune_news_dedup failed")

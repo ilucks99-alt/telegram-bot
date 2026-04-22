@@ -32,6 +32,7 @@ TELEGRAM_WEBHOOK_SECRET = _env("TELEGRAM_WEBHOOK_SECRET", "change-me")
 GEMINI_API_KEY = _env("GEMINI_API_KEY")
 GEMINI_MODEL = _env("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
 GEMINI_FALLBACK_MODEL = _env("GEMINI_FALLBACK_MODEL", "gemini-2.5-flash-lite")
+GEMINI_TIMEOUT_SECONDS = _env_int("GEMINI_TIMEOUT_SECONDS", 20)
 
 # =========================================================
 # Paths
@@ -58,6 +59,7 @@ OWNER_CHAT_ID = _env("OWNER_CHAT_ID", "315716158")
 MAX_TASK_FEEDBACK_ROUND = _env_int("MAX_TASK_FEEDBACK_ROUND", 3)
 TASK_NO_REPLY_MINUTES = _env_int("TASK_NO_REPLY_MINUTES", 30)
 TASK_REPORT_COOLDOWN_MINUTES = _env_int("TASK_REPORT_COOLDOWN_MINUTES", 60)
+TASK_QUEUE_MAX = _env_int("TASK_QUEUE_MAX", 5)
 
 # =========================================================
 # News auto-report

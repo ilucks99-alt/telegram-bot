@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 from typing import List, Optional
 
 from app import config
@@ -13,6 +14,10 @@ except ImportError:
     genai_types = None
 
 _client: Optional["genai.Client"] = None
+# Dedicated executor so generate_content can be enforced with a wall-clock timeout.
+# The upstream call is not actually cancelled (SDK doesn't expose cancellation),
+# but the webhook thread is freed so Telegram doesn't retry the update.
+_timeout_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="gemini")
 
 
 def is_available() -> bool:
@@ -69,18 +74,30 @@ def _generate(prompt: str, max_output_tokens: int, temperature: float, json_mode
     if json_mode:
         cfg_kwargs["response_mime_type"] = "application/json"
 
+    timeout_s = max(1, config.GEMINI_TIMEOUT_SECONDS)
+
     last_err: Optional[Exception] = None
     for idx, model in enumerate(_models_to_try()):
-        try:
-            resp = client.models.generate_content(
-                model=model,
+        def _call(m=model):
+            return client.models.generate_content(
+                model=m,
                 contents=prompt,
                 config=genai_types.GenerateContentConfig(**cfg_kwargs),
             )
+
+        try:
+            future = _timeout_executor.submit(_call)
+            resp = future.result(timeout=timeout_s)
             text = (getattr(resp, "text", "") or "").strip()
             if idx > 0:
                 logger.info("Gemini fallback succeeded | model=%s", model)
             return text or None
+        except FuturesTimeout:
+            last_err = TimeoutError(f"gemini timeout {timeout_s}s on {model}")
+            logger.warning("Gemini call timed out | model=%s | timeout=%ss", model, timeout_s)
+            if idx + 1 < len(_models_to_try()):
+                continue
+            return None
         except Exception as e:
             last_err = e
             if _is_retryable(e) and idx + 1 < len(_models_to_try()):

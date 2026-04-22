@@ -6,13 +6,15 @@ from app import config
 from app.db_engine import InvestmentDB
 from app.logger import get_logger
 from app.parsers.news_summary import summarize_news
+from app.services import sheets
 from app.services.news_rss import search_google_news_rss
 from app.services.telegram import send_long_message, send_message
 from app.util import KST
 
 logger = get_logger(__name__)
 
-# Dedup: track which slots have already been sent (reset on server restart)
+# In-memory cache layered on top of Sheets (reduces Sheets reads within a session).
+# Persistence across Render restarts is provided by the NewsDedup tab in Sheets.
 _sent_slots: Set[str] = set()
 
 
@@ -139,7 +141,10 @@ def _send_report(chat_id, header: str, news_items: List[Dict[str, Any]], query: 
 
 
 def _matches_slot(slot_times: List[str], slot_name: str) -> bool:
-    """KST 기준 현재 시각이 슬롯 ±15분 이내이고 아직 미전송인지 확인."""
+    """KST 기준 현재 시각이 슬롯 ±15분 이내이고 아직 미전송인지 확인.
+
+    In-memory cache + Google Sheets (NewsDedup 탭) 2단 체크로 Render 재시작 후에도 중복 발송을 막는다.
+    """
     now = datetime.now(KST)
     today = now.strftime("%Y-%m-%d")
     for t in slot_times:
@@ -150,13 +155,34 @@ def _matches_slot(slot_times: List[str], slot_name: str) -> bool:
             base = datetime.strptime(f"{today} {t}", "%Y-%m-%d %H:%M").replace(tzinfo=KST)
         except ValueError:
             continue
-        if abs((now - base).total_seconds()) <= 900:
-            _sent_slots.add(slot_key)
-            # 이전 날짜 키 정리
-            for k in list(_sent_slots):
-                if k.startswith(slot_name) and today not in k:
-                    _sent_slots.discard(k)
-            return True
+        if abs((now - base).total_seconds()) > 900:
+            continue
+
+        # 시트에 이미 기록됐으면 재발송 방지 (Render 재시작 시 _sent_slots 유실 대비)
+        try:
+            if sheets.is_news_slot_sent(slot_key):
+                _sent_slots.add(slot_key)
+                continue
+        except Exception:
+            logger.exception("news dedup sheet check failed | key=%s", slot_key)
+            # 시트 장애 시에는 in-memory 만으로라도 진행
+
+        _sent_slots.add(slot_key)
+        try:
+            sheets.mark_news_slot_sent(slot_key)
+        except Exception:
+            logger.exception("news dedup sheet mark failed | key=%s", slot_key)
+
+        # 이전 날짜 in-memory 키 정리 (시트 정리는 일일 1회 기회적으로)
+        for k in list(_sent_slots):
+            if k.startswith(slot_name) and today not in k:
+                _sent_slots.discard(k)
+        try:
+            sheets.prune_news_dedup([today])
+        except Exception:
+            logger.exception("news dedup prune failed")
+
+        return True
     return False
 
 
