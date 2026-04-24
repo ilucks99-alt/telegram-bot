@@ -25,7 +25,11 @@ services:
       - key: CRON_SECRET
         sync: false
       - key: MAIN_DB_XLSX
-        value: ./Database/Data_Raw_2602.xlsx
+        value: ./Database/master_portfolio.xlsx
+      - key: MAIN_DB_SHEET
+        value: Dataset
+      - key: LT_SHEET
+        value: LookThrough
       - key: DETAIL_XLSX
         value: ./Database/Investment_Raw_2509.xlsx
       - key: TELEGRAM_FILE_DIR
