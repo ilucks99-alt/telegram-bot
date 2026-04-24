@@ -121,6 +121,10 @@ def build_search_answer(retrieved: Dict[str, Any], interpretation: str) -> str:
             extra.append(f"만기: {int(r['Maturity_Year'])}")
         if r.get("IRR") is not None:
             extra.append(f"IRR: {format_pct(r['IRR'])}")
+        if r.get("Commitment") is not None:
+            extra.append(f"약정: {format_amount_uk(r['Commitment'])}")
+        if r.get("Outstanding") is not None:
+            extra.append(f"잔액: {format_amount_uk(r['Outstanding'])}")
         if r.get("NAV") is not None:
             extra.append(f"NAV: {format_amount_uk(r['NAV'])}")
         if r.get("Sub_Asset_Count"):
