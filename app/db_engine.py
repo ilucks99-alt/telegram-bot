@@ -88,6 +88,12 @@ class InvestmentDB:
         df = pd.read_excel(self.path, sheet_name=config.MAIN_DB_SHEET)
         df = df.rename(columns=self._DATASET_COLUMN_RENAME)
 
+        # Dataset 시트에는 빈 placeholder 행 (Project_ID 비어있음)이 섞여 있다 —
+        # 필터링된 프로젝트 및 미사용 예비 행들이 그 원인. 실제 BS* 행만 남긴다.
+        if "Project_ID" in df.columns:
+            pid_col = df["Project_ID"].astype(str).str.strip()
+            df = df[pid_col.str.match(r"^BS\d", na=False)].copy()
+
         required = [
             "Project_ID", "Asset_Name", "Asset_Class", "Manager", "Region",
             "Strategy", "Sector", "Initial_Date", "Vintage", "Maturity_Date",
