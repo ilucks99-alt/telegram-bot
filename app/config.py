@@ -37,7 +37,9 @@ GEMINI_TIMEOUT_SECONDS = _env_int("GEMINI_TIMEOUT_SECONDS", 20)
 # =========================================================
 # Paths
 # =========================================================
-MAIN_DB_XLSX = _env("MAIN_DB_XLSX", "./Database/Data_Raw_2602.xlsx")
+MAIN_DB_XLSX = _env("MAIN_DB_XLSX", "./Database/master_portfolio.xlsx")
+MAIN_DB_SHEET = _env("MAIN_DB_SHEET", "Dataset")
+LT_SHEET = _env("LT_SHEET", "LookThrough")
 DETAIL_XLSX = _env("DETAIL_XLSX", "./Database/Investment_Raw_2509.xlsx")
 TELEGRAM_FILE_DIR = _env("TELEGRAM_FILE_DIR", "/tmp/telegram_files")
 

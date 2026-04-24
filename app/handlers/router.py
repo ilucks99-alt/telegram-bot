@@ -4,6 +4,12 @@ from app import config
 from app.db_engine import InvestmentDB
 from app.handlers.analysis import handle_analysis_command, handle_analysis_followup
 from app.handlers.detail import handle_detail
+from app.handlers.lookthrough import (
+    handle_exposure_command,
+    handle_exposure_followup,
+    handle_lookthrough_command,
+    handle_lookthrough_followup,
+)
 from app.handlers.news import handle_manager_news_command, handle_news_search_command
 from app.handlers.query import handle_query_command, handle_search_followup
 from app.handlers.task import (
@@ -30,6 +36,8 @@ HELP_TEXT = """
 [안내]
 - /분석: 비중/평균/그룹별 집계 등 포트폴리오 분석용입니다.
 - /조회: 조건에 맞는 건을 조회합니다.
+- /룩쓰루: 단일 펀드의 하위자산(자산유형/통화/금리/만기/TOP holdings) 드릴다운.
+- /익스포저: 특정 발행인/종목이 포트폴리오 어디에 들어있는지 역방향 조회.
 - /검색: 입력한 키워드 관련 뉴스를 요약, 정리하여 볼 수 있습니다.
 - /운용사뉴스: 포트폴리오 상위 운용사 기반 뉴스 리포트를 즉시 생성합니다.
 - 조회/분석 직후 5분 이내에는 자연어로 후속 질문이 가능합니다. (예: "그 중에 IRR 높은 순 3개")
@@ -38,6 +46,9 @@ HELP_TEXT = """
 [사용 법]
 /분석 포트폴리오 분석하고 싶은 내용
 /조회 조회하고 싶은 내용
+/룩쓰루 BS00000726
+/익스포저 발행인 평택동부도로
+/익스포저 종목 PGIM
 /검색 검색 키워드
 /운용사뉴스
 /help 도움말
@@ -73,6 +84,7 @@ def _try_followup(db: InvestmentDB, chat_id: int, text: str) -> bool:
         previous_payload=ctx["payload"],
         previous_summary=ctx.get("summary", ""),
         user_text=text,
+        extras=ctx.get("extras") or {},
     )
     if not parsed:
         return False
@@ -85,6 +97,12 @@ def _try_followup(db: InvestmentDB, chat_id: int, text: str) -> bool:
         return True
     if kind == "analysis":
         handle_analysis_followup(db, chat_id, payload)
+        return True
+    if kind == "lookthrough":
+        handle_lookthrough_followup(db, chat_id, payload)
+        return True
+    if kind == "exposure":
+        handle_exposure_followup(db, chat_id, payload)
         return True
     return False
 
@@ -165,6 +183,14 @@ def process_user_message(db: InvestmentDB, chat_id: int, text: str, ctx: Dict[st
 
     if raw.startswith("/분석"):
         handle_analysis_command(db, chat_id, raw, ctx)
+        return
+
+    if raw.startswith("/룩쓰루"):
+        handle_lookthrough_command(db, chat_id, raw, ctx)
+        return
+
+    if raw.startswith("/익스포저"):
+        handle_exposure_command(db, chat_id, raw, ctx)
         return
 
     if raw.startswith("/운용사뉴스"):

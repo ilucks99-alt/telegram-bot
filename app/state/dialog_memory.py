@@ -8,17 +8,25 @@ _LOCK = threading.Lock()
 _STORE: Dict[str, Dict[str, Any]] = {}
 
 
-def set_context(chat_id, kind: str, payload: Dict[str, Any], summary: str = "") -> None:
+def set_context(
+    chat_id,
+    kind: str,
+    payload: Dict[str, Any],
+    summary: str = "",
+    extras: Optional[Dict[str, Any]] = None,
+) -> None:
     """
-    kind: 'query' or 'analysis'
-    payload: the original query_json or analysis_json
+    kind: 'query' | 'analysis' | 'lookthrough' | 'exposure'
+    payload: the minimal re-execution payload for this kind
     summary: short human-readable description for LLM context
+    extras: optional side data to help followup parser (e.g. rows/holdings/funds list for index resolution)
     """
     with _LOCK:
         _STORE[str(chat_id)] = {
             "kind": kind,
             "payload": payload,
             "summary": summary,
+            "extras": extras or {},
             "ts": time.time(),
         }
 

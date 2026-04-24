@@ -1,3 +1,4 @@
+import json as _json
 from typing import Any, Dict, Optional
 
 from app.logger import get_logger
@@ -9,11 +10,34 @@ from app.services import gemini
 logger = get_logger(__name__)
 
 
-def parse_followup(kind: str, previous_payload: Dict[str, Any], previous_summary: str, user_text: str) -> Optional[Dict[str, Any]]:
+def _normalize_lookthrough_payload(payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    pid = str((payload or {}).get("project_id") or "").strip().upper()
+    import re as _re
+    if not _re.fullmatch(r"BS\d{6,10}", pid):
+        return None
+    return {"project_id": pid}
+
+
+def _normalize_exposure_payload(payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    mode = str((payload or {}).get("mode") or "holding").strip().lower()
+    query = str((payload or {}).get("query") or "").strip()
+    if not query:
+        return None
+    if mode not in ("counterparty", "holding"):
+        mode = "holding"
+    return {"mode": mode, "query": query}
+
+
+def parse_followup(
+    kind: str,
+    previous_payload: Dict[str, Any],
+    previous_summary: str,
+    user_text: str,
+    extras: Optional[Dict[str, Any]] = None,
+) -> Optional[Dict[str, Any]]:
     """
-    Returns dict with shape:
-      {"mode": "patch"|"new", "kind": "query"|"analysis", "payload": normalized_payload}
-    Or None if Gemini unavailable or parse failed.
+    Returns dict: {"mode": "patch"|"new", "kind": "query"|"analysis"|"lookthrough"|"exposure", "payload": ...}
+    None if Gemini unavailable or parse failed.
     """
     if not gemini.is_available():
         return None
@@ -24,6 +48,7 @@ def parse_followup(kind: str, previous_payload: Dict[str, Any], previous_summary
         previous_payload=previous_payload,
         previous_summary=previous_summary,
         user_text=user_text,
+        extras_json=_json.dumps(extras or {}, ensure_ascii=False),
     )
     raw = gemini.generate_json(prompt, max_output_tokens=1600, temperature=0.1)
     if not raw:
@@ -43,10 +68,18 @@ def parse_followup(kind: str, previous_payload: Dict[str, Any], previous_summary
         payload = normalize_query_json(payload)
     elif kind_out == "analysis":
         payload = normalize_analysis_json(payload)
+    elif kind_out == "lookthrough":
+        payload = _normalize_lookthrough_payload(payload)
+        if payload is None:
+            return None
+    elif kind_out == "exposure":
+        payload = _normalize_exposure_payload(payload)
+        if payload is None:
+            return None
     else:
         return None
 
     if mode not in ("patch", "new"):
-        mode = "patch"
+        mode = "new" if kind_out in ("lookthrough", "exposure") else "patch"
 
     return {"mode": mode, "kind": kind_out, "payload": payload}

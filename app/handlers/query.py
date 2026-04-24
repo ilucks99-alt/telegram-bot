@@ -49,11 +49,26 @@ def handle_query_command(db: InvestmentDB, chat_id: int, raw: str, ctx: Dict[str
         answer = build_search_answer(retrieved, interpretation)
         send_message(chat_id, answer)
 
-        dialog_memory.set_context(chat_id, "query", query_json, interpretation)
+        _store_query_context(chat_id, query_json, interpretation, retrieved)
 
     except Exception:
         logger.exception("query command failed")
         send_message(chat_id, "조회 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
+
+
+def _store_query_context(chat_id, query_json, interpretation, retrieved):
+    rows = retrieved.get("rows") or []
+    extras = {
+        "rows": [
+            {
+                "project_id": r.get("Project_ID"),
+                "asset_name": r.get("Asset_Name"),
+                "sub_asset_count": int(r.get("Sub_Asset_Count") or 0),
+            }
+            for r in rows[:20]
+        ]
+    }
+    dialog_memory.set_context(chat_id, "query", query_json, interpretation, extras=extras)
 
 
 def handle_search_followup(db: InvestmentDB, chat_id: int, query_json: Dict[str, Any]) -> None:
@@ -62,7 +77,7 @@ def handle_search_followup(db: InvestmentDB, chat_id: int, query_json: Dict[str,
         interpretation = summarize_query_json(query_json)
         answer = build_search_answer(retrieved, interpretation)
         send_message(chat_id, answer)
-        dialog_memory.set_context(chat_id, "query", query_json, interpretation)
+        _store_query_context(chat_id, query_json, interpretation, retrieved)
     except Exception:
         logger.exception("query followup failed")
         send_message(chat_id, "후속 조회 처리 중 오류가 발생했습니다.")

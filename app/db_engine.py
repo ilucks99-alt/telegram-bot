@@ -23,33 +23,113 @@ logger = get_logger(__name__)
 class InvestmentDB:
     def __init__(self, path: str):
         self.path = path
+        self.lt: pd.DataFrame = pd.DataFrame()
         self.df = self._load()
 
     def refresh(self) -> None:
         self.df = self._load()
 
-    def _load(self) -> pd.DataFrame:
-        df = pd.read_excel(self.path)
+    # 신 master_portfolio.xlsx 의 Dataset 시트 한글 컬럼 → 기존 코드가 사용하는 영문 alias.
+    # 기존 search/analysis 코드는 영문 컬럼 가정으로 박혀 있어서 로더에서 한 번만 갈아끼우면 변경 면적 0.
+    _DATASET_COLUMN_RENAME = {
+        "프로젝트명": "Asset_Name",
+        "Asset_Class_EN": "Asset_Class",
+        "Manager_EN": "Manager",
+        "Region_EN": "Region",
+        "최초인출일": "Initial_Date",
+        "만기일": "Maturity_Date",
+        "빈티지": "Vintage",
+        "약정금액(원화)_합계": "Commitment",
+        "실행(누적)_합계": "Called",
+        "상환(누적)_합계": "Repaid",
+        "장부가액(원화)_합계": "Outstanding",
+        "평가금액(원화)_합계": "NAV",
+        "수익률(원화,누적)_대표": "IRR",
+        "종목ID/트렌치ID(대표)": "SubAsset_Key",
+        "약정통화": "Currency",
+        "투자유형": "Investment_Type",
+        "세부유형": "Detail_Type",
+        "자본구조1(SAP)": "Capital_Structure",
+        "트렌치수": "Tranche_Count",
+        "하위자산수": "Sub_Asset_Count",
+    }
 
-        expected = [
-            "Project_ID", "Asset_Class", "Asset_Name", "Manager", "Region",
-            "Strategy", "Sector", "Initial_Date", "Vintage",
-            "Investment_Period", "Maturity_Date", "Maturity_Year",
+    @staticmethod
+    def _parse_excel_date(s: pd.Series) -> pd.Series:
+        """Excel serial number(45832 등) 또는 datetime 문자열을 pd.Timestamp로 통일.
+
+        주의: pd.to_datetime(45832) 는 45832 나노초로 해석해 1970년이 나와버린다.
+        따라서 numeric 우선 → Excel serial 로 처리하고, 나머지를 datetime 파싱한다.
+        """
+        if pd.api.types.is_datetime64_any_dtype(s):
+            return s
+
+        out = pd.Series(pd.NaT, index=s.index, dtype="datetime64[ns]")
+
+        # 1) numeric → Excel serial (epoch 1899-12-30, 1900 leap-year bug 보정)
+        numeric = pd.to_numeric(s, errors="coerce")
+        serial_mask = numeric.notna()
+        if serial_mask.any():
+            serial_dt = pd.to_datetime(
+                numeric.where(serial_mask), unit="D", origin="1899-12-30", errors="coerce"
+            )
+            # Excel max 2958465 = 9999-12-31 (만기 미정 placeholder) → NaT
+            serial_dt = serial_dt.where(serial_dt.dt.year < 9000, pd.NaT)
+            out = out.where(~serial_mask, serial_dt)
+
+        # 2) numeric 으로 잡히지 않은 값은 일반 datetime 문자열 시도
+        str_mask = (~serial_mask) & s.notna()
+        if str_mask.any():
+            out = out.where(~str_mask, pd.to_datetime(s.where(str_mask), errors="coerce"))
+
+        return out
+
+    def _load(self) -> pd.DataFrame:
+        df = pd.read_excel(self.path, sheet_name=config.MAIN_DB_SHEET)
+        df = df.rename(columns=self._DATASET_COLUMN_RENAME)
+
+        required = [
+            "Project_ID", "Asset_Name", "Asset_Class", "Manager", "Region",
+            "Strategy", "Sector", "Initial_Date", "Vintage", "Maturity_Date",
             "Commitment", "Called", "Outstanding", "NAV", "IRR",
+            "Currency", "SubAsset_Key", "Tranche_Count", "Sub_Asset_Count",
         ]
-        missing = [c for c in expected if c not in df.columns]
+        missing = [c for c in required if c not in df.columns]
         if missing:
             raise ValueError(f"필수 컬럼 누락: {missing}")
 
-        text_cols = ["Project_ID", "Asset_Class", "Asset_Name", "Manager", "Region", "Strategy", "Sector"]
+        text_cols = [
+            "Project_ID", "Asset_Class", "Asset_Name", "Manager", "Region",
+            "Strategy", "Sector", "Currency", "Investment_Type", "Detail_Type",
+            "Capital_Structure",
+        ]
         for c in text_cols:
-            df[c] = df[c].fillna("").astype(str).str.strip()
+            if c in df.columns:
+                df[c] = df[c].fillna("").astype(str).str.strip()
 
-        for c in ["Initial_Date", "Investment_Period", "Maturity_Date"]:
-            df[c] = pd.to_datetime(df[c], errors="coerce")
+        # 약정통화 = "미인출" 또는 빈값 → Unknown (인출 전이라 통화 미확정)
+        df["Currency"] = df["Currency"].replace({"": "Unknown", "미인출": "Unknown"})
 
-        for c in ["Vintage", "Maturity_Year", "Commitment", "Called", "Outstanding", "NAV", "IRR"]:
-            df[c] = pd.to_numeric(df[c], errors="coerce")
+        # 빈티지: "~2016", "미인출" 같은 문자열은 NaN 처리
+        df["Vintage"] = pd.to_numeric(df["Vintage"], errors="coerce")
+
+        # 날짜: Excel serial 변환
+        df["Initial_Date"] = self._parse_excel_date(df["Initial_Date"])
+        df["Maturity_Date"] = self._parse_excel_date(df["Maturity_Date"])
+        df["Maturity_Year"] = df["Maturity_Date"].dt.year
+
+        # 금액 컬럼: 원화 원단위 → 억 단위 (기존 format_amount_uk 가 "{:,.0f}억" 가정)
+        for c in ["Commitment", "Called", "Repaid", "Outstanding", "NAV"]:
+            df[c] = pd.to_numeric(df[c], errors="coerce") / 1e8
+
+        # IRR: % 표기 → 소수 (기존 format_pct 와 IRR 안전망이 소수 가정)
+        df["IRR"] = pd.to_numeric(df["IRR"], errors="coerce") / 100.0
+
+        for c in ["Tranche_Count", "Sub_Asset_Count"]:
+            df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0).astype(int)
+
+        # SubAsset_Key: LookThrough 조인 키 (nullable int)
+        df["SubAsset_Key"] = pd.to_numeric(df["SubAsset_Key"], errors="coerce").astype("Int64")
 
         df["Asset_Class_Std"] = df["Asset_Class"].apply(self._std_asset_class)
         df["Region_Std"] = df["Region"].apply(self._std_region)
@@ -59,8 +139,57 @@ class InvestmentDB:
         df["Sector_Norm"] = df["Sector"].apply(normalize_text)
         df["Project_ID_Norm"] = df["Project_ID"].apply(normalize_text)
 
-        logger.info("DB loaded | rows=%d | file=%s", len(df), self.path)
+        self._load_lookthrough()
+        logger.info(
+            "DB loaded | rows=%d | file=%s | lt_rows=%d",
+            len(df), self.path, len(self.lt) if self.lt is not None else 0,
+        )
         return df
+
+    def _load_lookthrough(self) -> None:
+        try:
+            lt = pd.read_excel(self.path, sheet_name=config.LT_SHEET)
+        except Exception:
+            logger.exception("LookThrough load failed | file=%s", self.path)
+            self.lt = pd.DataFrame()
+            return
+
+        lt = lt.rename(columns={
+            "펀드 종목ID": "Fund_SubAsset_Key",
+            "펀드 종목명": "Fund_Name",
+            "수익증권KEY": "Vehicle_Key",
+            "하위자산유형": "Sub_Type",
+            "편입자산 ID": "Holding_ID",
+            "편입자산 종목명": "Holding_Name",
+            "상품구분": "Product_Type",
+            "거래상대방/발행인": "Counterparty",
+            "포지션통화": "Position_Currency",
+            "장부금액(원화)": "Book_Value",
+            "금리(%)": "Coupon_Rate",
+            "만기일": "Holding_Maturity",
+            "매입일": "Purchase_Date",
+        })
+        lt["Fund_SubAsset_Key"] = pd.to_numeric(lt["Fund_SubAsset_Key"], errors="coerce").astype("Int64")
+        lt["Book_Value"] = pd.to_numeric(lt["Book_Value"], errors="coerce") / 1e8  # 억 단위
+        lt["Coupon_Rate"] = pd.to_numeric(lt["Coupon_Rate"], errors="coerce")
+        lt["Holding_Maturity"] = self._parse_excel_date(lt["Holding_Maturity"])
+        lt["Purchase_Date"] = self._parse_excel_date(lt["Purchase_Date"])
+        for c in ["Sub_Type", "Product_Type", "Counterparty", "Position_Currency", "Fund_Name", "Holding_Name"]:
+            if c in lt.columns:
+                lt[c] = lt[c].fillna("").astype(str).str.strip()
+        self.lt = lt
+
+    def lookthrough_for(self, project_id: str) -> pd.DataFrame:
+        """단일 펀드의 LookThrough 하위자산 subset 반환. 없으면 빈 DataFrame."""
+        if not project_id or self.lt is None or self.lt.empty:
+            return pd.DataFrame()
+        proj = self.df[self.df["Project_ID"] == project_id]
+        if proj.empty:
+            return pd.DataFrame()
+        key = proj.iloc[0].get("SubAsset_Key")
+        if pd.isna(key):
+            return pd.DataFrame()
+        return self.lt[self.lt["Fund_SubAsset_Key"] == key].copy()
 
     @staticmethod
     def _std_asset_class(x: str) -> str:
@@ -198,6 +327,7 @@ class InvestmentDB:
                 "Project_ID", "Asset_Name", "Manager", "Asset_Class_Std", "Region_Std",
                 "Strategy", "Sector", "Vintage", "Maturity_Year",
                 "Commitment", "Called", "Outstanding", "NAV", "IRR",
+                "Sub_Asset_Count", "Currency",
             ])
         return (
             df.groupby("Project_ID", as_index=False)
@@ -215,6 +345,8 @@ class InvestmentDB:
                 "Outstanding": "sum",
                 "NAV": "sum",
                 "IRR": "mean",
+                "Sub_Asset_Count": "first",
+                "Currency": "first",
             })
             .copy()
         )
@@ -264,6 +396,8 @@ class InvestmentDB:
                 "Outstanding": safe_num(row["Outstanding"]),
                 "NAV": safe_num(row["NAV"]),
                 "IRR": safe_num(row["IRR"]),
+                "Sub_Asset_Count": int(row["Sub_Asset_Count"]) if "Sub_Asset_Count" in rows_df.columns and pd.notna(row.get("Sub_Asset_Count")) else 0,
+                "Currency": (row.get("Currency") or None) if "Currency" in rows_df.columns else None,
             })
 
         weighted_irr: Optional[float] = None
@@ -458,6 +592,245 @@ class InvestmentDB:
         if not rows:
             return None
         return rows[0]
+
+    # =========================================================
+    # Project reference resolver (BS\d+ 또는 자유 텍스트 → Project_ID 후보)
+    # =========================================================
+    def resolve_project_ref(self, ref: str, limit: int = 5) -> List[Dict[str, Any]]:
+        """자유 텍스트를 Project_ID 후보 리스트로 변환.
+        - 'BS00000XXX' 정확 매칭 우선.
+        - 아니면 Asset_Name / Manager 를 normalize 후 contains 매칭.
+        결과: [{project_id, asset_name, manager, asset_class, sub_asset_count}, ...] (최대 limit)."""
+        if not ref or self.df is None or self.df.empty:
+            return []
+        s = str(ref).strip()
+        if not s:
+            return []
+
+        import re as _re
+        m = _re.search(r"BS\d{6,10}", s, _re.IGNORECASE)
+        if m:
+            pid = m.group(0).upper()
+            exact = self.df[self.df["Project_ID"] == pid]
+            if not exact.empty:
+                r = exact.iloc[0]
+                return [{
+                    "project_id": str(r["Project_ID"]),
+                    "asset_name": str(r.get("Asset_Name") or ""),
+                    "manager": str(r.get("Manager") or ""),
+                    "asset_class": str(r.get("Asset_Class") or ""),
+                    "sub_asset_count": int(r.get("Sub_Asset_Count") or 0),
+                }]
+
+        # 공백 포함 문자열 → 토큰 단위로 전부 포함하는 행 찾기 (AND 매칭)
+        tokens = [t for t in _re.split(r"\s+", s) if t]
+        if not tokens:
+            return []
+        mask = pd.Series([True] * len(self.df), index=self.df.index)
+        for t in tokens:
+            kw = normalize_text(t)
+            if not kw:
+                continue
+            name_hit = self.df["Asset_Name_Norm"].fillna("").astype(str).str.contains(kw, regex=False, na=False)
+            mgr_hit = self.df["Manager_Norm"].fillna("").astype(str).str.contains(kw, regex=False, na=False)
+            mask &= (name_hit | mgr_hit)
+        cands = self.df[mask].head(limit)
+        out = []
+        for _, r in cands.iterrows():
+            out.append({
+                "project_id": str(r["Project_ID"]),
+                "asset_name": str(r.get("Asset_Name") or ""),
+                "manager": str(r.get("Manager") or ""),
+                "asset_class": str(r.get("Asset_Class") or ""),
+                "sub_asset_count": int(r.get("Sub_Asset_Count") or 0),
+            })
+        return out
+
+    # =========================================================
+    # LookThrough — Phase 1: 단일 펀드 드릴다운
+    # =========================================================
+    def lookthrough_summary(self, project_id: str) -> Optional[Dict[str, Any]]:
+        """단일 펀드의 LT 요약 (자산유형/통화 mix, 가중평균금리, top holdings, 만기 사다리).
+        룩쓰루 데이터가 없는 펀드(`Sub_Asset_Count == 0`)는 None 반환."""
+        if not project_id:
+            return None
+        proj = self.df[self.df["Project_ID"] == project_id]
+        if proj.empty:
+            return None
+        p = proj.iloc[0]
+
+        lt = self.lookthrough_for(project_id)
+
+        base = {
+            "project_id": project_id,
+            "asset_name": str(p.get("Asset_Name") or ""),
+            "asset_class": str(p.get("Asset_Class") or ""),
+            "manager": str(p.get("Manager") or ""),
+            "region": str(p.get("Region") or ""),
+            "currency": str(p.get("Currency") or ""),
+            "fund_commitment": safe_num(p.get("Commitment")),
+            "fund_outstanding": safe_num(p.get("Outstanding")),
+            "fund_irr": safe_num(p.get("IRR")),
+            "tranche_count": int(p.get("Tranche_Count") or 0),
+            "sub_asset_count": int(p.get("Sub_Asset_Count") or 0),
+            "lt_count": int(len(lt)),
+            "lt_book_total": safe_num(lt["Book_Value"].sum()) if not lt.empty else 0.0,
+            "subtype_share": [],
+            "currency_share": [],
+            "weighted_coupon": None,
+            "top_holdings": [],
+            "maturity_buckets": {"<=1y": 0.0, "1-3y": 0.0, "3y+": 0.0, "no_maturity": 0.0},
+        }
+
+        if lt.empty:
+            return base
+
+        # 자산유형 mix (장부 비중)
+        st = lt.groupby("Sub_Type")["Book_Value"].agg(["sum", "count"]).sort_values("sum", ascending=False)
+        total_book = float(lt["Book_Value"].sum() or 0.0)
+        for st_name, row in st.iterrows():
+            book = float(row["sum"] or 0.0)
+            base["subtype_share"].append({
+                "sub_type": str(st_name) or "N/A",
+                "count": int(row["count"]),
+                "book": book,
+                "share": (book / total_book) if total_book else None,
+            })
+
+        # 통화 mix
+        cc = lt.groupby("Position_Currency")["Book_Value"].sum().sort_values(ascending=False)
+        for ccy, book in cc.items():
+            book_v = float(book or 0.0)
+            base["currency_share"].append({
+                "currency": str(ccy) or "Unknown",
+                "book": book_v,
+                "share": (book_v / total_book) if total_book else None,
+            })
+
+        # 가중평균 보유금리 (대출/채권만)
+        rate_df = lt[lt["Sub_Type"].isin(["대출", "채권"]) & lt["Coupon_Rate"].notna() & (lt["Book_Value"] > 0)]
+        if not rate_df.empty:
+            denom = float(rate_df["Book_Value"].sum() or 0.0)
+            if denom > 0:
+                base["weighted_coupon"] = float((rate_df["Coupon_Rate"] * rate_df["Book_Value"]).sum() / denom)
+
+        # TOP 10 holdings
+        top = lt.nlargest(10, "Book_Value")
+        for _, row in top.iterrows():
+            base["top_holdings"].append({
+                "name": str(row.get("Holding_Name") or "") or str(row.get("Counterparty") or ""),
+                "counterparty": str(row.get("Counterparty") or ""),
+                "sub_type": str(row.get("Sub_Type") or ""),
+                "currency": str(row.get("Position_Currency") or ""),
+                "book": safe_num(row.get("Book_Value")),
+                "coupon": safe_num(row.get("Coupon_Rate")),
+            })
+
+        # 만기 사다리
+        from datetime import timedelta
+        from app.util import get_kst_now
+        today = get_kst_now()
+        m = lt["Holding_Maturity"]
+        days = (m - pd.Timestamp(today.date())).dt.days
+
+        b1 = lt[days.between(0, 365)]["Book_Value"].sum()
+        b13 = lt[days.between(366, 365 * 3)]["Book_Value"].sum()
+        b3p = lt[days > 365 * 3]["Book_Value"].sum()
+        bna = lt[m.isna() | (days < 0)]["Book_Value"].sum()
+
+        base["maturity_buckets"] = {
+            "<=1y": safe_num(b1) or 0.0,
+            "1-3y": safe_num(b13) or 0.0,
+            "3y+": safe_num(b3p) or 0.0,
+            "no_maturity": safe_num(bna) or 0.0,
+        }
+        return base
+
+    # =========================================================
+    # LookThrough — Phase 2: 익스포저 역방향 조회
+    # =========================================================
+    def _exposure_match_mask(self, mode: str, query: str) -> pd.Series:
+        if self.lt is None or self.lt.empty:
+            return pd.Series(dtype=bool)
+        nq = normalize_text(query)
+        if not nq:
+            return pd.Series([False] * len(self.lt), index=self.lt.index)
+
+        cp_norm = self.lt["Counterparty"].fillna("").astype(str).map(normalize_text)
+        if mode == "counterparty":
+            mask = cp_norm.str.contains(nq, regex=False, na=False)
+        else:  # holding (broader: counterparty + holding name)
+            hn_norm = self.lt["Holding_Name"].fillna("").astype(str).map(normalize_text)
+            mask = cp_norm.str.contains(nq, regex=False, na=False) | hn_norm.str.contains(nq, regex=False, na=False)
+        return mask
+
+    def exposure_search(self, mode: str, query: str, fund_top_n: int = 20) -> Dict[str, Any]:
+        """LT에서 발행인/종목 단위 노출 역조회.
+        mode: 'counterparty' (Counterparty만) | 'holding' (Counterparty + Holding_Name)"""
+        result = {
+            "mode": mode,
+            "query": query,
+            "match_lt_rows": 0,
+            "match_book": 0.0,
+            "fund_count": 0,
+            "org_lt_total": safe_num(self.lt["Book_Value"].sum()) if (self.lt is not None and not self.lt.empty) else 0.0,
+            "share": None,
+            "by_fund": [],
+            "by_currency": [],
+        }
+        if self.lt is None or self.lt.empty or not query.strip():
+            return result
+
+        mask = self._exposure_match_mask(mode, query)
+        sub = self.lt[mask].copy()
+        if sub.empty:
+            return result
+
+        result["match_lt_rows"] = int(len(sub))
+        result["match_book"] = safe_num(sub["Book_Value"].sum()) or 0.0
+        if result["org_lt_total"]:
+            result["share"] = result["match_book"] / result["org_lt_total"]
+
+        # 펀드별 집계 — Fund_SubAsset_Key + Fund_Name (Dataset 미매칭 케이스 대비)
+        by_key = (
+            sub.groupby(["Fund_SubAsset_Key", "Fund_Name"], dropna=False)
+            .agg(lt_book=("Book_Value", "sum"), lt_count=("Book_Value", "size"))
+            .reset_index()
+            .sort_values("lt_book", ascending=False)
+        )
+
+        # Dataset에서 펀드 메타 join (SubAsset_Key 일치)
+        meta = self.df[["Project_ID", "Asset_Name", "Manager", "Asset_Class", "SubAsset_Key", "Currency"]].copy()
+        joined = by_key.merge(
+            meta, left_on="Fund_SubAsset_Key", right_on="SubAsset_Key", how="left"
+        )
+        result["fund_count"] = int(joined["Project_ID"].notna().sum())
+        result["unmatched_fund_count"] = int(joined["Project_ID"].isna().sum())
+
+        for _, row in joined.head(fund_top_n).iterrows():
+            matched = pd.notna(row.get("Project_ID"))
+            result["by_fund"].append({
+                "project_id": str(row["Project_ID"]) if matched else "",
+                "asset_name": (
+                    str(row["Asset_Name"]) if matched
+                    else f"{row.get('Fund_Name') or 'Unknown'} (Dataset 미매칭)"
+                ),
+                "manager": str(row["Manager"]) if matched else "",
+                "asset_class": str(row["Asset_Class"]) if matched else "",
+                "fund_currency": str(row["Currency"]) if matched else "",
+                "lt_book": safe_num(row["lt_book"]),
+                "lt_count": int(row["lt_count"]),
+                "matched": matched,
+            })
+
+        # 통화 분포 (매칭 LT만)
+        by_ccy = sub.groupby("Position_Currency")["Book_Value"].sum().sort_values(ascending=False)
+        for ccy, book in by_ccy.items():
+            result["by_currency"].append({
+                "currency": str(ccy) or "Unknown",
+                "book": safe_num(book) or 0.0,
+            })
+        return result
 
     def top_managers_by_outstanding(self, limit: int = 10, overseas_only: bool = False) -> List[str]:
         import re as _re

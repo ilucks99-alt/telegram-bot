@@ -123,11 +123,16 @@ def build_search_answer(retrieved: Dict[str, Any], interpretation: str) -> str:
             extra.append(f"IRR: {format_pct(r['IRR'])}")
         if r.get("NAV") is not None:
             extra.append(f"NAV: {format_amount_uk(r['NAV'])}")
+        if r.get("Sub_Asset_Count"):
+            extra.append(f"LT {int(r['Sub_Asset_Count'])}자산")
 
         tail = f" ({' | '.join(extra)})" if extra else ""
         lines.append(f"{idx}. {r['Project_ID']} | {r['Asset_Name']}{tail}")
 
     if rows:
-        lines += ["", "[상세]", f"/상세조회 {rows[0]['Project_ID']}"]
+        first = rows[0]
+        lines += ["", "[상세]", f"/상세조회 {first['Project_ID']}"]
+        if first.get("Sub_Asset_Count"):
+            lines.append(f"/룩쓰루 {first['Project_ID']}")
 
     return "\n".join(lines)
