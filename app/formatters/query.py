@@ -129,10 +129,7 @@ def build_search_answer(retrieved: Dict[str, Any], interpretation: str) -> str:
         tail = f" ({' | '.join(extra)})" if extra else ""
         lines.append(f"{idx}. {r['Project_ID']} | {r['Asset_Name']}{tail}")
 
-    if rows:
-        first = rows[0]
-        lines += ["", "[상세]", f"/상세조회 {first['Project_ID']}"]
-        if first.get("Sub_Asset_Count"):
-            lines.append(f"/룩쓰루 {first['Project_ID']}")
+    if rows and rows[0].get("Sub_Asset_Count"):
+        lines += ["", "[상세]", f"/룩쓰루 {rows[0]['Project_ID']}"]
 
     return "\n".join(lines)
