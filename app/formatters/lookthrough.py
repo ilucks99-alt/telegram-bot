@@ -38,6 +38,8 @@ def build_lookthrough_answer(summ: Dict[str, Any]) -> str:
         fund_line_parts.append(f"약정 {format_amount_uk(summ['fund_commitment'])}")
     if summ.get("fund_outstanding") is not None:
         fund_line_parts.append(f"잔액 {format_amount_uk(summ['fund_outstanding'])}")
+    if summ.get("fund_nav") is not None:
+        fund_line_parts.append(f"NAV {format_amount_uk(summ['fund_nav'])}")
     if summ.get("fund_irr") is not None:
         fund_line_parts.append(f"펀드 IRR {format_pct(summ['fund_irr'])}")
     if summ.get("tranche_count"):

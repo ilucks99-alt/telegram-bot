@@ -676,6 +676,7 @@ class InvestmentDB:
             "currency": str(p.get("Currency") or ""),
             "fund_commitment": safe_num(p.get("Commitment")),
             "fund_outstanding": safe_num(p.get("Outstanding")),
+            "fund_nav": safe_num(p.get("NAV")),
             "fund_irr": safe_num(p.get("IRR")),
             "tranche_count": int(p.get("Tranche_Count") or 0),
             "sub_asset_count": int(p.get("Sub_Asset_Count") or 0),
