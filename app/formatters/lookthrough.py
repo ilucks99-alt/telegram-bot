@@ -42,7 +42,7 @@ def build_lookthrough_answer(summ: Dict[str, Any]) -> str:
         fund_line_parts.append(f"NAV {format_amount_uk(summ['fund_nav'])}")
     if summ.get("fund_irr") is not None:
         fund_line_parts.append(f"펀드 IRR {format_pct(summ['fund_irr'])}")
-    if summ.get("tranche_count"):
+    if summ.get("tranche_count", 0) > 1:
         fund_line_parts.append(f"트렌치 {summ['tranche_count']}")
     if fund_line_parts:
         lines.append(" | ".join(fund_line_parts))
