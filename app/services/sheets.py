@@ -52,6 +52,13 @@ _tasks_cache: Optional[List[Dict[str, Any]]] = None
 _tasks_cache_at: float = 0.0
 _TASKS_CACHE_TTL = 15.0
 
+# TaskHistory 도 동일 사유로 캐시. 단일 task 진행 중 history 가 3~5회 풀스캔되며
+# 시트가 커질수록 한 호출만 1초+ 가 걸리기 시작한다. task_id 별 dict 로 묶어두고
+# append 시점에 같은 task 의 캐시 엔트리에도 직접 push 해서 stale 을 막는다.
+_history_cache: Optional[Dict[str, List[Dict[str, Any]]]] = None
+_history_cache_at: float = 0.0
+_HISTORY_CACHE_TTL = 30.0
+
 
 def _load_sa_credentials() -> Optional["Credentials"]:
     if Credentials is None:
@@ -357,25 +364,56 @@ def append_task_history(task_id: str, role: str, text: str) -> None:
     ws = _tab("TaskHistory")
     if ws is None:
         return
+    ts = now_ts()
+    truncated = text[:40000]
     ws.append_row(
-        [task_id, now_ts(), role, text[:40000]],
+        [task_id, ts, role, truncated],
         value_input_option="USER_ENTERED",
     )
 
+    # 캐시가 살아있다면 동일 task 엔트리에도 push (stale 방지)
+    global _history_cache
+    if _history_cache is not None:
+        entry = {"task_id": task_id, "ts": ts, "role": role, "text": truncated}
+        _history_cache.setdefault(task_id, []).append(entry)
 
-def get_task_history(task_id: str) -> List[Dict[str, Any]]:
+
+def _load_history_cache(force: bool = False) -> Dict[str, List[Dict[str, Any]]]:
+    global _history_cache, _history_cache_at
+    now = time.time()
+    if not force and _history_cache is not None and (now - _history_cache_at) < _HISTORY_CACHE_TTL:
+        return _history_cache
+
     ws = _tab("TaskHistory")
     if ws is None:
-        return []
+        _history_cache = {}
+        _history_cache_at = now
+        return _history_cache
+
     values = ws.get_all_values()
     if not values:
-        return []
+        _history_cache = {}
+        _history_cache_at = now
+        return _history_cache
+
     headers = values[0]
-    return [
-        _row_to_dict(headers, row)
-        for row in values[1:]
-        if row and row[0] == task_id
-    ]
+    grouped: Dict[str, List[Dict[str, Any]]] = {}
+    for row in values[1:]:
+        if not row or not row[0]:
+            continue
+        d = _row_to_dict(headers, row)
+        grouped.setdefault(row[0], []).append(d)
+
+    _history_cache = grouped
+    _history_cache_at = now
+    return grouped
+
+
+def get_task_history(task_id: str) -> List[Dict[str, Any]]:
+    if not task_id:
+        return []
+    cache = _load_history_cache()
+    return list(cache.get(task_id, []))
 
 
 def get_overdue_tasks(no_reply_minutes: int, cooldown_minutes: int) -> List[Dict[str, Any]]:
