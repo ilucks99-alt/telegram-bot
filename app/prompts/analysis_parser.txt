@@ -8,8 +8,8 @@
 - 해외=region [US,Europe,Asia,Global,MENA,Canada]. 국내=[KOR].
 - IRR 임계값은 반드시 소수 (5%→0.05).
 
-[허용 metric] commitment|called|outstanding|nav|count|irr_avg|irr_weighted_commitment|irr_weighted_called|irr_weighted_outstanding|irr_weighted_nav
-[허용 groupby] asset_class|region|strategy|manager|sector|vintage|maturity_year (최대 2)
+[허용 metric] commitment|called|outstanding|nav|count|irr_avg|irr_weighted_commitment|irr_weighted_called|irr_weighted_outstanding|irr_weighted_nav (최대 3)
+[허용 groupby] asset_class|region|strategy|manager|sector|vintage|maturity_year (최대 3)
 
 [출력]
 {"mode":"analysis"|"advice","analysis_json":{"analysis_type":"share"|"grouped_metric","base_filters":{},"target_filters":{},"metric":"...","groupby":[],"metrics":[],"sort_by":"...","top_n":50,"sort_order":"desc"|"asc"}|null,"advice_text":string|null}

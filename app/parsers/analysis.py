@@ -55,14 +55,14 @@ def normalize_analysis_json(analysis_json: Dict[str, Any]) -> Dict[str, Any]:
 
     groupby = analysis_json.get("groupby") or []
     if isinstance(groupby, list):
-        groupby = [g for g in groupby if g in GROUPBY_ALLOWED][:2]
+        groupby = [g for g in groupby if g in GROUPBY_ALLOWED][:3]
     else:
         groupby = [groupby] if groupby in GROUPBY_ALLOWED else []
     out["groupby"] = groupby
 
     metrics = analysis_json.get("metrics") or []
     if isinstance(metrics, list):
-        metrics = [m for m in metrics if m in ANALYSIS_METRIC_ALLOWED][:2]
+        metrics = [m for m in metrics if m in ANALYSIS_METRIC_ALLOWED][:3]
     else:
         metrics = [metrics] if metrics in ANALYSIS_METRIC_ALLOWED else ["commitment"]
     out["metrics"] = metrics or ["commitment"]
