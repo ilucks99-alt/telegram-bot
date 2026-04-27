@@ -271,18 +271,41 @@ def _process_eval_result(
             _finalize_due_to_feedback_limit(db, task)
             return
 
+        next_round = current_round + 1
         sheets.update_task_fields(
             task["task_id"],
             {
                 "status": "feedback_sent",
-                "feedback_round": current_round + 1,
+                "feedback_round": next_round,
             },
         )
         sheets.append_task_history(task["task_id"], "assistant", feedback_text)
-        task["feedback_round"] = str(current_round + 1)
+        task["feedback_round"] = str(next_round)
         task["status"] = "feedback_sent"
 
-        send_message(task["assignee_chat_id"], feedback_text)
+        # 팀원이 보완 답을 안 주고 자리를 떠버리는 패턴 방지 — 명시적으로
+        # "아직 보고 전" 임을 알리고, 마침 답변이 더 없다면 종결 표현(/cancel,
+        # "이상입니다" 등)으로 끝낼 수 있는 우회로를 안내한다.
+        is_last_round = next_round >= config.MAX_TASK_FEEDBACK_ROUND
+        notice_lines = []
+        if is_last_round:
+            notice_lines.append(
+                f"⚠️ 마지막 보완 요청입니다 (round {next_round}/{config.MAX_TASK_FEEDBACK_ROUND}). "
+                "이번 답변 후에는 추가 보완 없이 보고가 마무리됩니다."
+            )
+        else:
+            notice_lines.append(
+                f"⚠️ 아직 보고 완료 전입니다 (보완 round {next_round}/{config.MAX_TASK_FEEDBACK_ROUND})."
+            )
+        notice_lines.append(
+            f"답변이 {config.TASK_NO_REPLY_MINUTES}분 이상 없으면 현재 답변 내역으로 자동 마무리됩니다. "
+            "더 보완할 게 없으면 \"이상입니다\" 또는 \"보고 부탁드립니다\" 라고 답변해 주세요."
+        )
+
+        send_message(
+            task["assignee_chat_id"],
+            f"{feedback_text}\n\n" + "\n".join(notice_lines),
+        )
         return
 
     if result.get("result") == "complete":
