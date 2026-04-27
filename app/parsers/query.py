@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 from app import config
 from app.constants import (
     ASSET_CLASS_ALLOWED,
+    CURRENCY_ALLOWED,
     REGION_ALLOWED,
     SORT_BY_ALLOWED,
     SORT_ORDER_ALLOWED,
@@ -72,12 +73,20 @@ def _normalize_filter_dict(filters: Dict[str, Any]) -> Dict[str, Any]:
     if regions:
         out["region"] = regions
 
-    for key in ["manager", "strategy", "sector", "project_id", "fund_name_keywords", "asset_name_keywords"]:
+    currencies = [x for x in _norm_str_list(filters.get("currency")) if x.upper() in CURRENCY_ALLOWED]
+    if currencies:
+        out["currency"] = [x.upper() if x != "Unknown" else x for x in currencies]
+
+    for key in [
+        "manager", "strategy", "sector", "project_id",
+        "fund_name_keywords", "asset_name_keywords",
+        "investment_type", "detail_type", "capital_structure",
+    ]:
         vals = _norm_str_list(filters.get(key))
         if vals:
             out[key] = vals[:10]
 
-    for key in ["vintage_from", "vintage_to", "maturity_year_from", "maturity_year_to"]:
+    for key in ["vintage_from", "vintage_to", "maturity_year_from", "maturity_year_to", "tranche_count_min"]:
         val = filters.get(key)
         if val is not None:
             try:
@@ -85,10 +94,19 @@ def _normalize_filter_dict(filters: Dict[str, Any]) -> Dict[str, Any]:
             except (TypeError, ValueError):
                 pass
 
+    has_lt = filters.get("has_lookthrough")
+    if has_lt is not None:
+        if isinstance(has_lt, str):
+            out["has_lookthrough"] = has_lt.strip().lower() in ("1", "true", "yes", "y")
+        else:
+            out["has_lookthrough"] = bool(has_lt)
+
     for key in [
         "irr_min", "irr_max", "commit_min", "commit_max",
         "called_min", "called_max", "outstanding_min", "outstanding_max",
-        "nav_min", "nav_max",
+        "nav_min", "nav_max", "repaid_min", "repaid_max",
+        "dpi_min", "dpi_max", "tvpi_min", "tvpi_max",
+        "drawdown_min", "drawdown_max", "unfunded_min", "unfunded_max",
     ]:
         val = filters.get(key)
         if val is not None:
@@ -97,10 +115,13 @@ def _normalize_filter_dict(filters: Dict[str, Any]) -> Dict[str, Any]:
             except (TypeError, ValueError):
                 pass
 
-    # 안전망: IRR 은 DB 에 소수(0.05)로 저장되는데 LLM 이 종종 5 같은 정수 퍼센트로 내보낸다.
-    # |값| >= 1.0 이면 사용자가 % 단위로 말한 것이라 보고 100 으로 나눠 정규화한다.
-    for key in ("irr_min", "irr_max"):
-        if key in out and abs(out[key]) >= 1.0:
+    # IRR/Drawdown 은 소수 저장(0.05)인데 LLM 이 종종 5 같은 정수 % 로 내보낸다.
+    # |값| >= 1.0 이면 % 단위로 보고 100 으로 나눔. (DPI/TVPI 는 배수라 1.0+ 가 정상이라 변환 X)
+    for key in ("irr_min", "irr_max", "drawdown_min", "drawdown_max"):
+        if key in out and abs(out[key]) >= 1.0 and key.startswith("irr"):
+            out[key] = out[key] / 100.0
+        # drawdown 은 0~1 사이가 정상이지만 LLM 이 "80% 인출률" 을 80 으로 보낼 가능성
+        if key.startswith("drawdown") and key in out and out[key] > 1.5:
             out[key] = out[key] / 100.0
 
     return out

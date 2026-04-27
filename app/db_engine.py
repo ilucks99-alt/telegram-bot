@@ -302,15 +302,49 @@ class InvestmentDB:
                 mask |= contains_match_norm(df["Asset_Name_Norm"], kw)
             df = df[mask]
 
+        currencies = filters.get("currency") or []
+        if currencies and "Currency" in df.columns:
+            df = df[df["Currency"].isin(currencies)]
+
+        for key, col in [
+            ("investment_type", "Investment_Type"),
+            ("detail_type", "Detail_Type"),
+            ("capital_structure", "Capital_Structure"),
+        ]:
+            kws = filters.get(key) or []
+            if kws and col in df.columns:
+                norm_col = df[col].fillna("").astype(str).map(normalize_text)
+                mask = pd.Series([False] * len(df), index=df.index)
+                for kw in kws:
+                    nkw = normalize_text(kw)
+                    if nkw:
+                        mask |= norm_col.str.contains(nkw, regex=False, na=False)
+                df = df[mask]
+
+        if filters.get("has_lookthrough") is True and "Sub_Asset_Count" in df.columns:
+            df = df[df["Sub_Asset_Count"].fillna(0).astype(int) > 0]
+        elif filters.get("has_lookthrough") is False and "Sub_Asset_Count" in df.columns:
+            df = df[df["Sub_Asset_Count"].fillna(0).astype(int) == 0]
+
+        tcm = filters.get("tranche_count_min")
+        if tcm is not None and "Tranche_Count" in df.columns:
+            try:
+                df = df[df["Tranche_Count"].fillna(0).astype(int) >= int(tcm)]
+            except (TypeError, ValueError):
+                pass
+
         for (min_key, max_key, col) in [
             ("vintage_from", "vintage_to", "Vintage"),
             ("maturity_year_from", "maturity_year_to", "Maturity_Year"),
             ("irr_min", "irr_max", "IRR"),
             ("commit_min", "commit_max", "Commitment"),
             ("called_min", "called_max", "Called"),
+            ("repaid_min", "repaid_max", "Repaid"),
             ("outstanding_min", "outstanding_max", "Outstanding"),
             ("nav_min", "nav_max", "NAV"),
         ]:
+            if col not in df.columns:
+                continue
             vmin = filters.get(min_key)
             vmax = filters.get(max_key)
             if vmin is not None:
@@ -324,6 +358,41 @@ class InvestmentDB:
                 except (TypeError, ValueError):
                     pass
 
+        # 파생 지표 (DPI/TVPI/Drawdown/Unfunded) 필터 — 컬럼 없으면 매번 계산
+        derived_keys = (
+            "dpi_min", "dpi_max", "tvpi_min", "tvpi_max",
+            "drawdown_min", "drawdown_max", "unfunded_min", "unfunded_max",
+        )
+        if any(filters.get(k) is not None for k in derived_keys) and not df.empty:
+            df = df.copy()
+            called = df["Called"].astype(float) if "Called" in df.columns else pd.Series(0.0, index=df.index)
+            commit = df["Commitment"].astype(float) if "Commitment" in df.columns else pd.Series(0.0, index=df.index)
+            repaid = df["Repaid"].astype(float) if "Repaid" in df.columns else pd.Series(0.0, index=df.index)
+            nav = df["NAV"].astype(float) if "NAV" in df.columns else pd.Series(0.0, index=df.index)
+            df["DPI"] = (repaid / called).where(called > 0)
+            df["TVPI"] = ((nav + repaid) / called).where(called > 0)
+            df["Drawdown"] = (called / commit).where(commit > 0)
+            df["Unfunded"] = (commit - called).clip(lower=0)
+
+            for (min_key, max_key, col) in [
+                ("dpi_min", "dpi_max", "DPI"),
+                ("tvpi_min", "tvpi_max", "TVPI"),
+                ("drawdown_min", "drawdown_max", "Drawdown"),
+                ("unfunded_min", "unfunded_max", "Unfunded"),
+            ]:
+                vmin = filters.get(min_key)
+                vmax = filters.get(max_key)
+                if vmin is not None:
+                    try:
+                        df = df[df[col] >= float(vmin)]
+                    except (TypeError, ValueError):
+                        pass
+                if vmax is not None:
+                    try:
+                        df = df[df[col] <= float(vmax)]
+                    except (TypeError, ValueError):
+                        pass
+
         return self._exclude_matured(df)
 
     @staticmethod
@@ -332,30 +401,47 @@ class InvestmentDB:
             return pd.DataFrame(columns=[
                 "Project_ID", "Asset_Name", "Manager", "Asset_Class_Std", "Region_Std",
                 "Strategy", "Sector", "Vintage", "Maturity_Year",
-                "Commitment", "Called", "Outstanding", "NAV", "IRR",
-                "Sub_Asset_Count", "Currency",
+                "Commitment", "Called", "Repaid", "Outstanding", "NAV", "IRR",
+                "Sub_Asset_Count", "Tranche_Count", "Currency",
+                "Investment_Type", "Detail_Type", "Capital_Structure",
+                "DPI", "TVPI", "Drawdown", "Unfunded",
             ])
-        return (
-            df.groupby("Project_ID", as_index=False)
-            .agg({
-                "Asset_Name": "first",
-                "Manager": "first",
-                "Asset_Class_Std": "first",
-                "Region_Std": "first",
-                "Strategy": "first",
-                "Sector": "first",
-                "Vintage": "first",
-                "Maturity_Year": "min",
-                "Commitment": "sum",
-                "Called": "sum",
-                "Outstanding": "sum",
-                "NAV": "sum",
-                "IRR": "mean",
-                "Sub_Asset_Count": "first",
-                "Currency": "first",
-            })
-            .copy()
-        )
+
+        agg_dict = {
+            "Asset_Name": "first",
+            "Manager": "first",
+            "Asset_Class_Std": "first",
+            "Region_Std": "first",
+            "Strategy": "first",
+            "Sector": "first",
+            "Vintage": "first",
+            "Maturity_Year": "min",
+            "Commitment": "sum",
+            "Called": "sum",
+            "Outstanding": "sum",
+            "NAV": "sum",
+            "IRR": "mean",
+            "Sub_Asset_Count": "first",
+            "Currency": "first",
+        }
+        # 새 Dataset 에서만 들어오는 컬럼은 있을 때만 집계 — 구 데이터셋과의 안전성 확보
+        for opt in ("Repaid", "Tranche_Count", "Investment_Type", "Detail_Type", "Capital_Structure"):
+            if opt in df.columns:
+                agg_dict[opt] = "sum" if opt in ("Repaid", "Tranche_Count") else "first"
+
+        out = df.groupby("Project_ID", as_index=False).agg(agg_dict).copy()
+
+        # 파생 지표 — DPI/TVPI/Drawdown/Unfunded
+        called = out["Called"].astype(float)
+        commit = out["Commitment"].astype(float)
+        repaid = out["Repaid"].astype(float) if "Repaid" in out.columns else pd.Series([0.0] * len(out), index=out.index)
+        nav = out["NAV"].astype(float)
+
+        out["DPI"] = (repaid / called).where(called > 0)
+        out["TVPI"] = ((nav + repaid) / called).where(called > 0)
+        out["Drawdown"] = (called / commit).where(commit > 0)
+        out["Unfunded"] = (commit - called).clip(lower=0)
+        return out
 
     def search(self, query_json: Dict[str, Any]) -> Dict[str, Any]:
         filters = query_json.get("filters", {}) or {}
@@ -367,9 +453,14 @@ class InvestmentDB:
             "irr": "IRR",
             "commitment": "Commitment",
             "called": "Called",
+            "repaid": "Repaid",
             "outstanding": "Outstanding",
             "nav": "NAV",
             "maturity_year": "Maturity_Year",
+            "dpi": "DPI",
+            "tvpi": "TVPI",
+            "drawdown": "Drawdown",
+            "unfunded": "Unfunded",
         }
         sort_col = sort_col_map.get(sort_cfg.get("by"))
 
@@ -386,6 +477,7 @@ class InvestmentDB:
         rows_df = project_df.head(limit).copy()
 
         rows: List[Dict[str, Any]] = []
+        cols = set(rows_df.columns)
         for _, row in rows_df.iterrows():
             rows.append({
                 "Project_ID": row["Project_ID"],
@@ -399,11 +491,20 @@ class InvestmentDB:
                 "Maturity_Year": safe_num(row["Maturity_Year"]),
                 "Commitment": safe_num(row["Commitment"]),
                 "Called": safe_num(row["Called"]),
+                "Repaid": safe_num(row.get("Repaid")) if "Repaid" in cols else None,
                 "Outstanding": safe_num(row["Outstanding"]),
                 "NAV": safe_num(row["NAV"]),
                 "IRR": safe_num(row["IRR"]),
-                "Sub_Asset_Count": int(row["Sub_Asset_Count"]) if "Sub_Asset_Count" in rows_df.columns and pd.notna(row.get("Sub_Asset_Count")) else 0,
-                "Currency": (row.get("Currency") or None) if "Currency" in rows_df.columns else None,
+                "DPI": safe_num(row.get("DPI")) if "DPI" in cols else None,
+                "TVPI": safe_num(row.get("TVPI")) if "TVPI" in cols else None,
+                "Drawdown": safe_num(row.get("Drawdown")) if "Drawdown" in cols else None,
+                "Unfunded": safe_num(row.get("Unfunded")) if "Unfunded" in cols else None,
+                "Sub_Asset_Count": int(row["Sub_Asset_Count"]) if "Sub_Asset_Count" in cols and pd.notna(row.get("Sub_Asset_Count")) else 0,
+                "Tranche_Count": int(row["Tranche_Count"]) if "Tranche_Count" in cols and pd.notna(row.get("Tranche_Count")) else None,
+                "Currency": (row.get("Currency") or None) if "Currency" in cols else None,
+                "Investment_Type": (row.get("Investment_Type") or None) if "Investment_Type" in cols else None,
+                "Detail_Type": (row.get("Detail_Type") or None) if "Detail_Type" in cols else None,
+                "Capital_Structure": (row.get("Capital_Structure") or None) if "Capital_Structure" in cols else None,
             })
 
         weighted_irr: Optional[float] = None

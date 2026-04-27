@@ -8,8 +8,12 @@ from app.util import normalize_text
 ASSET_CLASS_ALLOWED = {"Real_Estate", "PE", "VC", "PD", "Infrastructure"}
 REGION_ALLOWED = {"US", "Europe", "Asia", "Global", "KOR", "MENA", "Canada"}
 OVERSEAS_REGIONS = ["US", "Europe", "Asia", "Global", "MENA", "Canada"]
+CURRENCY_ALLOWED = {"KRW", "USD", "EUR", "GBP", "JPY", "Unknown"}
 
-SORT_BY_ALLOWED = {"irr", "commitment", "called", "outstanding", "nav", "maturity_year"}
+SORT_BY_ALLOWED = {
+    "irr", "commitment", "called", "outstanding", "nav", "maturity_year",
+    "repaid", "dpi", "tvpi", "drawdown", "unfunded",
+}
 SORT_ORDER_ALLOWED = {"asc", "desc"}
 
 ANALYSIS_TYPE_ALLOWED = {"share", "grouped_metric"}

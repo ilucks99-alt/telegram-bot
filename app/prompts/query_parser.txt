@@ -3,12 +3,19 @@
 [필터 키]
 - asset_class: Real_Estate|PE|VC|PD|Infrastructure (배열)
 - region: US|Europe|Asia|Global|KOR|MENA|Canada (배열). 해외=KOR 제외 6개. 국내=[KOR].
+- currency: KRW|USD|EUR|GBP|JPY|Unknown (배열)
 - manager, strategy, sector, project_id, fund_name_keywords, asset_name_keywords (배열)
+- investment_type, detail_type, capital_structure (배열, 자유 키워드 — BTO/BTL/Buyout/Office/Hotel/대출/지분/메자닌 등)
+- has_lookthrough: true|false (룩쓰루 가능 펀드만 / 없는 펀드만)
+- tranche_count_min (int, 다트렌치 펀드 — 보통 2 이상)
 - vintage_from/to, maturity_year_from/to (int)
-- irr_min/max (소수: 5%→0.05, 7.5%→0.075, -3%→-0.03 / 절대 정수 그대로 넣지 말 것)
-- commit_min/max, called_min/max, outstanding_min/max, nav_min/max (단위 억원)
+- irr_min/max (소수: 5%→0.05)
+- commit_min/max, called_min/max, repaid_min/max, outstanding_min/max, nav_min/max, unfunded_min/max (단위 억원)
+- dpi_min/max (배수: 1.0=원금회수, 1.5=150% 회수)
+- tvpi_min/max (배수: NAV+상환 ÷ 콜)
+- drawdown_min/max (소수: 0.8=80% 인출)
 
-[정렬] sort.by: irr|commitment|called|outstanding|nav|maturity_year, sort.order: asc|desc
+[정렬] sort.by: irr|commitment|called|repaid|outstanding|nav|maturity_year|dpi|tvpi|drawdown|unfunded, sort.order: asc|desc
 
 [출력]
 {"mode":"query"|"advice","query_json":{"query_type":"summary_with_list","filters":{...},"sort":{...},"output":{"include_summary":true,"include_list":true,"limit":<int>}}|null,"advice_text":string|null}
@@ -20,7 +27,11 @@
 4. 국내 부동산=Asset_Class=Real_Estate+Region=KOR. 인프라 비민자=strategy "Non-PPP", 민자=strategy "BT" 시작.
 5. strategy/sector는 영문 우선(senior, equity, mezzanine, core, value-add, opportunistic). 한글→영문. 여러 전략은 AND. 국내는 PF대출/담보대출 그대로.
 6. 운용사명(BlackRock, HPS, GIP, 블랙스톤, TPG, Angelo Gordon, Apogem 등)은 manager에 그대로. 시스템이 그룹 확장. fund_name_keywords와 중복 금지.
-7. 빈 배열/null/빈 문자열은 생략. IRR 임계값은 무조건 소수.
+7. "USD 약정", "달러 펀드" → currency=["USD"]. "원화 펀드"→["KRW"].
+8. "BTL", "BTO" → investment_type. "오피스", "호텔" → detail_type 또는 sector(둘 다 OK). "대출자산", "지분", "메자닌" → capital_structure.
+9. "룩쓰루 가능", "하위자산 있는" → has_lookthrough=true. "다트렌치"/"여러 트렌치" → tranche_count_min=2.
+10. "DPI 1배 이상"=dpi_min:1.0. "TVPI 1.5배"=tvpi_min:1.5. "인출률 80% 이상"=drawdown_min:0.8. "미인출 100억"=unfunded_min:100.
+11. 빈 배열/null/빈 문자열은 생략. IRR 임계값은 무조건 소수.
 
 [예시]
 입력: "미국 부동산 core 전략"
@@ -29,11 +40,17 @@
 입력: "수익률 높은 상위 5개"
 {"mode":"query","query_json":{"query_type":"summary_with_list","filters":{},"sort":{"by":"irr","order":"desc"},"output":{"include_summary":true,"include_list":true,"limit":5}},"advice_text":null}
 
-입력: "블랙락 유럽 부동산"
-{"mode":"query","query_json":{"query_type":"summary_with_list","filters":{"manager":["BlackRock"],"region":["Europe"],"asset_class":["Real_Estate"]},"sort":{},"output":{"include_summary":true,"include_list":true,"limit":9999}},"advice_text":null}
+입력: "USD 약정 PD 중 IRR 7% 이상"
+{"mode":"query","query_json":{"query_type":"summary_with_list","filters":{"asset_class":["PD"],"currency":["USD"],"irr_min":0.07},"sort":{},"output":{"include_summary":true,"include_list":true,"limit":9999}},"advice_text":null}
 
-입력: "IRR 5% 이상 미국 PD"
-{"mode":"query","query_json":{"query_type":"summary_with_list","filters":{"asset_class":["PD"],"region":["US"],"irr_min":0.05},"sort":{},"output":{"include_summary":true,"include_list":true,"limit":9999}},"advice_text":null}
+입력: "DPI 1배 이상 PE 회수율 순"
+{"mode":"query","query_json":{"query_type":"summary_with_list","filters":{"asset_class":["PE"],"dpi_min":1.0},"sort":{"by":"dpi","order":"desc"},"output":{"include_summary":true,"include_list":true,"limit":9999}},"advice_text":null}
+
+입력: "BTL 인프라 미인출 큰 순 5개"
+{"mode":"query","query_json":{"query_type":"summary_with_list","filters":{"asset_class":["Infrastructure"],"investment_type":["BTL"]},"sort":{"by":"unfunded","order":"desc"},"output":{"include_summary":true,"include_list":true,"limit":5}},"advice_text":null}
+
+입력: "룩쓰루 가능한 PE 펀드"
+{"mode":"query","query_json":{"query_type":"summary_with_list","filters":{"asset_class":["PE"],"has_lookthrough":true},"sort":{},"output":{"include_summary":true,"include_list":true,"limit":9999}},"advice_text":null}
 
 입력: "요즘 괜찮은 전략 뭐야"
 {"mode":"advice","query_json":null,"advice_text":"[안내]\n판단형 질문은 조회 조건으로 변환이 어렵습니다.\n\n[예시]\n- /조회 미국 PD 펀드 중 IRR 높은 상위 5개\n- /조회 블랙스톤 부동산 펀드"}

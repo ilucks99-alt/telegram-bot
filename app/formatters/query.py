@@ -31,6 +31,20 @@ def _humanize_filter_summary(filters: Dict[str, Any]) -> List[str]:
         parts.append(f"펀드명키워드={','.join(filters['fund_name_keywords'])}")
     if filters.get("asset_name_keywords"):
         parts.append(f"자산명키워드={','.join(filters['asset_name_keywords'])}")
+    if filters.get("currency"):
+        parts.append(f"통화={','.join(filters['currency'])}")
+    if filters.get("investment_type"):
+        parts.append(f"투자유형={','.join(filters['investment_type'])}")
+    if filters.get("detail_type"):
+        parts.append(f"세부유형={','.join(filters['detail_type'])}")
+    if filters.get("capital_structure"):
+        parts.append(f"자본구조={','.join(filters['capital_structure'])}")
+    if filters.get("has_lookthrough") is True:
+        parts.append("LT있음")
+    elif filters.get("has_lookthrough") is False:
+        parts.append("LT없음")
+    if filters.get("tranche_count_min"):
+        parts.append(f"트렌치>={int(filters['tranche_count_min'])}")
 
     for min_key, max_key, label in [
         ("vintage_from", "vintage_to", "Vintage"),
@@ -38,8 +52,13 @@ def _humanize_filter_summary(filters: Dict[str, Any]) -> List[str]:
         ("irr_min", "irr_max", "IRR"),
         ("commit_min", "commit_max", "약정"),
         ("called_min", "called_max", "콜금액"),
+        ("repaid_min", "repaid_max", "상환"),
         ("outstanding_min", "outstanding_max", "투자잔액"),
         ("nav_min", "nav_max", "NAV"),
+        ("dpi_min", "dpi_max", "DPI"),
+        ("tvpi_min", "tvpi_max", "TVPI"),
+        ("drawdown_min", "drawdown_max", "인출률"),
+        ("unfunded_min", "unfunded_max", "미인출"),
     ]:
         vmin, vmax = filters.get(min_key), filters.get(max_key)
         if vmin is None and vmax is None:
@@ -65,9 +84,14 @@ def summarize_query_json(query_json: Dict[str, Any]) -> str:
         "irr": "IRR",
         "commitment": "약정",
         "called": "콜금액",
+        "repaid": "상환",
         "outstanding": "투자잔액",
         "nav": "NAV",
         "maturity_year": "만기년도",
+        "dpi": "DPI",
+        "tvpi": "TVPI",
+        "drawdown": "인출률",
+        "unfunded": "미인출",
     }
     if sort.get("by"):
         direction = "오름차순" if sort.get("order") == "asc" else "내림차순"
