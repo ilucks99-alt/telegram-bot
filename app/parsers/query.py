@@ -1,4 +1,5 @@
-from typing import Any, Dict, List
+import re
+from typing import Any, Dict, List, Optional
 
 from app import config
 from app.constants import (
@@ -12,6 +13,33 @@ from app.parsers import render_prompt, safe_json_parse
 from app.services import gemini
 
 logger = get_logger(__name__)
+
+# /조회 BS00001234 / "BS00001234, BS00005678" 같이 ID 만 들어오는 케이스는
+# Gemini 거치지 않고 즉시 query_json 으로 변환 — 호출 자체를 0건으로.
+_PID_ONLY_PAT = re.compile(
+    r"^[\s,]*BS\d{6,10}(?:[\s,]+BS\d{6,10})*[\s,]*$",
+    re.IGNORECASE,
+)
+_PID_FIND_PAT = re.compile(r"BS\d{6,10}", re.IGNORECASE)
+
+
+def _try_pid_only_shortcut(question: str) -> Optional[Dict[str, Any]]:
+    s = (question or "").strip()
+    if not s or not _PID_ONLY_PAT.match(s):
+        return None
+    pids = [p.upper() for p in _PID_FIND_PAT.findall(s)]
+    if not pids:
+        return None
+    return {
+        "query_type": "summary_with_list",
+        "filters": {"project_id": pids},
+        "sort": {},
+        "output": {
+            "include_summary": True,
+            "include_list": True,
+            "limit": config.DEFAULT_LIMIT,
+        },
+    }
 
 
 def build_fixed_query_advice() -> str:
@@ -124,11 +152,16 @@ def is_unprocessable_query(query_json: Dict[str, Any]) -> bool:
 
 
 def parse_query(user_question: str) -> Dict[str, Any]:
+    # ID-only 입력은 LLM 호출 없이 즉시 처리 (토큰 절감)
+    shortcut = _try_pid_only_shortcut(user_question)
+    if shortcut is not None:
+        return {"mode": "query", "query_json": normalize_query_json(shortcut), "advice_text": None}
+
     if not gemini.is_available():
         return {"mode": "advice", "query_json": None, "advice_text": build_fixed_query_advice()}
 
     prompt = render_prompt("query_parser.txt", user_question=user_question)
-    raw = gemini.generate_json(prompt, max_output_tokens=1600, temperature=0.1)
+    raw = gemini.generate_json(prompt, max_output_tokens=600, temperature=0.1)
     if not raw:
         return {"mode": "advice", "query_json": None, "advice_text": build_fixed_query_advice()}
 

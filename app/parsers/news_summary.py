@@ -29,5 +29,5 @@ def summarize_news(query: str, articles: List[dict]) -> str:
         query=query,
         articles=_format_articles(articles),
     )
-    text = gemini.generate_text(prompt, max_output_tokens=2048, temperature=0.3)
+    text = gemini.generate_text(prompt, max_output_tokens=1500, temperature=0.3)
     return text or f"요약 생성에 실패했습니다.\n검색어: {query}"

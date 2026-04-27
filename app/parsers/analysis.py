@@ -104,7 +104,7 @@ def parse_analysis(user_question: str) -> Dict[str, Any]:
         return {"mode": "advice", "analysis_json": None, "advice_text": build_fixed_analysis_advice()}
 
     prompt = render_prompt("analysis_parser.txt", user_question=user_question)
-    raw = gemini.generate_json(prompt, max_output_tokens=1600, temperature=0.1)
+    raw = gemini.generate_json(prompt, max_output_tokens=700, temperature=0.1)
     if not raw:
         return {"mode": "advice", "analysis_json": None, "advice_text": build_fixed_analysis_advice()}
 

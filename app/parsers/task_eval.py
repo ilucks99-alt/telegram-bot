@@ -83,7 +83,7 @@ def evaluate_response(
         latest_reply=latest_reply,
     )
 
-    raw = gemini.generate_json(prompt, max_output_tokens=2048, temperature=0.2)
+    raw = gemini.generate_json(prompt, max_output_tokens=900, temperature=0.2)
     if not raw:
         raise RuntimeError("Gemini 응답이 비어 있습니다.")
 

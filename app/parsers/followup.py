@@ -10,6 +10,21 @@ from app.services import gemini
 logger = get_logger(__name__)
 
 
+def _compact_payload(payload: Any) -> Any:
+    """빈 dict/list/str/None 값을 제거해 followup 프롬프트로 들어가는 토큰 절감."""
+    if isinstance(payload, dict):
+        out: Dict[str, Any] = {}
+        for k, v in payload.items():
+            v2 = _compact_payload(v)
+            if v2 in (None, {}, [], ""):
+                continue
+            out[k] = v2
+        return out
+    if isinstance(payload, list):
+        return [x for x in (_compact_payload(i) for i in payload) if x not in (None, {}, [], "")]
+    return payload
+
+
 def _normalize_lookthrough_payload(payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     pid = str((payload or {}).get("project_id") or "").strip().upper()
     import re as _re
@@ -45,12 +60,12 @@ def parse_followup(
     prompt = render_prompt(
         "followup.txt",
         kind=kind,
-        previous_payload=previous_payload,
-        previous_summary=previous_summary,
+        previous_payload=_json.dumps(_compact_payload(previous_payload or {}), ensure_ascii=False),
+        previous_summary=(previous_summary or "")[:200],
         user_text=user_text,
-        extras_json=_json.dumps(extras or {}, ensure_ascii=False),
+        extras_json=_json.dumps(_compact_payload(extras or {}), ensure_ascii=False),
     )
-    raw = gemini.generate_json(prompt, max_output_tokens=1600, temperature=0.1)
+    raw = gemini.generate_json(prompt, max_output_tokens=600, temperature=0.1)
     if not raw:
         return None
 
