@@ -206,11 +206,13 @@ def run_scheduled_news_report(db: InvestmentDB, chat_id, force: bool = False) ->
     if not force and not _matches_slot(config.NEWS_REPORT_TIMES, "macro_news"):
         return "skipped"
 
-    # Yahoo Finance 에서 주요 매크로 지표 스냅샷 (실패해도 뉴스 보고는 진행)
+    # Yahoo Finance 에서 주요 매크로 지표 스냅샷 (실패해도 뉴스 보고는 진행).
+    # 오전 슬롯(KST 12시 전) = 글로벌 / 오후 슬롯 = 국내 중심.
+    focus = "domestic" if datetime.now(KST).hour >= 12 else "global"
     try:
-        macro_prefix = market_data.build_macro_briefing() or ""
+        macro_prefix = market_data.build_macro_briefing(focus=focus) or ""
     except Exception:
-        logger.exception("macro prefix build failed")
+        logger.exception("macro prefix build failed | focus=%s", focus)
         macro_prefix = ""
 
     news_items = collect_news_for_keywords(db)

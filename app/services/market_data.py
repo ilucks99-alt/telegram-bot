@@ -17,13 +17,24 @@ _YF_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1
 _UA = "Mozilla/5.0 (compatible; InvestBot/1.0)"
 
 # (symbol, Korean label, kind). kind="yield" 는 bp 로 diff 표기, 그 외는 %.
-_DEFAULT_INDICATORS: List[Tuple[str, str, str]] = [
+_INDICATORS_GLOBAL: List[Tuple[str, str, str]] = [
     ("KRW=X", "USD/KRW", "price"),
     ("^TNX", "US 10Y", "yield"),
     ("^VIX", "VIX", "price"),
     ("^GSPC", "S&P 500", "price"),
     ("GC=F", "Gold", "price"),
     ("CL=F", "WTI", "price"),
+]
+
+# 장 마감 후 보고용 — 국내 중심. 한국 채권금리는 Yahoo 가 직접 제공하지 않아
+# 글로벌 영향 큰 US 10Y 만 유지하고 한국·일본 주가지수 + 환율로 구성.
+_INDICATORS_DOMESTIC: List[Tuple[str, str, str]] = [
+    ("^KS11", "KOSPI", "price"),
+    ("^KQ11", "KOSDAQ", "price"),
+    ("^KS200", "KOSPI 200", "price"),
+    ("KRW=X", "USD/KRW", "price"),
+    ("^N225", "Nikkei 225", "price"),
+    ("^TNX", "US 10Y", "yield"),
 ]
 
 
@@ -68,12 +79,12 @@ def _format_indicator(label: str, data: Dict[str, float], kind: str) -> str:
     return f"- {label}: {price:,.2f} ({arrow}{abs(pct):.2f}%)"
 
 
-def _snapshot_entries() -> List[str]:
+def _snapshot_entries(indicators: List[Tuple[str, str, str]]) -> List[str]:
     lines: List[Tuple[int, str]] = []
-    with ThreadPoolExecutor(max_workers=6) as pool:
+    with ThreadPoolExecutor(max_workers=len(indicators) or 1) as pool:
         futures = {
             pool.submit(_fetch_one, sym): (idx, sym, label, kind)
-            for idx, (sym, label, kind) in enumerate(_DEFAULT_INDICATORS)
+            for idx, (sym, label, kind) in enumerate(indicators)
         }
         for fut in as_completed(futures):
             idx, sym, label, kind = futures[fut]
@@ -86,13 +97,17 @@ def _snapshot_entries() -> List[str]:
     return [line for _, line in lines]
 
 
-def build_macro_briefing() -> Optional[str]:
-    """매크로 지표 블록을 빌드. 하나도 못 가져오면 None 을 반환해 호출자가 스킵하게 한다."""
+def build_macro_briefing(focus: str = "global") -> Optional[str]:
+    """매크로 지표 블록을 빌드.
+    focus="domestic" 이면 국내 중심(KOSPI/KOSDAQ 등), 그 외엔 글로벌 셋.
+    하나도 못 가져오면 None 을 반환해 호출자가 스킵하게 한다."""
+    indicators = _INDICATORS_DOMESTIC if focus == "domestic" else _INDICATORS_GLOBAL
+    title = "📊 국내 매크로 (전일 종가 대비)" if focus == "domestic" else "📊 매크로 지표 (전일 종가 대비)"
     try:
-        entries = _snapshot_entries()
+        entries = _snapshot_entries(indicators)
     except Exception:
-        logger.exception("macro briefing snapshot failed")
+        logger.exception("macro briefing snapshot failed | focus=%s", focus)
         return None
     if not entries:
         return None
-    return "📊 매크로 지표 (전일 종가 대비)\n" + "\n".join(entries)
+    return f"{title}\n" + "\n".join(entries)
