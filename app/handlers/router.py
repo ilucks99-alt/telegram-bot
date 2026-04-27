@@ -36,6 +36,7 @@ HELP_TEXT = """
 📊 [포트폴리오]
 /조회 — 조건에 맞는 펀드 검색 (BS00000XXX 단독 입력도 가능)
 /분석 — 비중·평균·그룹별 집계
+/상세조회 BS00000XXX — 단일 펀드 모든 데이터 + 룩쓰루 요약 (펀드명 키워드도 OK)
 /룩쓰루 BS00000XXX — 단일 펀드 하위자산 드릴다운 (펀드명 키워드도 OK)
 /익스포저 [발행인|종목] X — 특정 발행인/종목 보유 펀드 역조회
 
@@ -177,7 +178,7 @@ def process_user_message(db: InvestmentDB, chat_id: int, text: str, ctx: Dict[st
         return
 
     if raw.startswith("/상세조회"):
-        handle_detail(chat_id, raw)
+        handle_detail(db, chat_id, raw, ctx)
         return
 
     if raw.startswith("/조회"):

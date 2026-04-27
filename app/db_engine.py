@@ -690,6 +690,72 @@ class InvestmentDB:
             "avg_irr": s["avg_irr"],
         }
 
+    def project_detail(self, project_id: str) -> Optional[Dict[str, Any]]:
+        """단일 펀드의 모든 Dataset 컬럼 + LookThrough 요약을 합친 dict 반환.
+        매칭 실패 시 None."""
+        if not project_id:
+            return None
+        proj = self.df[self.df["Project_ID"] == project_id]
+        if proj.empty:
+            return None
+        p = proj.iloc[0]
+
+        commit = safe_num(p.get("Commitment"))
+        called = safe_num(p.get("Called"))
+        repaid = safe_num(p.get("Repaid"))
+        nav = safe_num(p.get("NAV"))
+
+        drawdown = (called / commit) if (called is not None and commit) else None
+        unfunded = (
+            max(commit - called, 0.0)
+            if (commit is not None and called is not None) else None
+        )
+        dpi = (repaid / called) if (repaid is not None and called) else None
+        if nav is not None and called:
+            tvpi = (nav + (repaid or 0.0)) / called
+        else:
+            tvpi = None
+
+        initial_date = p.get("Initial_Date")
+        maturity_date = p.get("Maturity_Date")
+
+        sub_key = p.get("SubAsset_Key")
+        sub_key_int = int(sub_key) if pd.notna(sub_key) else None
+
+        return {
+            "project_id": str(p["Project_ID"]),
+            "asset_name": str(p.get("Asset_Name") or ""),
+            "asset_name_en": str(p.get("Asset_Name_EN") or "") if "Asset_Name_EN" in proj.columns else "",
+            "asset_class": str(p.get("Asset_Class") or ""),
+            "asset_class_std": str(p.get("Asset_Class_Std") or ""),
+            "manager": str(p.get("Manager") or ""),
+            "region": str(p.get("Region") or ""),
+            "region_std": str(p.get("Region_Std") or ""),
+            "strategy": str(p.get("Strategy") or ""),
+            "sector": str(p.get("Sector") or ""),
+            "investment_type": str(p.get("Investment_Type") or "") if "Investment_Type" in proj.columns else "",
+            "detail_type": str(p.get("Detail_Type") or "") if "Detail_Type" in proj.columns else "",
+            "capital_structure": str(p.get("Capital_Structure") or "") if "Capital_Structure" in proj.columns else "",
+            "currency": str(p.get("Currency") or ""),
+            "vintage": safe_num(p.get("Vintage")),
+            "initial_date": initial_date.strftime("%Y-%m-%d") if pd.notna(initial_date) else None,
+            "maturity_date": maturity_date.strftime("%Y-%m-%d") if pd.notna(maturity_date) else None,
+            "commitment": commit,
+            "called": called,
+            "repaid": repaid,
+            "outstanding": safe_num(p.get("Outstanding")),
+            "nav": nav,
+            "irr": safe_num(p.get("IRR")),
+            "drawdown": drawdown,
+            "unfunded": unfunded,
+            "dpi": dpi,
+            "tvpi": tvpi,
+            "tranche_count": int(p.get("Tranche_Count") or 0),
+            "sub_asset_count": int(p.get("Sub_Asset_Count") or 0),
+            "sub_asset_key": sub_key_int,
+            "lookthrough": self.lookthrough_summary(project_id),
+        }
+
     def project_context(self, project_id: str) -> Optional[Dict[str, Any]]:
         if not project_id:
             return None
