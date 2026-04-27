@@ -32,7 +32,7 @@ app/
 │   ├── news.py
 │   ├── task.py          /지시 + /cancel + 답변 처리 + overdue/due
 │   ├── team.py          /등록
-│   └── detail.py        /상세조회 (점검 중)
+│   └── detail.py        /상세조회 (단일 펀드 전 컬럼 + LT 요약)
 ├── formatters/          응답 텍스트 생성
 ├── state/               인메모리 저장소 (일일 한도, 대화 세션)
 └── prompts/             외부화된 Gemini 프롬프트
@@ -110,6 +110,8 @@ uvicorn app.main:app --reload --port 8000
 | `/지시 이름 \| 업무 [\| priority=high] [\| due=2026-04-20 10:00] [\| project=BS00001505]` | owner 전용 업무 지시 |
 | `/cancel` | 진행 중 업무 세션 종료 |
 | `/refresh` | Excel DB 재로드 |
-| `/상세조회 <Project_ID>` | ⚠ 점검 중 |
+| `/상세조회 <Project_ID 또는 펀드명>` | 단일 펀드 모든 데이터 + 룩쓰루 요약 |
+| `/룩쓰루 <Project_ID 또는 펀드명>` | 단일 펀드 하위자산 드릴다운 |
+| `/익스포저 [발행인\|종목] <키워드>` | 특정 발행인/종목 보유 펀드 역조회 |
 
 조회/분석 직후 5분 이내에는 명령어 없이 자연어로 **후속 질문**이 가능합니다.
