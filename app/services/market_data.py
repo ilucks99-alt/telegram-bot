@@ -1,10 +1,12 @@
 """Yahoo Finance 무료 chart API 에서 매크로 지표 스냅샷을 가져온다.
 
-- API key 불필요 (User-Agent 만 설정).
+- API key 불필요. 클라우드 IP(Render 등) 차단을 피하기 위해 브라우저급 헤더 +
+  세션 쿠키 + crumb 인증 + query1/query2 fallback 적용.
 - 6개 지표를 ThreadPool 로 병렬 조회 (~1초 내 완료 기대).
 - 개별 실패는 해당 지표만 스킵하고 나머지는 그대로 반환.
 """
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Lock
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
@@ -13,8 +15,76 @@ from app.logger import get_logger
 
 logger = get_logger(__name__)
 
-_YF_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=5d"
-_UA = "Mozilla/5.0 (compatible; InvestBot/1.0)"
+_YF_HOSTS = ("query1.finance.yahoo.com", "query2.finance.yahoo.com")
+
+# 봇 같은 UA(Mozilla/5.0 compatible; InvestBot/1.0)는 cloud IP 대역에서 401/빈응답으로
+# 자주 떨어진다. 실제 Chrome UA + Accept-Language + Origin/Referer 셋이 가장 안정적.
+_BROWSER_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json,text/plain,*/*",
+    "Accept-Language": "en-US,en;q=0.9,ko;q=0.8",
+    "Origin": "https://finance.yahoo.com",
+    "Referer": "https://finance.yahoo.com/",
+    "Connection": "keep-alive",
+}
+
+_session: Optional[requests.Session] = None
+_crumb: Optional[str] = None
+_session_lock = Lock()
+
+
+def _build_session() -> Tuple[requests.Session, Optional[str]]:
+    """Yahoo 쿠키(B) + crumb 을 미리 적재한 세션 생성. 실패해도 세션 자체는 반환."""
+    s = requests.Session()
+    s.headers.update(_BROWSER_HEADERS)
+    crumb: Optional[str] = None
+    # 1) fc.yahoo.com → B 쿠키 세팅 (401 응답이지만 Set-Cookie 가 박힘)
+    try:
+        s.get("https://fc.yahoo.com", timeout=5, allow_redirects=True)
+    except Exception:
+        pass
+    # 2) finance.yahoo.com 메인 페이지 한번 들러서 추가 consent 쿠키 처리
+    try:
+        s.get("https://finance.yahoo.com/", timeout=5)
+    except Exception:
+        pass
+    # 3) crumb 발급 (실패해도 chart 엔드포인트는 보통 통과 — 보험성).
+    # 정상 crumb 은 짧은 영숫자+특수문자 문자열이라 공백·HTML 태그·과대 길이는 모두 reject.
+    for host in _YF_HOSTS:
+        try:
+            r = s.get(f"https://{host}/v1/test/getcrumb", timeout=5)
+        except Exception:
+            continue
+        if not r.ok:
+            continue
+        text = (r.text or "").strip()
+        if not text or " " in text or "<" in text or len(text) > 64:
+            continue
+        crumb = text
+        break
+    return s, crumb
+
+
+def _get_session() -> Tuple[requests.Session, Optional[str]]:
+    global _session, _crumb
+    if _session is not None:
+        return _session, _crumb
+    with _session_lock:
+        if _session is None:
+            _session, _crumb = _build_session()
+        return _session, _crumb
+
+
+def _reset_session() -> None:
+    """403/401 등 권한 실패 시 다음 호출에서 세션을 재구축하도록 무효화."""
+    global _session, _crumb
+    with _session_lock:
+        _session = None
+        _crumb = None
 
 # (symbol, Korean label, kind). kind="yield" 는 bp 로 diff 표기, 그 외는 %.
 _INDICATORS_GLOBAL: List[Tuple[str, str, str]] = [
@@ -38,32 +108,80 @@ _INDICATORS_DOMESTIC: List[Tuple[str, str, str]] = [
 ]
 
 
-def _fetch_one(symbol: str, timeout: float = 6.0) -> Optional[Dict[str, float]]:
+def _parse_meta(data: Dict[str, Any]) -> Optional[Dict[str, float]]:
+    result = (data.get("chart") or {}).get("result") or []
+    if not result:
+        return None
+    meta = result[0].get("meta") or {}
+    price = meta.get("regularMarketPrice")
+    prev = meta.get("chartPreviousClose") or meta.get("previousClose")
+    if price is None or prev is None:
+        return None
     try:
-        resp = requests.get(
-            _YF_URL.format(symbol=symbol),
-            headers={"User-Agent": _UA, "Accept": "application/json"},
-            timeout=timeout,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-    except Exception:
-        logger.warning("yahoo fetch failed | symbol=%s", symbol, exc_info=False)
+        return {"price": float(price), "prev": float(prev)}
+    except (TypeError, ValueError):
         return None
 
-    try:
-        result = (data.get("chart") or {}).get("result") or []
-        if not result:
-            return None
-        meta = result[0].get("meta") or {}
-        price = meta.get("regularMarketPrice")
-        prev = meta.get("chartPreviousClose") or meta.get("previousClose")
-        if price is None or prev is None:
-            return None
-        return {"price": float(price), "prev": float(prev)}
-    except Exception:
-        logger.exception("yahoo parse failed | symbol=%s", symbol)
-        return None
+
+def _fetch_one(symbol: str, timeout: float = 6.0) -> Optional[Dict[str, float]]:
+    """query1 → query2 fallback. 401/403 만나면 세션 재구축 후 1회 재시도.
+    모든 시도 실패 시 None 을 반환해 호출자가 해당 지표를 스킵."""
+    session, crumb = _get_session()
+    params: Dict[str, str] = {"interval": "1d", "range": "5d"}
+    if crumb:
+        params["crumb"] = crumb
+
+    auth_failed_once = False
+
+    for host in _YF_HOSTS:
+        url = f"https://{host}/v8/finance/chart/{symbol}"
+        try:
+            resp = session.get(url, params=params, timeout=timeout)
+        except Exception:
+            logger.warning("yahoo fetch error | host=%s symbol=%s", host, symbol, exc_info=False)
+            continue
+
+        if resp.status_code in (401, 403, 429):
+            logger.warning(
+                "yahoo auth/throttle | host=%s symbol=%s status=%s",
+                host, symbol, resp.status_code,
+            )
+            if not auth_failed_once:
+                # 세션이 만료/차단됐을 가능성 — 한 번만 재구축 후 재시도
+                _reset_session()
+                session, crumb = _get_session()
+                if crumb:
+                    params["crumb"] = crumb
+                auth_failed_once = True
+                try:
+                    resp = session.get(url, params=params, timeout=timeout)
+                except Exception:
+                    continue
+                if resp.status_code in (401, 403, 429):
+                    continue
+            else:
+                continue
+
+        if not resp.ok:
+            logger.warning(
+                "yahoo http error | host=%s symbol=%s status=%s",
+                host, symbol, resp.status_code,
+            )
+            continue
+
+        try:
+            data = resp.json()
+        except Exception:
+            logger.warning("yahoo json parse failed | host=%s symbol=%s", host, symbol)
+            continue
+
+        parsed = _parse_meta(data)
+        if parsed is not None:
+            return parsed
+        # 200 + 빈 result 는 다음 host 시도
+
+    logger.warning("yahoo fetch exhausted | symbol=%s", symbol)
+    return None
 
 
 def _format_indicator(label: str, data: Dict[str, float], kind: str) -> str:
