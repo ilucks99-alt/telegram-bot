@@ -101,7 +101,12 @@ def _collect_articles(keywords: List[str]) -> List[Dict[str, Any]]:
                 all_items.append(item)
 
     all_items.sort(key=lambda x: x["published_at"], reverse=True)
-    return all_items[:config.NEWS_REPORT_MAX_ARTICLES]
+    final = all_items[:config.NEWS_REPORT_MAX_ARTICLES]
+    logger.info(
+        "뉴스 수집 결과 | 키워드 %d개 → 기사 %d건 (max=%d)",
+        len(keywords), len(final), config.NEWS_REPORT_MAX_ARTICLES,
+    )
+    return final
 
 
 def collect_news_for_keywords(db: InvestmentDB) -> List[Dict[str, Any]]:
