@@ -1,8 +1,58 @@
-from typing import Any, Dict, List
+from calendar import monthrange
+from typing import Any, Callable, Dict, List, Optional
 
 from app import config
 from app.constants import OVERSEAS_REGIONS
 from app.util import format_amount_uk, format_pct
+
+
+def _fmt_int(v: Any) -> str:
+    return str(int(float(v)))
+
+
+def _fmt_pct_v(v: Any) -> str:
+    return format_pct(float(v))
+
+
+def _fmt_amt(v: Any) -> str:
+    return format_amount_uk(float(v))
+
+
+def _fmt_mult(v: Any) -> str:
+    return f"{float(v):.2f}x"
+
+
+def _fmt_range(label: str, vmin: Any, vmax: Any, fmt: Callable[[Any], str]) -> Optional[str]:
+    if vmin is None and vmax is None:
+        return None
+    if vmin is not None and vmax is not None:
+        if vmin == vmax:
+            return f"{label}={fmt(vmin)}"
+        return f"{label}={fmt(vmin)}~{fmt(vmax)}"
+    if vmin is not None:
+        return f"{label}>={fmt(vmin)}"
+    return f"{label}<={fmt(vmax)}"
+
+
+def _fmt_date_range(label: str, vmin: Optional[str], vmax: Optional[str]) -> Optional[str]:
+    """만기일/최초인출일 — 'YYYY-MM-01 ~ 말일' 인 경우 'YYYY-MM' 으로 축약."""
+    if not vmin and not vmax:
+        return None
+    if vmin and vmax:
+        if vmin != vmax:
+            try:
+                y, m = int(vmin[:4]), int(vmin[5:7])
+                first = f"{y:04d}-{m:02d}-01"
+                last = f"{y:04d}-{m:02d}-{monthrange(y, m)[1]:02d}"
+                if vmin == first and vmax == last:
+                    return f"{label}={y:04d}-{m:02d}"
+            except (ValueError, TypeError):
+                pass
+            return f"{label}={vmin}~{vmax}"
+        return f"{label}={vmin}"
+    if vmin:
+        return f"{label}>={vmin}"
+    return f"{label}<={vmax}"
 
 
 def _humanize_filter_summary(filters: Dict[str, Any]) -> List[str]:
@@ -46,29 +96,31 @@ def _humanize_filter_summary(filters: Dict[str, Any]) -> List[str]:
     if filters.get("tranche_count_min"):
         parts.append(f"트렌치>={int(filters['tranche_count_min'])}")
 
-    for min_key, max_key, label in [
-        ("vintage_from", "vintage_to", "Vintage"),
-        ("maturity_year_from", "maturity_year_to", "만기년도"),
-        ("irr_min", "irr_max", "IRR"),
-        ("commit_min", "commit_max", "약정"),
-        ("called_min", "called_max", "콜금액"),
-        ("repaid_min", "repaid_max", "상환"),
-        ("outstanding_min", "outstanding_max", "투자잔액"),
-        ("nav_min", "nav_max", "NAV"),
-        ("dpi_min", "dpi_max", "DPI"),
-        ("tvpi_min", "tvpi_max", "TVPI"),
-        ("drawdown_min", "drawdown_max", "인출률"),
-        ("unfunded_min", "unfunded_max", "미인출"),
+    for min_key, max_key, label, fmt in [
+        ("vintage_from", "vintage_to", "Vintage", _fmt_int),
+        ("maturity_year_from", "maturity_year_to", "만기년도", _fmt_int),
+        ("irr_min", "irr_max", "IRR", _fmt_pct_v),
+        ("commit_min", "commit_max", "약정", _fmt_amt),
+        ("called_min", "called_max", "콜금액", _fmt_amt),
+        ("repaid_min", "repaid_max", "상환", _fmt_amt),
+        ("outstanding_min", "outstanding_max", "투자잔액", _fmt_amt),
+        ("nav_min", "nav_max", "NAV", _fmt_amt),
+        ("dpi_min", "dpi_max", "DPI", _fmt_mult),
+        ("tvpi_min", "tvpi_max", "TVPI", _fmt_mult),
+        ("drawdown_min", "drawdown_max", "인출률", _fmt_pct_v),
+        ("unfunded_min", "unfunded_max", "미인출", _fmt_amt),
     ]:
-        vmin, vmax = filters.get(min_key), filters.get(max_key)
-        if vmin is None and vmax is None:
-            continue
-        if vmin is not None and vmax is not None:
-            parts.append(f"{label}={vmin}~{vmax}")
-        elif vmin is not None:
-            parts.append(f"{label}>={vmin}")
-        else:
-            parts.append(f"{label}<={vmax}")
+        line = _fmt_range(label, filters.get(min_key), filters.get(max_key), fmt)
+        if line:
+            parts.append(line)
+
+    for min_key, max_key, label in [
+        ("maturity_date_from", "maturity_date_to", "만기일"),
+        ("initial_date_from", "initial_date_to", "최초인출일"),
+    ]:
+        line = _fmt_date_range(label, filters.get(min_key), filters.get(max_key))
+        if line:
+            parts.append(line)
 
     return parts
 
