@@ -333,6 +333,27 @@ class InvestmentDB:
             except (TypeError, ValueError):
                 pass
 
+        # 만기일/최초인출일 — 일/월 단위 비교 (vmin/vmax 는 ISO 'YYYY-MM-DD' 문자열,
+        # parser 단계에서 'YYYY-MM' 은 1일/말일로 expand 됨).
+        for (min_key, max_key, col) in [
+            ("maturity_date_from", "maturity_date_to", "Maturity_Date"),
+            ("initial_date_from", "initial_date_to", "Initial_Date"),
+        ]:
+            if col not in df.columns:
+                continue
+            vmin = filters.get(min_key)
+            vmax = filters.get(max_key)
+            if vmin:
+                try:
+                    df = df[df[col] >= pd.Timestamp(str(vmin))]
+                except (TypeError, ValueError):
+                    pass
+            if vmax:
+                try:
+                    df = df[df[col] <= pd.Timestamp(str(vmax))]
+                except (TypeError, ValueError):
+                    pass
+
         for (min_key, max_key, col) in [
             ("vintage_from", "vintage_to", "Vintage"),
             ("maturity_year_from", "maturity_year_to", "Maturity_Year"),

@@ -56,6 +56,32 @@ def build_fixed_query_advice() -> str:
     )
 
 
+_DATE_FULL_PAT = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_DATE_MONTH_PAT = re.compile(r"^\d{4}-\d{2}$")
+
+
+def _norm_date_filter(val: Any, mode: str) -> Optional[str]:
+    """'YYYY-MM-DD' 그대로, 'YYYY-MM' 은 mode='from'→1일, mode='to'→말일로 expand."""
+    if val is None:
+        return None
+    s = str(val).strip()
+    if not s:
+        return None
+    if _DATE_FULL_PAT.match(s):
+        return s
+    if _DATE_MONTH_PAT.match(s):
+        from calendar import monthrange
+        try:
+            y, m = (int(p) for p in s.split("-"))
+            if mode == "from":
+                return f"{s}-01"
+            last = monthrange(y, m)[1]
+            return f"{s}-{last:02d}"
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
 def _norm_str_list(val: Any) -> List[str]:
     if not isinstance(val, list):
         return []
@@ -93,6 +119,15 @@ def _normalize_filter_dict(filters: Dict[str, Any]) -> Dict[str, Any]:
                 out[key] = int(val)
             except (TypeError, ValueError):
                 pass
+
+    for key in ("maturity_date_from", "initial_date_from"):
+        norm = _norm_date_filter(filters.get(key), "from")
+        if norm:
+            out[key] = norm
+    for key in ("maturity_date_to", "initial_date_to"):
+        norm = _norm_date_filter(filters.get(key), "to")
+        if norm:
+            out[key] = norm
 
     has_lt = filters.get("has_lookthrough")
     if has_lt is not None:

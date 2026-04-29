@@ -9,6 +9,7 @@
 - has_lookthrough: true|false (룩쓰루 가능 펀드만 / 없는 펀드만)
 - tranche_count_min (int, 다트렌치 펀드 — 보통 2 이상)
 - vintage_from/to, maturity_year_from/to (int)
+- maturity_date_from/to, initial_date_from/to (string "YYYY-MM-DD" 또는 "YYYY-MM" — 월 단위는 1일~말일로 자동 expand)
 - irr_min/max (소수: 5%→0.05)
 - commit_min/max, called_min/max, repaid_min/max, outstanding_min/max, nav_min/max, unfunded_min/max (단위 억원)
 - dpi_min/max (배수: 1.0=원금회수, 1.5=150% 회수)
@@ -32,6 +33,12 @@
 9. "룩쓰루 가능", "하위자산 있는" → has_lookthrough=true. "다트렌치"/"여러 트렌치" → tranche_count_min=2.
 10. "DPI 1배 이상"=dpi_min:1.0. "TVPI 1.5배"=tvpi_min:1.5. "인출률 80% 이상"=drawdown_min:0.8. "미인출 100억"=unfunded_min:100.
 11. 빈 배열/null/빈 문자열은 생략. IRR 임계값은 무조건 소수.
+12. 만기/최초인출 날짜 단위 조건:
+    - "27년 6월 만기" → maturity_date_from:"2027-06", maturity_date_to:"2027-06"
+    - "27년 상반기 만기" → maturity_date_from:"2027-01", maturity_date_to:"2027-06"
+    - "26년 12월 31일 이전 만기" → maturity_date_to:"2026-12-31"
+    - "2025년 7월 이후 인출" → initial_date_from:"2025-07"
+    - 연도만 명시되면 기존 maturity_year_from/to 사용. 일/월 단위 명시될 때만 date_from/to 사용.
 
 [예시]
 입력: "미국 부동산 core 전략"
@@ -48,6 +55,9 @@
 
 입력: "BTL 인프라 미인출 큰 순 5개"
 {"mode":"query","query_json":{"query_type":"summary_with_list","filters":{"asset_class":["Infrastructure"],"investment_type":["BTL"]},"sort":{"by":"unfunded","order":"desc"},"output":{"include_summary":true,"include_list":true,"limit":5}},"advice_text":null}
+
+입력: "27년 6월 만기 인프라"
+{"mode":"query","query_json":{"query_type":"summary_with_list","filters":{"asset_class":["Infrastructure"],"maturity_date_from":"2027-06","maturity_date_to":"2027-06"},"sort":{},"output":{"include_summary":true,"include_list":true,"limit":9999}},"advice_text":null}
 
 입력: "룩쓰루 가능한 PE 펀드"
 {"mode":"query","query_json":{"query_type":"summary_with_list","filters":{"asset_class":["PE"],"has_lookthrough":true},"sort":{},"output":{"include_summary":true,"include_list":true,"limit":9999}},"advice_text":null}
