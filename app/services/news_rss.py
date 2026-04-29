@@ -170,7 +170,7 @@ def search_google_news_rss(query: str, limit: int = 20) -> List[dict]:
 
     results: List[dict] = []
     seen: set = set()
-    counts = {"ko": 0, "en": 0}
+    counts = {"ko": 0, "en": 0, "bing": 0}
 
     for locale, url in locale_urls:
         body = _fetch_rss(url)
@@ -180,9 +180,19 @@ def search_google_news_rss(query: str, limit: int = 20) -> List[dict]:
         counts[locale] = len(items)
         results.extend(items)
 
+    # Render 등 cloud IP 에서 Google News 가 503/HTML 로 막힐 때를 위한 fallback —
+    # Bing News RSS 는 key 불필요·cloud IP 친화적이고 한국어/영어 둘 다 정상 응답.
+    if not results:
+        bing_url = f"https://www.bing.com/news/search?q={encoded}&format=RSS"
+        body = _fetch_rss(bing_url)
+        if body:
+            items = _parse_rss_items(body, seen)
+            counts["bing"] = len(items)
+            results.extend(items)
+
     logger.info(
-        "google news rss | kw=%s ko=%d en=%d total=%d",
-        query, counts["ko"], counts["en"], len(results),
+        "news rss | kw=%s google_ko=%d google_en=%d bing=%d total=%d",
+        query, counts["ko"], counts["en"], counts["bing"], len(results),
     )
 
     results.sort(key=lambda x: x["published_at"], reverse=True)
