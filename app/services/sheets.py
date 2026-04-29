@@ -26,6 +26,7 @@ TASKS_HEADERS = [
     "instruction", "status", "feedback_round", "priority", "due_at",
     "project_id", "created_at", "updated_at", "last_activity_at",
     "closed_at", "final_report", "owner_reported_at", "due_reminder_sent",
+    "acked_at", "unack_alert_sent",
 ]
 TASK_HISTORY_HEADERS = ["task_id", "ts", "role", "text"]
 MEMBERS_HEADERS = ["name", "chat_id", "registered_at"]
@@ -269,6 +270,7 @@ def create_task(
     instruction: str,
     project_id: Optional[str] = None,
     initial_status: str = "waiting_for_reply",
+    due_at: Optional[str] = None,
 ) -> Dict[str, Any]:
     ws = _tab("Tasks")
     if ws is None:
@@ -284,7 +286,7 @@ def create_task(
         "status": initial_status,
         "feedback_round": "0",
         "priority": "",
-        "due_at": "",
+        "due_at": due_at or "",
         "project_id": project_id or "",
         "created_at": ts,
         "updated_at": ts,
@@ -293,6 +295,8 @@ def create_task(
         "final_report": "",
         "owner_reported_at": "",
         "due_reminder_sent": "",
+        "acked_at": "",
+        "unack_alert_sent": "",
     }
     row = [task.get(h, "") for h in TASKS_HEADERS]
     ws.append_row(row, value_input_option="USER_ENTERED")

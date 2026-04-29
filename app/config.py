@@ -62,6 +62,11 @@ MAX_TASK_FEEDBACK_ROUND = _env_int("MAX_TASK_FEEDBACK_ROUND", 3)
 TASK_NO_REPLY_MINUTES = _env_int("TASK_NO_REPLY_MINUTES", 30)
 TASK_REPORT_COOLDOWN_MINUTES = _env_int("TASK_REPORT_COOLDOWN_MINUTES", 60)
 TASK_QUEUE_MAX = _env_int("TASK_QUEUE_MAX", 5)
+# 담당자가 [확인했습니다] 버튼을 누르지 않은 채 N분이 지나면 owner 에게 알림.
+# TASK_NO_REPLY_MINUTES 보다 작아야 의미가 있다(그 시점이 되면 overdue 가 가져감).
+TASK_UNACK_ALERT_MINUTES = _env_int("TASK_UNACK_ALERT_MINUTES", 15)
+# 마감(due_at) N분 전에 담당자/owner 에게 푸시.
+TASK_DUE_REMINDER_MINUTES = _env_int("TASK_DUE_REMINDER_MINUTES", 30)
 
 # =========================================================
 # News auto-report

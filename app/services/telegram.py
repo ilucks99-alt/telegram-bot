@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from typing import List, Optional, Union
@@ -108,6 +109,58 @@ def send_message(chat_id: ChatId, text: str) -> None:
             "sendMessage",
             data={"chat_id": str(chat_id), "text": chunk},
         )
+
+
+def send_message_with_keyboard(chat_id: ChatId, text: str, keyboard: dict) -> None:
+    """
+    Send a message with an inline keyboard. If text needs to be chunked,
+    only the final chunk gets the keyboard so buttons don't get duplicated.
+    """
+    if chat_id is None:
+        return
+    chunks = split_text(text, limit=3900)
+    if not chunks:
+        return
+    last = len(chunks) - 1
+    for i, chunk in enumerate(chunks):
+        data = {"chat_id": str(chat_id), "text": chunk}
+        if i == last:
+            data["reply_markup"] = json.dumps(keyboard)
+        telegram_post("sendMessage", data=data)
+
+
+def answer_callback_query(callback_query_id: str, text: str = "") -> None:
+    if not callback_query_id:
+        return
+    data = {"callback_query_id": callback_query_id}
+    if text:
+        data["text"] = text[:200]
+    try:
+        telegram_post("answerCallbackQuery", data=data)
+    except Exception:
+        logger.exception("answerCallbackQuery failed")
+
+
+def edit_message_text(
+    chat_id: ChatId,
+    message_id: int,
+    text: str,
+    reply_markup: Optional[dict] = None,
+) -> None:
+    """Edit a previously sent message. Removes the inline keyboard if reply_markup is None."""
+    if chat_id is None or message_id is None:
+        return
+    data = {
+        "chat_id": str(chat_id),
+        "message_id": int(message_id),
+        "text": text[:3900],
+    }
+    if reply_markup is not None:
+        data["reply_markup"] = json.dumps(reply_markup)
+    try:
+        telegram_post("editMessageText", data=data)
+    except Exception:
+        logger.exception("editMessageText failed")
 
 
 def send_long_message(chat_id: ChatId, text: str, chunk_size: int = 3500) -> None:

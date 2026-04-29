@@ -10,7 +10,12 @@ from app import config
 from app.db_engine import InvestmentDB
 from app.handlers.news import run_manager_news_report, run_scheduled_news_report
 from app.handlers.router import process_user_message
-from app.handlers.task import check_and_report_overdue_tasks
+from app.handlers.task import (
+    check_and_report_overdue_tasks,
+    check_due_reminders,
+    check_unack_alerts,
+    handle_task_ack_callback,
+)
 from app.logger import get_logger, setup_logging
 from app.services import sheets
 from app.util import extract_message_context
@@ -110,6 +115,20 @@ async def webhook(secret: str, request: Request):
         logger.info("duplicate telegram update_id=%s ignored", update_id)
         return {"ok": True, "duplicate": True}
 
+    # 인라인 키보드 버튼 클릭 (예: 업무 [확인했습니다])
+    callback = update.get("callback_query") if isinstance(update, dict) else None
+    if callback:
+        import threading as _th
+
+        def _cb_worker():
+            try:
+                handle_task_ack_callback(get_db(), callback)
+            except Exception:
+                logger.exception("handle_task_ack_callback failed")
+
+        _th.Thread(target=_cb_worker, daemon=True).start()
+        return {"ok": True}
+
     msg_ctx = extract_message_context(update)
     chat_id = msg_ctx.get("chat_id")
     text = msg_ctx.get("text") or ""
@@ -154,6 +173,14 @@ def _run_tick():
             check_and_report_overdue_tasks(db)
         except Exception:
             logger.exception("cron tick: task-check failed")
+        try:
+            check_unack_alerts(db)
+        except Exception:
+            logger.exception("cron tick: unack-alerts failed")
+        try:
+            check_due_reminders(db)
+        except Exception:
+            logger.exception("cron tick: due-reminders failed")
         try:
             run_manager_news_report(db, chat_id)
         except Exception:

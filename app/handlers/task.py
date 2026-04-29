@@ -10,11 +10,14 @@ from app.parsers.task_eval import evaluate_response
 from app.services import sheets
 from app.services.file_extract import extract_text_from_file
 from app.services.telegram import (
+    answer_callback_query,
     download_telegram_file,
+    edit_message_text,
     send_long_message,
     send_message,
+    send_message_with_keyboard,
 )
-from app.util import now_ts
+from app.util import KST, get_kst_today_str, now_ts
 
 logger = get_logger(__name__)
 
@@ -27,9 +30,28 @@ _finalize_lock = threading.Lock()
 # =========================================================
 # /지시 파싱
 # =========================================================
+def _parse_due(due_str: str) -> Optional[str]:
+    """
+    'HH:MM' (오늘) 또는 'YYYY-MM-DD HH:MM' 을 KST 'YYYY-MM-DD HH:MM:SS' 로 정규화.
+    파싱 실패 시 None.
+    """
+    s = (due_str or "").strip()
+    if not s:
+        return None
+    try:
+        if len(s) <= 5 and ":" in s:
+            today = get_kst_today_str()
+            dt = datetime.strptime(f"{today} {s}", "%Y-%m-%d %H:%M").replace(tzinfo=KST)
+        else:
+            dt = datetime.strptime(s, "%Y-%m-%d %H:%M").replace(tzinfo=KST)
+    except ValueError:
+        return None
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
 def _parse_task_command(payload: str) -> Optional[Dict[str, Any]]:
     """
-    파서: '이름 | 업무내용 [| project=BS00001505]'
+    파서: '이름 | 업무내용 [| project=BS00001505] [| due=HH:MM | due=YYYY-MM-DD HH:MM]'
     첫 세그먼트(이름)와 둘째 세그먼트(업무내용)는 필수, 나머지는 key=value.
     """
     segments = [s.strip() for s in payload.split("|")]
@@ -42,17 +64,25 @@ def _parse_task_command(payload: str) -> Optional[Dict[str, Any]]:
         return None
 
     project_id = ""
+    due_at = ""
     for seg in segments[2:]:
         if "=" not in seg:
             continue
         k, v = seg.split("=", 1)
-        if k.strip().lower() == "project":
-            project_id = v.strip()
+        k = k.strip().lower()
+        v = v.strip()
+        if k == "project":
+            project_id = v
+        elif k == "due":
+            parsed = _parse_due(v)
+            if parsed:
+                due_at = parsed
 
     return {
         "assignee_name": assignee_name,
         "instruction": instruction,
         "project_id": project_id,
+        "due_at": due_at,
     }
 
 
@@ -112,6 +142,7 @@ def handle_task_command(db: InvestmentDB, owner_chat_id, raw: str) -> None:
             instruction=parsed["instruction"],
             project_id=project_id,
             initial_status=initial_status,
+            due_at=parsed.get("due_at") or None,
         )
     except Exception:
         logger.exception("create_task failed")
@@ -151,6 +182,8 @@ def _send_task_to_assignee(task: Dict[str, Any], project_ctx: Optional[Dict[str,
         if project_ctx and project_ctx.get("Asset_Name"):
             line += f" ({project_ctx['Asset_Name']})"
         extras.append(line)
+    if (task.get("due_at") or "").strip():
+        extras.append(f"마감: {task['due_at']}")
 
     extras_text = ("\n" + "\n".join(extras)) if extras else ""
 
@@ -159,11 +192,17 @@ def _send_task_to_assignee(task: Dict[str, Any], project_ctx: Optional[Dict[str,
         f"- 업무번호: {task['task_id']}\n"
         f"- 내용: {task['instruction']}"
         f"{extras_text}\n\n"
+        f"먼저 아래 [✅ 확인했습니다] 버튼을 눌러 수신 확인 후,\n"
         f"답변을 텍스트 또는 파일(PDF/DOCX/TXT)로 전송해 주세요.\n"
         f"AI가 검토 후 필요 시 보완 요청을 드립니다.\n"
         f"(중단: /cancel)"
     )
-    send_message(task["assignee_chat_id"], msg)
+    keyboard = {
+        "inline_keyboard": [[
+            {"text": "✅ 확인했습니다", "callback_data": f"ack:{task['task_id']}"}
+        ]]
+    }
+    send_message_with_keyboard(task["assignee_chat_id"], msg, keyboard)
 
     try:
         send_message(
@@ -481,6 +520,186 @@ def handle_cancel_command(db: InvestmentDB, chat_id) -> None:
         logger.exception("cancel owner notify failed")
 
     _activate_next_queued_task(db, task["assignee_chat_id"])
+
+
+# =========================================================
+# 확인 버튼 (callback_query) 처리
+# =========================================================
+def handle_task_ack_callback(db: InvestmentDB, callback: Dict[str, Any]) -> None:
+    cb_id = callback.get("id")
+    data = (callback.get("data") or "").strip()
+    msg = callback.get("message") or {}
+    chat = msg.get("chat") or {}
+    chat_id = chat.get("id")
+    message_id = msg.get("message_id")
+
+    if not data.startswith("ack:"):
+        if cb_id:
+            answer_callback_query(cb_id)
+        return
+
+    task_id = data[len("ack:"):].strip()
+    task = sheets.get_task_by_id(task_id)
+    if not task:
+        if cb_id:
+            answer_callback_query(cb_id, text="업무 정보를 찾을 수 없습니다.")
+        return
+
+    # 본인 task 만 ack 가능
+    if str(chat_id) != str(task.get("assignee_chat_id")):
+        if cb_id:
+            answer_callback_query(cb_id, text="이 업무의 담당자가 아닙니다.")
+        return
+
+    already = bool((task.get("acked_at") or "").strip())
+    ack_ts = now_ts()
+    if not already:
+        try:
+            sheets.update_task_fields(task_id, {"acked_at": ack_ts})
+        except Exception:
+            logger.exception("ack update failed | task=%s", task_id)
+
+    if cb_id:
+        answer_callback_query(
+            cb_id,
+            text="확인 처리되었습니다." if not already else "이미 확인된 업무입니다.",
+        )
+
+    # 원본 메시지에서 버튼 제거 + 확인 표시
+    if message_id is not None and chat_id is not None:
+        original_text = msg.get("text") or ""
+        ack_time = ack_ts.split(" ")[1] if " " in ack_ts else ack_ts
+        marker = f"\n\n✅ 확인됨 ({ack_time})"
+        new_text = original_text + marker if marker not in original_text else original_text
+        try:
+            edit_message_text(chat_id, message_id, new_text, reply_markup={"inline_keyboard": []})
+        except Exception:
+            logger.exception("edit_message_text after ack failed | task=%s", task_id)
+
+    # 첫 ack 일 때만 owner 에게 알림
+    if not already:
+        try:
+            send_message(
+                task["owner_chat_id"],
+                f"[✅ 확인 알림]\n"
+                f"- 업무번호: {task_id}\n"
+                f"- 담당자: {task.get('assignee_name','')}\n"
+                f"- 확인시각: {ack_ts}",
+            )
+        except Exception:
+            logger.exception("ack owner notify failed | task=%s", task_id)
+
+
+# =========================================================
+# 미확인 알림 (cron 호출) — 지시 후 N분 내 확인 버튼 미클릭 시 owner 에게 1회 알림
+# =========================================================
+def check_unack_alerts(db: InvestmentDB) -> int:
+    threshold_min = config.TASK_UNACK_ALERT_MINUTES
+    overdue_min = config.TASK_NO_REPLY_MINUTES
+
+    try:
+        tasks = sheets._read_all_tasks()
+    except Exception:
+        logger.exception("check_unack_alerts: read tasks failed")
+        return 0
+
+    now = datetime.now(KST)
+    count = 0
+    for t in tasks:
+        if t.get("status") != "waiting_for_reply":
+            continue
+        if (t.get("acked_at") or "").strip():
+            continue
+        if (t.get("unack_alert_sent") or "").strip():
+            continue
+        created = t.get("created_at", "")
+        try:
+            dt = datetime.strptime(created, "%Y-%m-%d %H:%M:%S").replace(tzinfo=KST)
+        except ValueError:
+            continue
+        diff_min = (now - dt).total_seconds() / 60
+        if diff_min < threshold_min:
+            continue
+        # overdue cleanup 이 가져갈 시점이면 그쪽에 양보 (중복 알림 방지)
+        if diff_min >= overdue_min:
+            continue
+        try:
+            send_message(
+                t["owner_chat_id"],
+                f"⚠️ [미확인 알림]\n"
+                f"- 업무번호: {t['task_id']}\n"
+                f"- 담당자: {t.get('assignee_name','')}\n"
+                f"- 지시 후 경과: {int(diff_min)}분\n"
+                f"- 담당자가 아직 확인 버튼을 누르지 않았습니다.\n"
+                f"- 다른 채널(전화 등)로 연락이 필요할 수 있습니다.",
+            )
+            sheets.update_task_fields(t["task_id"], {"unack_alert_sent": now_ts()})
+            count += 1
+        except Exception:
+            logger.exception("unack alert send failed | task=%s", t.get("task_id"))
+    return count
+
+
+# =========================================================
+# 마감 임박 알림 (cron 호출) — due_at 기준 N분 전 1회 푸시
+# =========================================================
+def check_due_reminders(db: InvestmentDB) -> int:
+    window_min = config.TASK_DUE_REMINDER_MINUTES
+
+    try:
+        tasks = sheets._read_all_tasks()
+    except Exception:
+        logger.exception("check_due_reminders: read tasks failed")
+        return 0
+
+    now = datetime.now(KST)
+    count = 0
+    for t in tasks:
+        if t.get("status") not in sheets.ACTIVE_STATUSES:
+            continue
+        due_str = (t.get("due_at") or "").strip()
+        if not due_str:
+            continue
+        if (t.get("due_reminder_sent") or "").strip():
+            continue
+        try:
+            due_dt = datetime.strptime(due_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=KST)
+        except ValueError:
+            continue
+
+        delta_min = (due_dt - now).total_seconds() / 60
+        # 이미 마감 지난 task 는 overdue cleanup 이 처리. 창 밖이면 패스.
+        if delta_min < 0 or delta_min > window_min:
+            continue
+
+        try:
+            send_message(
+                t["assignee_chat_id"],
+                f"⏰ [마감 임박]\n"
+                f"- 업무번호: {t['task_id']}\n"
+                f"- 마감: {due_str}\n"
+                f"- 남은 시간: {int(delta_min)}분\n"
+                f"- 업무: {(t.get('instruction') or '')[:200]}\n\n"
+                f"답변을 텍스트 또는 파일로 전송해 주세요.",
+            )
+        except Exception:
+            logger.exception("due reminder assignee send failed | task=%s", t.get("task_id"))
+        try:
+            send_message(
+                t["owner_chat_id"],
+                f"⏰ [마감 임박 — 푸시 발송]\n"
+                f"- 업무번호: {t['task_id']}\n"
+                f"- 담당자: {t.get('assignee_name','')}\n"
+                f"- 마감: {due_str} (잔여 {int(delta_min)}분)",
+            )
+        except Exception:
+            logger.exception("due reminder owner send failed | task=%s", t.get("task_id"))
+        try:
+            sheets.update_task_fields(t["task_id"], {"due_reminder_sent": now_ts()})
+        except Exception:
+            logger.exception("due_reminder_sent update failed | task=%s", t.get("task_id"))
+        count += 1
+    return count
 
 
 # =========================================================
