@@ -85,11 +85,18 @@ NEWS_KEYWORDS = [
 
 NEWS_PER_KEYWORD_LIMIT = _env_int("NEWS_PER_KEYWORD_LIMIT", 10)
 NEWS_REPORT_MAX_ARTICLES = _env_int("NEWS_REPORT_MAX_ARTICLES", 30)
-# 포트폴리오 뉴스 키워드 분배 — GP(해외 우선) + 국내 GP + LookThrough 발행인.
-# 해외 GP는 신호 강도가 높아 비중을 크게, 국내 GP는 잡음이 많아 소수만 포함.
+# 포트폴리오 뉴스 키워드 — GP 사용자 지정 + LookThrough 발행인 (PE/VC 한정).
+# NEWS_GP_KEYWORDS 가 비어있으면 잔액 상위 자동 픽업으로 폴백.
+# 예: NEWS_GP_KEYWORDS="Blackstone,KKR,Carlyle,Apollo,Brookfield,Ares,TPG"
+NEWS_GP_KEYWORDS = [t.strip() for t in _env("NEWS_GP_KEYWORDS", "").split(",") if t.strip()]
 NEWS_GP_OVERSEAS_LIMIT = _env_int("NEWS_GP_OVERSEAS_LIMIT", 6)
 NEWS_GP_DOMESTIC_LIMIT = _env_int("NEWS_GP_DOMESTIC_LIMIT", 2)
 NEWS_LOOKTHROUGH_LIMIT = _env_int("NEWS_LOOKTHROUGH_LIMIT", 8)
+# LookThrough 발행인 추출 시 부모 펀드 자산군 화이트리스트.
+# 기본 PE/VC — 부동산/인프라/사모대출 펀드의 발행인은 뉴스 신호가 약해 제외.
+NEWS_LOOKTHROUGH_ASSET_CLASSES = [
+    t.strip() for t in _env("NEWS_LOOKTHROUGH_ASSET_CLASSES", "PE,VC").split(",") if t.strip()
+]
 # 보고서에 키워드별 최소 보장 건수 — 해외/국내 운용사 비율 불균형으로 한쪽이 잘리는 걸 방지.
 # round-robin 방식으로 각 키워드의 최신 N건을 우선 채운 뒤 NEWS_REPORT_MAX_ARTICLES 한도까지.
 NEWS_PER_KEYWORD_REPORT_QUOTA = _env_int("NEWS_PER_KEYWORD_REPORT_QUOTA", 3)

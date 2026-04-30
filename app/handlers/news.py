@@ -83,13 +83,22 @@ def _portfolio_keyword_sections(db: InvestmentDB) -> Dict[str, List[str]]:
             seen.add(key)
             sections[section].append(kw)
 
+    # GP — 사용자 지정 리스트 우선, 미설정 시 잔액 상위 자동.
     try:
-        _add("gp", db.top_managers_by_outstanding(config.NEWS_GP_OVERSEAS_LIMIT, overseas_only=True))
-        _add("gp", db.top_managers_by_outstanding(config.NEWS_GP_DOMESTIC_LIMIT, domestic_only=True))
+        if config.NEWS_GP_KEYWORDS:
+            _add("gp", list(config.NEWS_GP_KEYWORDS))
+        else:
+            _add("gp", db.top_managers_by_outstanding(config.NEWS_GP_OVERSEAS_LIMIT, overseas_only=True))
+            _add("gp", db.top_managers_by_outstanding(config.NEWS_GP_DOMESTIC_LIMIT, domestic_only=True))
     except Exception:
         logger.exception("portfolio news: GP keyword build failed")
+
+    # LookThrough — 부모 펀드 자산군 화이트리스트 (기본 PE/VC).
     try:
-        _add("lookthrough", db.top_counterparties_by_book(config.NEWS_LOOKTHROUGH_LIMIT))
+        _add("lookthrough", db.top_counterparties_by_book(
+            config.NEWS_LOOKTHROUGH_LIMIT,
+            parent_asset_classes=config.NEWS_LOOKTHROUGH_ASSET_CLASSES or None,
+        ))
     except Exception:
         logger.exception("portfolio news: LookThrough counterparty keyword build failed")
 

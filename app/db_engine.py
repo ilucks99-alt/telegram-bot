@@ -1071,14 +1071,25 @@ class InvestmentDB:
         )
         return [str(m) for m in grouped.head(limit).index.tolist()]
 
-    def top_counterparties_by_book(self, limit: int = 10) -> List[str]:
+    def top_counterparties_by_book(
+        self,
+        limit: int = 10,
+        parent_asset_classes: Optional[List[str]] = None,
+    ) -> List[str]:
         """LookThrough 시트에서 발행인/거래상대방 잔액 상위 N개를 키워드로 반환.
         Counterparty 우선, 빈값이면 Holding_Name 으로 폴백 — 발행인이 비어있고 종목명만
         있는 케이스(직상장 주식 등)를 놓치지 않기 위함.
 
-        주의: self.lt 가 join key(Fund_SubAsset_Key) 누락으로 비활성화돼 있어도
-        뉴스 키워드 추출은 join 이 불필요하므로 시트를 직접 다시 로드해서 동작."""
+        parent_asset_classes 가 지정되면, LookThrough 행 중 부모 펀드의
+        Asset_Class_Std 가 해당 셋에 속하는 행만 사용 (예: ["PE", "VC"]).
+        조인은 1) Fund_SubAsset_Key↔SubAsset_Key 직조인 우선, 2) join key 가
+        없거나 매칭 실패한 행은 Fund_Name↔Asset_Name 정규화 매칭으로 보완.
+
+        self.lt 가 join key 누락으로 비활성화돼 있어도 뉴스 키워드 추출은
+        join 이 불필요하므로 시트를 직접 다시 로드해서 동작."""
         import re as _re
+        from app.util import normalize_text
+
         lt = self.lt
         if lt is None or lt.empty:
             try:
@@ -1087,15 +1098,55 @@ class InvestmentDB:
                     "거래상대방/발행인": "Counterparty",
                     "편입자산 종목명": "Holding_Name",
                     "장부금액(원화)": "Book_Value",
+                    "펀드 종목명": "Fund_Name",
+                    "펀드 종목ID": "Fund_SubAsset_Key",
                 })
                 if "Book_Value" in raw.columns:
                     raw["Book_Value"] = pd.to_numeric(raw["Book_Value"], errors="coerce") / 1e8
+                if "Fund_SubAsset_Key" in raw.columns:
+                    raw["Fund_SubAsset_Key"] = pd.to_numeric(raw["Fund_SubAsset_Key"], errors="coerce").astype("Int64")
                 lt = raw
             except Exception:
                 logger.exception("top_counterparties_by_book: direct LT load failed")
                 return []
         if lt is None or lt.empty:
             return []
+
+        if parent_asset_classes:
+            allowed = set(parent_asset_classes)
+            kept = pd.Series(False, index=lt.index)
+
+            # 1차: SubAsset_Key 직조인 (정확)
+            if "Fund_SubAsset_Key" in lt.columns and "SubAsset_Key" in self.df.columns:
+                key_to_class = (
+                    self.df.dropna(subset=["SubAsset_Key", "Asset_Class_Std"])
+                    .drop_duplicates("SubAsset_Key")
+                    .set_index("SubAsset_Key")["Asset_Class_Std"]
+                    .to_dict()
+                )
+                cls_by_key = lt["Fund_SubAsset_Key"].map(
+                    lambda k: key_to_class.get(k) if pd.notna(k) else None
+                )
+                kept = kept | cls_by_key.isin(allowed)
+
+            # 2차: Fund_Name 정규화 매칭 (key 누락 행 보완)
+            if "Fund_Name" in lt.columns and "Asset_Name" in self.df.columns:
+                name_to_class = (
+                    self.df.dropna(subset=["Asset_Name", "Asset_Class_Std"])
+                    .assign(_n=lambda d: d["Asset_Name"].astype(str).map(normalize_text))
+                    .loc[lambda d: d["_n"].ne("")]
+                    .drop_duplicates("_n")
+                    .set_index("_n")["Asset_Class_Std"]
+                    .to_dict()
+                )
+                lt_n = lt["Fund_Name"].fillna("").astype(str).map(normalize_text)
+                cls_by_name = lt_n.map(lambda n: name_to_class.get(n))
+                kept = kept | cls_by_name.isin(allowed)
+
+            lt = lt[kept]
+            if lt.empty:
+                return []
+
         cp = lt["Counterparty"].fillna("").astype(str).str.strip() if "Counterparty" in lt.columns else pd.Series("", index=lt.index)
         hn = lt["Holding_Name"].fillna("").astype(str).str.strip() if "Holding_Name" in lt.columns else pd.Series("", index=lt.index)
         name = cp.where(cp != "", hn)
