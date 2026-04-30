@@ -197,6 +197,17 @@ def collect_portfolio_news(db: InvestmentDB) -> List[Dict[str, Any]]:
 # =========================================================
 # Reports
 # =========================================================
+def _format_article_html(item: Dict[str, Any], idx: int) -> str:
+    """기사 한 건을 텔레그램 HTML 형식으로 렌더 — title 하이퍼링크 + (source) 이탤릭."""
+    title = _html.escape(str(item.get("title", "") or ""))
+    link = str(item.get("link", "") or "")
+    source = _html.escape(str(item.get("source", "") or ""))
+    src_part = f" <i>({source})</i>" if source else ""
+    if link:
+        return f"{idx}. <a href=\"{link}\">{title}</a>{src_part}"
+    return f"{idx}. {title}{src_part}"
+
+
 def _send_report(
     chat_id,
     header: str,
@@ -206,23 +217,36 @@ def _send_report(
 ) -> str:
     try:
         slot = datetime.now(KST).strftime("%Y-%m-%d %H:%M")
-        prefix = f"{macro_prefix}\n\n" if macro_prefix else ""
 
         if not news_items:
-            # 뉴스가 없어도 매크로 지표는 쓸모 있으므로 함께 보낸다
+            # 뉴스가 없어도 매크로 지표는 쓸모 있으므로 함께 보낸다.
             if macro_prefix:
                 send_long_message(chat_id, f"{header} ({slot})\n\n{macro_prefix}\n\n[신규 뉴스 없음]")
             else:
                 send_message(chat_id, f"{header}: 신규 뉴스 없음")
             return "empty"
 
-        summary = summarize_news(query, news_items)
+        try:
+            summary = summarize_news(query, news_items)
+        except Exception:
+            logger.exception("summarize_news failed | header=%s", header)
+            summary = ""
 
-        report = f"{header} ({slot})\n\n{prefix}{summary}\n\n[수집 기사 {len(news_items)}건]\n"
+        # parse_mode=HTML 이므로 동적 텍스트는 모두 escape.
+        parts: List[str] = [_html.escape(f"{header} ({slot})", quote=False)]
+        if macro_prefix:
+            parts.append("")
+            parts.append(_html.escape(macro_prefix, quote=False))
+        if summary:
+            parts.append("")
+            parts.append(_html.escape(summary, quote=False))
+        parts.append("")
+        parts.append(_html.escape(f"[수집 기사 {len(news_items)}건]", quote=False))
         for i, item in enumerate(news_items[:10], 1):
-            report += f"\n{i}. {item['title']}\n   - {item['link']}"
+            parts.append(_format_article_html(item, i))
 
-        send_long_message(chat_id, report)
+        report = "\n".join(parts)
+        send_long_message(chat_id, report, parse_mode="HTML", disable_web_page_preview=True)
         return "ok"
     except Exception:
         logger.exception("뉴스 자동 보고 실패 | header=%s", header)
@@ -337,15 +361,7 @@ def _send_portfolio_report(chat_id, news_items: List[Dict[str, Any]]) -> str:
                 return []
             out = ["", _html.escape(f"— {label} ({len(items)}건) —", quote=False)]
             for i, item in enumerate(items[:10], 1):
-                title = _html.escape(str(item.get("title", "") or ""))
-                link = str(item.get("link", "") or "")
-                source = _html.escape(str(item.get("source", "") or ""))
-                # title 하이퍼링크 + 소스명을 옆에 (URL 자체는 안 보임)
-                src_part = f" <i>({source})</i>" if source else ""
-                if link:
-                    out.append(f"{i}. <a href=\"{link}\">{title}</a>{src_part}")
-                else:
-                    out.append(f"{i}. {title}{src_part}")
+                out.append(_format_article_html(item, i))
             return out
 
         parts.extend(_format_section("🏦 GP / 운용사", gp_items))
