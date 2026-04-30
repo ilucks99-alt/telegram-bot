@@ -1,9 +1,10 @@
-"""Yahoo Finance 무료 chart API 에서 매크로 지표 스냅샷을 가져온다.
+"""매크로 지표 스냅샷 — Stooq(API key 불필요) 우선, Yahoo fallback.
 
-- API key 불필요. 클라우드 IP(Render 등) 차단을 피하기 위해 브라우저급 헤더 +
-  세션 쿠키 + crumb 인증 + query1/query2 fallback 적용.
-- 6개 지표를 ThreadPool 로 병렬 조회 (~1초 내 완료 기대).
-- 개별 실패는 해당 지표만 스킵하고 나머지는 그대로 반환.
+- 1차: Stooq `/q/l/?s=...&f=sd2cp&h&e=csv` 단일 quote 엔드포인트 (close + prev close).
+       cloud IP 친화적이고 key 가 필요없어 안정적.
+- 2차 (Stooq 미지원 또는 N/D): Yahoo Finance chart API (브라우저 헤더 + crumb).
+       Yahoo 가 cloud IP 에 429 광범위 throttle 강화 중이라 사실상 실패 가능성이 높음.
+- 6개 지표를 ThreadPool 로 병렬 조회. 개별 실패는 해당 지표만 스킵.
 """
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
@@ -16,6 +17,18 @@ from app.logger import get_logger
 logger = get_logger(__name__)
 
 _YF_HOSTS = ("query1.finance.yahoo.com", "query2.finance.yahoo.com")
+
+# Yahoo 심볼 → Stooq 심볼 매핑. 매핑이 있으면 Stooq 먼저, 실패 시 Yahoo 로 폴백.
+# Stooq 단일 quote 엔드포인트에서 N/D 떨어지는 심볼(VIX, ^TNX, KOSDAQ, KOSPI200)은
+# 매핑하지 않고 Yahoo 만 시도 — 거기서도 실패하면 해당 지표만 silent skip.
+_STOOQ_MAP: Dict[str, str] = {
+    "^GSPC": "^spx",     # S&P 500
+    "KRW=X": "usdkrw",   # USD/KRW
+    "GC=F": "xauusd",    # Gold spot (xauusd 가 gc.f 보다 안정적)
+    "CL=F": "cl.f",      # WTI 원유 선물
+    "^KS11": "^kospi",   # KOSPI
+    "^N225": "^nkx",     # Nikkei 225
+}
 
 # 봇 같은 UA(Mozilla/5.0 compatible; InvestBot/1.0)는 cloud IP 대역에서 401/빈응답으로
 # 자주 떨어진다. 실제 Chrome UA + Accept-Language + Origin/Referer 셋이 가장 안정적.
@@ -123,9 +136,48 @@ def _parse_meta(data: Dict[str, Any]) -> Optional[Dict[str, float]]:
         return None
 
 
-def _fetch_one(symbol: str, timeout: float = 6.0) -> Optional[Dict[str, float]]:
+def _fetch_stooq(stooq_symbol: str, timeout: float = 5.0) -> Optional[Dict[str, float]]:
+    """Stooq 단일 quote — close + previous close 함께. apikey 불필요.
+    flag `sd2cp` = Symbol, Date, Close, Prev. `N/D` 또는 apikey 안내문이 오면 None."""
+    if not stooq_symbol:
+        return None
+    url = f"https://stooq.com/q/l/?s={stooq_symbol}&f=sd2cp&h&e=csv"
+    try:
+        resp = requests.get(url, timeout=timeout, headers=_BROWSER_HEADERS)
+    except Exception:
+        logger.warning("stooq fetch error | symbol=%s", stooq_symbol, exc_info=False)
+        return None
+    if not resp.ok:
+        logger.warning("stooq http error | symbol=%s status=%s", stooq_symbol, resp.status_code)
+        return None
+    body = (resp.text or "").strip()
+    if not body or "apikey" in body.lower():
+        # 2026-04 부터 일부 엔드포인트가 apikey 안내문으로 응답 — 단일 quote 는 영향 없지만 보호선
+        return None
+    lines = body.splitlines()
+    if len(lines) < 2:
+        return None
+    parts = lines[-1].split(",")
+    if len(parts) < 4:
+        return None
+    date = parts[1].strip()
+    close_s = parts[2].strip()
+    prev_s = parts[3].strip()
+    if date == "N/D" or close_s in ("N/D", "") or prev_s in ("N/D", ""):
+        return None
+    try:
+        return {"price": float(close_s), "prev": float(prev_s)}
+    except ValueError:
+        return None
+
+
+def _fetch_yahoo(symbol: str, timeout: float = 6.0) -> Optional[Dict[str, float]]:
     """query1 → query2 fallback. 401/403 만나면 세션 재구축 후 1회 재시도.
-    모든 시도 실패 시 None 을 반환해 호출자가 해당 지표를 스킵."""
+    모든 시도 실패 시 None 을 반환해 호출자가 해당 지표를 스킵.
+
+    참고: 2026-04 현재 Yahoo 가 cloud/주거 IP 양쪽에 429 광범위 throttle 중이라
+    실제로는 거의 실패. 다만 Stooq 미커버 심볼(VIX, ^TNX, KOSDAQ, KOSPI200)은
+    여기 외엔 대안이 없어 시도는 유지."""
     session, crumb = _get_session()
     params: Dict[str, str] = {"interval": "1d", "range": "5d"}
     if crumb:
@@ -182,6 +234,17 @@ def _fetch_one(symbol: str, timeout: float = 6.0) -> Optional[Dict[str, float]]:
 
     logger.warning("yahoo fetch exhausted | symbol=%s", symbol)
     return None
+
+
+def _fetch_one(symbol: str, timeout: float = 6.0) -> Optional[Dict[str, float]]:
+    """Stooq 매핑이 있으면 우선 시도, 실패 또는 미매핑이면 Yahoo 로 폴백."""
+    stooq_sym = _STOOQ_MAP.get(symbol)
+    if stooq_sym:
+        result = _fetch_stooq(stooq_sym, timeout=min(timeout, 5.0))
+        if result is not None:
+            return result
+        logger.info("stooq miss → yahoo fallback | symbol=%s (stooq=%s)", symbol, stooq_sym)
+    return _fetch_yahoo(symbol, timeout=timeout)
 
 
 def _format_indicator(label: str, data: Dict[str, float], kind: str) -> str:
