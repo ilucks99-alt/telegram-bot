@@ -175,6 +175,20 @@ class InvestmentDB:
             "만기일": "Holding_Maturity",
             "매입일": "Purchase_Date",
         })
+
+        # 신버전 xlsx 에 '펀드 종목ID' 컬럼이 빠진 경우(예: 26.3월 업로드) join key 가 없어
+        # /룩쓰루, /익스포저 등이 부분적으로 동작 불가. 봇 부팅 자체를 막진 않도록
+        # LookThrough 만 비활성화하고 경고만 남긴다 — 다음 업로드에서 컬럼 복구하거나
+        # 새 join key (수익증권KEY 등) 로 코드 갱신 필요.
+        if "Fund_SubAsset_Key" not in lt.columns:
+            logger.warning(
+                "LookThrough sheet missing 'Fund_SubAsset_Key' (was '펀드 종목ID') — "
+                "LookThrough features disabled. Available columns: %s",
+                list(lt.columns),
+            )
+            self.lt = pd.DataFrame()
+            return
+
         lt["Fund_SubAsset_Key"] = pd.to_numeric(lt["Fund_SubAsset_Key"], errors="coerce").astype("Int64")
         lt["Book_Value"] = pd.to_numeric(lt["Book_Value"], errors="coerce") / 1e8  # 억 단위
         lt["Coupon_Rate"] = pd.to_numeric(lt["Coupon_Rate"], errors="coerce")
