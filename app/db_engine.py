@@ -1,8 +1,62 @@
+import re as _re
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
 from app import config
+
+
+# =========================================================
+# LookThrough counterparty name normalization (뉴스 키워드 추출용)
+# =========================================================
+_DBA_RE = _re.compile(r'^.+?\(\s*(?:dba|d\.b\.a\.)\s+([^)]+)\)\s*$', _re.IGNORECASE)
+_FKA_PARENS_RE = _re.compile(r'\s*\(\s*(?:fka|f\.k\.a\.)\s+[^)]+\)\s*', _re.IGNORECASE)
+_SECURITY_SUFFIX_RE = _re.compile(
+    r'\s+Series\s+\S+.*$',
+    _re.IGNORECASE,
+)
+_KOREAN_LIST_RE = _re.compile(r'\s*외\s*\d+\s*$')
+_LEGAL_SUFFIX_RE = _re.compile(
+    r'(?:[,\s]+(?:LLC|L\.L\.C\.?|Inc\.?|Incorporated|Ltd\.?|Limited|Corp\.?|'
+    r'Corporation|Co\.?,?\s*Ltd\.?|Holding(?:s)?|GmbH|AG|S\.?A\.?|'
+    r'Pte\.?,?\s*Ltd\.?|Pty\.?,?\s*Ltd\.?|Oy|AB|N\.?V\.?|B\.?V\.?))$',
+    _re.IGNORECASE,
+)
+_TRAILING_PUNCT_RE = _re.compile(r'[\s,.\-_/㈜()]+$')
+
+
+def _normalize_counterparty(name: str) -> str:
+    """LookThrough 발행인명을 뉴스 검색 친화적 형태로 정리.
+
+    - "Space Exploration Technologies Corp. (dba SpaceX)" → "SpaceX"
+    - "Lumafield, Inc.(fka Meter Parts, Inc.)" → "Lumafield"
+    - "TIMESSQUAREHOTELOWNER,LLC외2" → "TIMESSQUAREHOTELOWNER"
+    - "Oura Health Oy Series C-1 Preferred Shares" → "Oura Health"
+    - "VingroupJointStockCompany" → "Vingroup Joint Stock Company"
+    - "Yayoi Co., Ltd." → "Yayoi"
+
+    원본 시트의 정리 안 된 발행인명이 검색 결과를 죽이는 걸 방지하는 게 목적."""
+    s = (name or "").strip()
+    if not s:
+        return s
+    m = _DBA_RE.match(s)
+    if m:
+        s = m.group(1).strip()
+    s = _FKA_PARENS_RE.sub("", s).strip()
+    s = _KOREAN_LIST_RE.sub("", s).strip()
+    s = _SECURITY_SUFFIX_RE.sub("", s).strip()
+    if " " not in s and len(s) >= 12:
+        # CamelCase 슬러그 띄우기. 두 번 적용해 XMLParser 같은 경계도 분리.
+        s = _re.sub(r"(?<=[a-z])(?=[A-Z])", " ", s)
+        s = _re.sub(r"(?<=[A-Z])(?=[A-Z][a-z])", " ", s)
+    for _ in range(3):
+        new = _LEGAL_SUFFIX_RE.sub("", s).strip()
+        new = _TRAILING_PUNCT_RE.sub("", new).strip()
+        if new == s or not new:
+            break
+        s = new
+    s = _re.sub(r"\s+", " ", s).strip()
+    return s
 from app.constants import (
     ASSET_CLASS_STD_MAP,
     MANAGER_ALIAS_TO_GROUP,
@@ -1150,7 +1204,8 @@ class InvestmentDB:
         cp = lt["Counterparty"].fillna("").astype(str).str.strip() if "Counterparty" in lt.columns else pd.Series("", index=lt.index)
         hn = lt["Holding_Name"].fillna("").astype(str).str.strip() if "Holding_Name" in lt.columns else pd.Series("", index=lt.index)
         name = cp.where(cp != "", hn)
-        name = name.map(lambda s: _re.sub(r"\s+", " ", s).strip())
+        # 발행인명 normalize — 슬러그/증권클래스/법인접미사 정리해서 뉴스 검색 친화적으로.
+        name = name.map(_normalize_counterparty)
         book = pd.to_numeric(lt.get("Book_Value", pd.Series(0.0, index=lt.index)), errors="coerce").fillna(0.0)
         work = pd.DataFrame({"_Name": name, "_Book": book})
         work = work[work["_Name"].ne("") & work["_Name"].ne("-")]

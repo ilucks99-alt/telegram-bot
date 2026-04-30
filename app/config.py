@@ -84,14 +84,14 @@ NEWS_KEYWORDS = [
 ]
 
 NEWS_PER_KEYWORD_LIMIT = _env_int("NEWS_PER_KEYWORD_LIMIT", 10)
-NEWS_REPORT_MAX_ARTICLES = _env_int("NEWS_REPORT_MAX_ARTICLES", 30)
+NEWS_REPORT_MAX_ARTICLES = _env_int("NEWS_REPORT_MAX_ARTICLES", 50)
 # 포트폴리오 뉴스 키워드 — GP 사용자 지정 + LookThrough 발행인 (PE/VC 한정).
 # NEWS_GP_KEYWORDS 가 비어있으면 잔액 상위 자동 픽업으로 폴백.
 # 예: NEWS_GP_KEYWORDS="Blackstone,KKR,Carlyle,Apollo,Brookfield,Ares,TPG"
 NEWS_GP_KEYWORDS = [t.strip() for t in _env("NEWS_GP_KEYWORDS", "").split(",") if t.strip()]
 NEWS_GP_OVERSEAS_LIMIT = _env_int("NEWS_GP_OVERSEAS_LIMIT", 6)
 NEWS_GP_DOMESTIC_LIMIT = _env_int("NEWS_GP_DOMESTIC_LIMIT", 2)
-NEWS_LOOKTHROUGH_LIMIT = _env_int("NEWS_LOOKTHROUGH_LIMIT", 8)
+NEWS_LOOKTHROUGH_LIMIT = _env_int("NEWS_LOOKTHROUGH_LIMIT", 30)
 # LookThrough 발행인 추출 시 부모 펀드 자산군 화이트리스트.
 # 기본 PE/VC — 부동산/인프라/사모대출 펀드의 발행인은 뉴스 신호가 약해 제외.
 NEWS_LOOKTHROUGH_ASSET_CLASSES = [
