@@ -84,8 +84,11 @@ NEWS_KEYWORDS = [
 ]
 
 NEWS_PER_KEYWORD_LIMIT = _env_int("NEWS_PER_KEYWORD_LIMIT", 10)
-NEWS_REPORT_MAX_ARTICLES = _env_int("NEWS_REPORT_MAX_ARTICLES", 20)
+NEWS_REPORT_MAX_ARTICLES = _env_int("NEWS_REPORT_MAX_ARTICLES", 30)
 NEWS_MANAGER_KEYWORD_LIMIT = _env_int("NEWS_MANAGER_KEYWORD_LIMIT", 10)
+# 보고서에 키워드별 최소 보장 건수 — 해외/국내 운용사 비율 불균형으로 한쪽이 잘리는 걸 방지.
+# round-robin 방식으로 각 키워드의 최신 N건을 우선 채운 뒤 NEWS_REPORT_MAX_ARTICLES 한도까지.
+NEWS_PER_KEYWORD_REPORT_QUOTA = _env_int("NEWS_PER_KEYWORD_REPORT_QUOTA", 3)
 
 # =========================================================
 # Google Sheets

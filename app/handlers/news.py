@@ -87,26 +87,56 @@ def _fetch_for_keyword(kw: str) -> List[Dict[str, Any]]:
 
 
 def _collect_articles(keywords: List[str]) -> List[Dict[str, Any]]:
-    all_items: List[Dict[str, Any]] = []
+    """
+    키워드별 round-robin 으로 보고 후보를 모아 키워드 간 형평성을 유지한다.
+
+    - 키워드별로 따로 dedup + 최신순 정렬한 뒤
+    - slot 0..quota-1 순회하며 각 키워드의 N번째 기사를 차례로 픽업
+    - 전체 cap(NEWS_REPORT_MAX_ARTICLES) 도달 시 종료
+    - 마지막에 published_at 최신순으로 한 번 더 정렬해 보고서 가독성 유지
+
+    이렇게 안 하면 한국어 매체(분 단위 갱신) 키워드가 영문 매체(시간 단위 갱신)
+    키워드를 published_at 정렬에서 모두 밀어내 해외 운용사 결과가 0건이 된다.
+    """
+    per_keyword: Dict[str, List[Dict[str, Any]]] = {}
     seen = set()
 
     with ThreadPoolExecutor(max_workers=5) as pool:
         futures = {pool.submit(_fetch_for_keyword, kw): kw for kw in keywords}
         for future in as_completed(futures):
+            kw = futures[future]
+            kw_items: List[Dict[str, Any]] = []
             for item in future.result():
                 key = (item["title"].lower(), item.get("source", ""))
                 if key in seen:
                     continue
                 seen.add(key)
-                all_items.append(item)
+                kw_items.append(item)
+            kw_items.sort(key=lambda x: x["published_at"], reverse=True)
+            per_keyword[kw] = kw_items
 
-    all_items.sort(key=lambda x: x["published_at"], reverse=True)
-    final = all_items[:config.NEWS_REPORT_MAX_ARTICLES]
+    quota = max(1, int(getattr(config, "NEWS_PER_KEYWORD_REPORT_QUOTA", 3)))
+    cap = int(config.NEWS_REPORT_MAX_ARTICLES)
+
+    result: List[Dict[str, Any]] = []
+    for slot in range(quota):
+        for kw in keywords:
+            items = per_keyword.get(kw, [])
+            if slot < len(items):
+                result.append(items[slot])
+                if len(result) >= cap:
+                    break
+        if len(result) >= cap:
+            break
+
+    result.sort(key=lambda x: x["published_at"], reverse=True)
+
+    coverage = sum(1 for kw in keywords if per_keyword.get(kw))
     logger.info(
-        "뉴스 수집 결과 | 키워드 %d개 → 기사 %d건 (max=%d)",
-        len(keywords), len(final), config.NEWS_REPORT_MAX_ARTICLES,
+        "뉴스 수집 결과 | 키워드 %d개 (수신 %d개) → 기사 %d건 (cap=%d, quota/kw=%d)",
+        len(keywords), coverage, len(result), cap, quota,
     )
-    return final
+    return result
 
 
 def collect_news_for_keywords(db: InvestmentDB) -> List[Dict[str, Any]]:
