@@ -73,7 +73,7 @@ TASK_DUE_REMINDER_MINUTES = _env_int("TASK_DUE_REMINDER_MINUTES", 30)
 # =========================================================
 NEWS_AUTO_REPORT_ENABLED = _env_bool("NEWS_AUTO_REPORT_ENABLED", True)
 NEWS_REPORT_TIMES = [t.strip() for t in _env("NEWS_REPORT_TIMES", "08:30,16:00").split(",") if t.strip()]
-NEWS_MANAGER_REPORT_TIMES = [t.strip() for t in _env("NEWS_MANAGER_REPORT_TIMES", "09:00").split(",") if t.strip()]
+NEWS_PORTFOLIO_REPORT_TIMES = [t.strip() for t in _env("NEWS_PORTFOLIO_REPORT_TIMES", "09:00").split(",") if t.strip()]
 
 NEWS_KEYWORDS = [
     "US interest rate Fed",
@@ -85,7 +85,11 @@ NEWS_KEYWORDS = [
 
 NEWS_PER_KEYWORD_LIMIT = _env_int("NEWS_PER_KEYWORD_LIMIT", 10)
 NEWS_REPORT_MAX_ARTICLES = _env_int("NEWS_REPORT_MAX_ARTICLES", 30)
-NEWS_MANAGER_KEYWORD_LIMIT = _env_int("NEWS_MANAGER_KEYWORD_LIMIT", 10)
+# 포트폴리오 뉴스 키워드 분배 — GP(해외 우선) + 국내 GP + LookThrough 발행인.
+# 해외 GP는 신호 강도가 높아 비중을 크게, 국내 GP는 잡음이 많아 소수만 포함.
+NEWS_GP_OVERSEAS_LIMIT = _env_int("NEWS_GP_OVERSEAS_LIMIT", 6)
+NEWS_GP_DOMESTIC_LIMIT = _env_int("NEWS_GP_DOMESTIC_LIMIT", 2)
+NEWS_LOOKTHROUGH_LIMIT = _env_int("NEWS_LOOKTHROUGH_LIMIT", 8)
 # 보고서에 키워드별 최소 보장 건수 — 해외/국내 운용사 비율 불균형으로 한쪽이 잘리는 걸 방지.
 # round-robin 방식으로 각 키워드의 최신 N건을 우선 채운 뒤 NEWS_REPORT_MAX_ARTICLES 한도까지.
 NEWS_PER_KEYWORD_REPORT_QUOTA = _env_int("NEWS_PER_KEYWORD_REPORT_QUOTA", 3)

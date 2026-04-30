@@ -37,19 +37,19 @@ def handle_news_search_command(chat_id, raw: str) -> None:
         send_message(chat_id, "뉴스 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
 
 
-def handle_manager_news_command(db: InvestmentDB, chat_id) -> None:
-    """/운용사뉴스 — 포트폴리오 운용사 기반 뉴스 리포트 수동 호출."""
+def handle_portfolio_news_command(db: InvestmentDB, chat_id) -> None:
+    """/포트폴리오뉴스 — GP(해외+국내) + LookThrough 발행인 통합 뉴스 수동 호출."""
     import threading
 
-    send_message(chat_id, "🏦 운용사 뉴스 수집 중...")
+    send_message(chat_id, "📊 포트폴리오 뉴스 수집 중...")
 
     def _worker():
         try:
-            run_manager_news_report(db, chat_id, force=True)
+            run_portfolio_news_report(db, chat_id, force=True)
         except Exception:
-            logger.exception("manager news command worker failed")
+            logger.exception("portfolio news command worker failed")
             try:
-                send_message(chat_id, "운용사 뉴스 처리 중 오류가 발생했습니다.")
+                send_message(chat_id, "포트폴리오 뉴스 처리 중 오류가 발생했습니다.")
             except Exception:
                 pass
 
@@ -63,12 +63,39 @@ def _macro_keywords() -> List[str]:
     return list(config.NEWS_KEYWORDS[:10])
 
 
-def _manager_keywords(db: InvestmentDB) -> List[str]:
+def _portfolio_keywords(db: InvestmentDB) -> List[str]:
+    """포트폴리오 뉴스 키워드 = GP 해외 상위 + GP 국내 상위 + LookThrough 발행인 상위.
+
+    동일 이름이 GP/LookThrough 양쪽에서 잡히는 경우(예: 자체 운용 펀드)를 막기 위해
+    normalize 후 dedup. 순서는 해외 GP → 국내 GP → LookThrough 로 둬서 round-robin
+    슬롯에서 해외 GP 결과가 우선 채워지도록 한다."""
+    keywords: List[str] = []
+    seen = set()
+
+    def _add(items: List[str]) -> None:
+        for kw in items:
+            if not kw:
+                continue
+            key = kw.strip().lower()
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            keywords.append(kw)
+
     try:
-        return db.top_managers_by_outstanding(config.NEWS_MANAGER_KEYWORD_LIMIT, overseas_only=True)
+        _add(db.top_managers_by_outstanding(config.NEWS_GP_OVERSEAS_LIMIT, overseas_only=True))
     except Exception:
-        logger.exception("manager keyword build failed")
-        return []
+        logger.exception("portfolio news: GP overseas keyword build failed")
+    try:
+        _add(db.top_managers_by_outstanding(config.NEWS_GP_DOMESTIC_LIMIT, domestic_only=True))
+    except Exception:
+        logger.exception("portfolio news: GP domestic keyword build failed")
+    try:
+        _add(db.top_counterparties_by_book(config.NEWS_LOOKTHROUGH_LIMIT))
+    except Exception:
+        logger.exception("portfolio news: LookThrough counterparty keyword build failed")
+
+    return keywords
 
 
 # =========================================================
@@ -143,10 +170,10 @@ def collect_news_for_keywords(db: InvestmentDB) -> List[Dict[str, Any]]:
     return _collect_articles(_macro_keywords())
 
 
-def collect_manager_news(db: InvestmentDB) -> List[Dict[str, Any]]:
-    keywords = _manager_keywords(db)
+def collect_portfolio_news(db: InvestmentDB) -> List[Dict[str, Any]]:
+    keywords = _portfolio_keywords(db)
     if not keywords:
-        logger.warning("manager keyword list empty; skipping manager news report")
+        logger.warning("portfolio keyword list empty; skipping portfolio news report")
         return []
     return _collect_articles(keywords)
 
@@ -260,13 +287,13 @@ def run_scheduled_news_report(db: InvestmentDB, chat_id, force: bool = False) ->
     )
 
 
-def run_manager_news_report(db: InvestmentDB, chat_id, force: bool = False) -> str:
-    """운용사 뉴스 자동 보고. tick에서 호출 — 슬롯+중복 체크 포함."""
+def run_portfolio_news_report(db: InvestmentDB, chat_id, force: bool = False) -> str:
+    """포트폴리오 뉴스 자동 보고 — GP(해외+국내) + LookThrough 발행인 통합. tick에서 호출."""
     if not config.NEWS_AUTO_REPORT_ENABLED:
         return "disabled"
 
-    if not force and not _matches_slot(config.NEWS_MANAGER_REPORT_TIMES, "manager_news"):
+    if not force and not _matches_slot(config.NEWS_PORTFOLIO_REPORT_TIMES, "portfolio_news"):
         return "skipped"
 
-    news_items = collect_manager_news(db)
-    return _send_report(chat_id, "🏦 운용사 뉴스 자동 보고", news_items, "포트폴리오 운용사 뉴스")
+    news_items = collect_portfolio_news(db)
+    return _send_report(chat_id, "📊 포트폴리오 뉴스 자동 보고", news_items, "포트폴리오 (GP + LookThrough) 뉴스")

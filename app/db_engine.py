@@ -1041,7 +1041,12 @@ class InvestmentDB:
             })
         return result
 
-    def top_managers_by_outstanding(self, limit: int = 10, overseas_only: bool = False) -> List[str]:
+    def top_managers_by_outstanding(
+        self,
+        limit: int = 10,
+        overseas_only: bool = False,
+        domestic_only: bool = False,
+    ) -> List[str]:
         import re as _re
         from app.constants import OVERSEAS_REGIONS
         df = self.df
@@ -1049,6 +1054,8 @@ class InvestmentDB:
             return []
         if overseas_only and "Region_Std" in df.columns:
             df = df[df["Region_Std"].isin(OVERSEAS_REGIONS)]
+        elif domestic_only and "Region_Std" in df.columns:
+            df = df[~df["Region_Std"].isin(OVERSEAS_REGIONS)]
         normalized = (
             df["Manager"]
             .fillna("")
@@ -1063,3 +1070,40 @@ class InvestmentDB:
             .sort_values(ascending=False)
         )
         return [str(m) for m in grouped.head(limit).index.tolist()]
+
+    def top_counterparties_by_book(self, limit: int = 10) -> List[str]:
+        """LookThrough 시트에서 발행인/거래상대방 잔액 상위 N개를 키워드로 반환.
+        Counterparty 우선, 빈값이면 Holding_Name 으로 폴백 — 발행인이 비어있고 종목명만
+        있는 케이스(직상장 주식 등)를 놓치지 않기 위함.
+
+        주의: self.lt 가 join key(Fund_SubAsset_Key) 누락으로 비활성화돼 있어도
+        뉴스 키워드 추출은 join 이 불필요하므로 시트를 직접 다시 로드해서 동작."""
+        import re as _re
+        lt = self.lt
+        if lt is None or lt.empty:
+            try:
+                raw = pd.read_excel(self.path, sheet_name=config.LT_SHEET)
+                raw = raw.rename(columns={
+                    "거래상대방/발행인": "Counterparty",
+                    "편입자산 종목명": "Holding_Name",
+                    "장부금액(원화)": "Book_Value",
+                })
+                if "Book_Value" in raw.columns:
+                    raw["Book_Value"] = pd.to_numeric(raw["Book_Value"], errors="coerce") / 1e8
+                lt = raw
+            except Exception:
+                logger.exception("top_counterparties_by_book: direct LT load failed")
+                return []
+        if lt is None or lt.empty:
+            return []
+        cp = lt["Counterparty"].fillna("").astype(str).str.strip() if "Counterparty" in lt.columns else pd.Series("", index=lt.index)
+        hn = lt["Holding_Name"].fillna("").astype(str).str.strip() if "Holding_Name" in lt.columns else pd.Series("", index=lt.index)
+        name = cp.where(cp != "", hn)
+        name = name.map(lambda s: _re.sub(r"\s+", " ", s).strip())
+        book = pd.to_numeric(lt.get("Book_Value", pd.Series(0.0, index=lt.index)), errors="coerce").fillna(0.0)
+        work = pd.DataFrame({"_Name": name, "_Book": book})
+        work = work[work["_Name"].ne("") & work["_Name"].ne("-")]
+        if work.empty:
+            return []
+        grouped = work.groupby("_Name")["_Book"].sum().sort_values(ascending=False)
+        return [str(n) for n in grouped.head(limit).index.tolist()]

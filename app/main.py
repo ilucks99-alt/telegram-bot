@@ -8,7 +8,7 @@ from fastapi import FastAPI, Header, HTTPException, Query, Request
 
 from app import config
 from app.db_engine import InvestmentDB
-from app.handlers.news import run_manager_news_report, run_scheduled_news_report
+from app.handlers.news import run_portfolio_news_report, run_scheduled_news_report
 from app.handlers.router import process_user_message
 from app.handlers.task import (
     check_and_report_overdue_tasks,
@@ -182,9 +182,9 @@ def _run_tick():
         except Exception:
             logger.exception("cron tick: due-reminders failed")
         try:
-            run_manager_news_report(db, chat_id)
+            run_portfolio_news_report(db, chat_id)
         except Exception:
-            logger.exception("cron tick: manager-news failed")
+            logger.exception("cron tick: portfolio-news failed")
         try:
             run_scheduled_news_report(db, chat_id)
         except Exception:
@@ -224,12 +224,12 @@ async def cron_news(authorization: Optional[str] = Header(None)):
     return {"ok": True, "status": "scheduled"}
 
 
-@app.post("/cron/news-managers")
-async def cron_news_managers(authorization: Optional[str] = Header(None)):
+@app.post("/cron/news-portfolio")
+async def cron_news_portfolio(authorization: Optional[str] = Header(None)):
     _check_cron_secret(authorization)
     import threading
     threading.Thread(
-        target=lambda: run_manager_news_report(get_db(), config.OWNER_CHAT_ID),
+        target=lambda: run_portfolio_news_report(get_db(), config.OWNER_CHAT_ID),
         daemon=True,
     ).start()
     return {"ok": True, "status": "scheduled"}
