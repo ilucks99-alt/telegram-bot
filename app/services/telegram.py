@@ -101,14 +101,21 @@ def split_text(text: str, limit: int = 3900) -> List[str]:
     return chunks
 
 
-def send_message(chat_id: ChatId, text: str) -> None:
+def send_message(
+    chat_id: ChatId,
+    text: str,
+    parse_mode: Optional[str] = None,
+    disable_web_page_preview: bool = False,
+) -> None:
     if chat_id is None:
         return
     for chunk in split_text(text, limit=3900):
-        telegram_post(
-            "sendMessage",
-            data={"chat_id": str(chat_id), "text": chunk},
-        )
+        data = {"chat_id": str(chat_id), "text": chunk}
+        if parse_mode:
+            data["parse_mode"] = parse_mode
+        if disable_web_page_preview:
+            data["disable_web_page_preview"] = "true"
+        telegram_post("sendMessage", data=data)
 
 
 def send_message_with_keyboard(chat_id: ChatId, text: str, keyboard: dict) -> None:
@@ -163,13 +170,19 @@ def edit_message_text(
         logger.exception("editMessageText failed")
 
 
-def send_long_message(chat_id: ChatId, text: str, chunk_size: int = 3500) -> None:
+def send_long_message(
+    chat_id: ChatId,
+    text: str,
+    chunk_size: int = 3500,
+    parse_mode: Optional[str] = None,
+    disable_web_page_preview: bool = False,
+) -> None:
     # send_message 가 이미 split_text(limit=3900)로 줄 단위 안전 분할을 수행하므로
     # 여기서 추가 하드 청킹을 하면 길이 3500~3900 구간의 단일 보고가 불필요하게
     # 2개 메시지로 쪼개져 "완료 보고가 2번 온 것처럼" 보이는 문제가 생긴다.
     if not text or chat_id is None:
         return
-    send_message(chat_id, str(text))
+    send_message(chat_id, str(text), parse_mode=parse_mode, disable_web_page_preview=disable_web_page_preview)
 
 
 def send_document(chat_id: ChatId, file_path: str, caption: str = "") -> None:

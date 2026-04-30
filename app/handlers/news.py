@@ -1,3 +1,4 @@
+import html as _html
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Any, Dict, List, Set
@@ -63,16 +64,16 @@ def _macro_keywords() -> List[str]:
     return list(config.NEWS_KEYWORDS[:10])
 
 
-def _portfolio_keywords(db: InvestmentDB) -> List[str]:
-    """포트폴리오 뉴스 키워드 = GP 해외 상위 + GP 국내 상위 + LookThrough 발행인 상위.
+def _portfolio_keyword_sections(db: InvestmentDB) -> Dict[str, List[str]]:
+    """포트폴리오 뉴스 키워드를 섹션별로 분리해 반환.
 
-    동일 이름이 GP/LookThrough 양쪽에서 잡히는 경우(예: 자체 운용 펀드)를 막기 위해
-    normalize 후 dedup. 순서는 해외 GP → 국내 GP → LookThrough 로 둬서 round-robin
-    슬롯에서 해외 GP 결과가 우선 채워지도록 한다."""
-    keywords: List[str] = []
+    {"gp": [...], "lookthrough": [...]} — GP 섹션이 LookThrough 섹션 키워드와
+    중복되는 드문 케이스(자체 운용 펀드의 자체 발행인 매핑 등)는 GP 우선으로
+    잡고 LookThrough 쪽에서 제거한다."""
     seen = set()
+    sections: Dict[str, List[str]] = {"gp": [], "lookthrough": []}
 
-    def _add(items: List[str]) -> None:
+    def _add(section: str, items: List[str]) -> None:
         for kw in items:
             if not kw:
                 continue
@@ -80,22 +81,19 @@ def _portfolio_keywords(db: InvestmentDB) -> List[str]:
             if not key or key in seen:
                 continue
             seen.add(key)
-            keywords.append(kw)
+            sections[section].append(kw)
 
     try:
-        _add(db.top_managers_by_outstanding(config.NEWS_GP_OVERSEAS_LIMIT, overseas_only=True))
+        _add("gp", db.top_managers_by_outstanding(config.NEWS_GP_OVERSEAS_LIMIT, overseas_only=True))
+        _add("gp", db.top_managers_by_outstanding(config.NEWS_GP_DOMESTIC_LIMIT, domestic_only=True))
     except Exception:
-        logger.exception("portfolio news: GP overseas keyword build failed")
+        logger.exception("portfolio news: GP keyword build failed")
     try:
-        _add(db.top_managers_by_outstanding(config.NEWS_GP_DOMESTIC_LIMIT, domestic_only=True))
-    except Exception:
-        logger.exception("portfolio news: GP domestic keyword build failed")
-    try:
-        _add(db.top_counterparties_by_book(config.NEWS_LOOKTHROUGH_LIMIT))
+        _add("lookthrough", db.top_counterparties_by_book(config.NEWS_LOOKTHROUGH_LIMIT))
     except Exception:
         logger.exception("portfolio news: LookThrough counterparty keyword build failed")
 
-    return keywords
+    return sections
 
 
 # =========================================================
@@ -171,11 +169,20 @@ def collect_news_for_keywords(db: InvestmentDB) -> List[Dict[str, Any]]:
 
 
 def collect_portfolio_news(db: InvestmentDB) -> List[Dict[str, Any]]:
-    keywords = _portfolio_keywords(db)
-    if not keywords:
+    sections = _portfolio_keyword_sections(db)
+    keyword_to_section: Dict[str, str] = {}
+    flat: List[str] = []
+    for section, kws in sections.items():
+        for kw in kws:
+            keyword_to_section[kw] = section
+            flat.append(kw)
+    if not flat:
         logger.warning("portfolio keyword list empty; skipping portfolio news report")
         return []
-    return _collect_articles(keywords)
+    items = _collect_articles(flat)
+    for it in items:
+        it["section"] = keyword_to_section.get(it.get("keyword", ""), "gp")
+    return items
 
 
 # =========================================================
@@ -287,6 +294,64 @@ def run_scheduled_news_report(db: InvestmentDB, chat_id, force: bool = False) ->
     )
 
 
+def _send_portfolio_report(chat_id, news_items: List[Dict[str, Any]]) -> str:
+    """GP/LookThrough 섹션을 분리해서 보고서 출력. 기사 링크는 텔레그램 HTML
+    하이퍼링크(<a>)로 감싸 raw URL 노출을 줄인다 (단축 서비스 의존 X)."""
+    try:
+        slot = datetime.now(KST).strftime("%Y-%m-%d %H:%M")
+        header = "📊 포트폴리오 뉴스 자동 보고"
+
+        if not news_items:
+            send_message(chat_id, f"{header} ({slot}): 신규 뉴스 없음")
+            return "empty"
+
+        try:
+            summary = summarize_news("포트폴리오 (GP + LookThrough) 뉴스", news_items)
+        except Exception:
+            logger.exception("portfolio news summarize failed")
+            summary = ""
+
+        gp_items = [a for a in news_items if a.get("section") == "gp"]
+        lt_items = [a for a in news_items if a.get("section") == "lookthrough"]
+
+        # parse_mode=HTML 이므로 모든 동적 텍스트는 escape 필수.
+        parts: List[str] = []
+        parts.append(_html.escape(f"{header} ({slot})", quote=False))
+        if summary:
+            parts.append("")
+            parts.append(_html.escape(summary, quote=False))
+        parts.append("")
+        parts.append(_html.escape(f"[수집 기사 {len(news_items)}건]", quote=False))
+
+        def _format_section(label: str, items: List[Dict[str, Any]]) -> List[str]:
+            if not items:
+                return []
+            out = ["", _html.escape(f"— {label} ({len(items)}건) —", quote=False)]
+            for i, item in enumerate(items[:10], 1):
+                title = _html.escape(str(item.get("title", "") or ""))
+                link = str(item.get("link", "") or "")
+                source = _html.escape(str(item.get("source", "") or ""))
+                # title 하이퍼링크 + 소스명을 옆에 (URL 자체는 안 보임)
+                src_part = f" <i>({source})</i>" if source else ""
+                if link:
+                    out.append(f"{i}. <a href=\"{link}\">{title}</a>{src_part}")
+                else:
+                    out.append(f"{i}. {title}{src_part}")
+            return out
+
+        parts.extend(_format_section("🏦 GP / 운용사", gp_items))
+        parts.extend(_format_section("🏢 포트폴리오 발행인 (LookThrough)", lt_items))
+
+        report = "\n".join(parts)
+        # 링크 미리보기 카드는 첫 링크만 큰 카드로 잡혀 메시지가 더 길어지므로 끔.
+        send_long_message(chat_id, report, parse_mode="HTML", disable_web_page_preview=True)
+        return "ok"
+    except Exception:
+        logger.exception("포트폴리오 뉴스 보고 실패")
+        send_message(chat_id, "포트폴리오 뉴스 처리 중 오류가 발생했습니다.")
+        return "error"
+
+
 def run_portfolio_news_report(db: InvestmentDB, chat_id, force: bool = False) -> str:
     """포트폴리오 뉴스 자동 보고 — GP(해외+국내) + LookThrough 발행인 통합. tick에서 호출."""
     if not config.NEWS_AUTO_REPORT_ENABLED:
@@ -296,4 +361,4 @@ def run_portfolio_news_report(db: InvestmentDB, chat_id, force: bool = False) ->
         return "skipped"
 
     news_items = collect_portfolio_news(db)
-    return _send_report(chat_id, "📊 포트폴리오 뉴스 자동 보고", news_items, "포트폴리오 (GP + LookThrough) 뉴스")
+    return _send_portfolio_report(chat_id, news_items)
