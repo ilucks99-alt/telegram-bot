@@ -470,8 +470,10 @@ def _format_indicator(label: str, data: Dict[str, float], kind: str) -> str:
     return f"- {label}: {price:,.2f} ({arrow}{abs(pct):.2f}%)"
 
 
-def _snapshot_entries(indicators: List[Tuple[str, str, str]]) -> List[str]:
+def _snapshot_entries(indicators: List[Tuple[str, str, str]]) -> Tuple[List[str], List[str]]:
+    """병렬 fetch 후 (성공 라인, 누락 라벨) 반환. 누락 라벨은 원래 순서 유지."""
     lines: List[Tuple[int, str]] = []
+    missing: List[Tuple[int, str]] = []
     with ThreadPoolExecutor(max_workers=len(indicators) or 1) as pool:
         futures = {
             pool.submit(_fetch_one, sym): (idx, sym, label, kind)
@@ -481,31 +483,37 @@ def _snapshot_entries(indicators: List[Tuple[str, str, str]]) -> List[str]:
             idx, sym, label, kind = futures[fut]
             data = fut.result()
             if data is None:
+                missing.append((idx, label))
                 continue
             lines.append((idx, _format_indicator(label, data, kind)))
 
     lines.sort(key=lambda x: x[0])
-    return [line for _, line in lines]
+    missing.sort(key=lambda x: x[0])
+    return [line for _, line in lines], [label for _, label in missing]
 
 
 def build_macro_briefing(focus: str = "all") -> Optional[str]:
-    """매크로 지표 블록 빌드.
+    """매크로 지표 블록 빌드. 헤더에 N/M 표기, 누락 항목은 footer 에 명시.
     focus="all"(기본) → 글로벌+국내 통합 10개. focus="domestic"/"global" 은 레거시 분리 셋.
     하나도 못 가져오면 None 반환."""
     if focus == "domestic":
         indicators = _INDICATORS_DOMESTIC
-        title = "📊 국내 매크로 (전일 종가 대비)"
+        title_base = "📊 국내 매크로 (전일 종가 대비)"
     elif focus == "global":
         indicators = _INDICATORS_GLOBAL
-        title = "📊 매크로 지표 (전일 종가 대비)"
+        title_base = "📊 매크로 지표 (전일 종가 대비)"
     else:
         indicators = _INDICATORS_ALL
-        title = "📊 매크로 지표 (전일 종가 대비)"
+        title_base = "📊 매크로 지표 (전일 종가 대비)"
     try:
-        entries = _snapshot_entries(indicators)
+        entries, missing = _snapshot_entries(indicators)
     except Exception:
         logger.exception("macro briefing snapshot failed | focus=%s", focus)
         return None
     if not entries:
         return None
-    return f"{title}\n" + "\n".join(entries)
+    header = f"{title_base} — {len(entries)}/{len(indicators)}"
+    body = "\n".join(entries)
+    if missing:
+        return f"{header}\n{body}\n⚠ 누락: {', '.join(missing)}"
+    return f"{header}\n{body}"
