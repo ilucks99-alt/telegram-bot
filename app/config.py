@@ -76,13 +76,23 @@ NEWS_AUTO_REPORT_ENABLED = _env_bool("NEWS_AUTO_REPORT_ENABLED", True)
 NEWS_REPORT_TIMES = [t.strip() for t in _env("NEWS_REPORT_TIMES", "08:30,16:00").split(",") if t.strip()]
 NEWS_PORTFOLIO_REPORT_TIMES = [t.strip() for t in _env("NEWS_PORTFOLIO_REPORT_TIMES", "09:00").split(",") if t.strip()]
 
-NEWS_KEYWORDS = [
-    "US interest rate Fed",
-    "Korea interest rate BOK",
-    "Credit Spread",
-    "S&P 500",
-    "KOSPI",
-]
+# 거시 뉴스 키워드 — 대체투자 PM 관점 시그널 기준 기본 12개.
+# 콤마(,) 구분 env `NEWS_KEYWORDS` 로 override 가능. 콤마 포함 키워드는 사용 불가.
+NEWS_KEYWORDS = [t.strip() for t in _env(
+    "NEWS_KEYWORDS",
+    "Federal Reserve rate decision,"
+    "Bank of Korea rate decision,"
+    "US Treasury 10 year yield,"
+    "US CPI inflation,"
+    "credit spread high yield,"
+    "S&P 500,"
+    "KOSPI,"
+    "원달러 환율,"
+    "WTI crude oil,"
+    "gold price,"
+    "private equity,"
+    "commercial real estate"
+).split(",") if t.strip()]
 
 NEWS_PER_KEYWORD_LIMIT = _env_int("NEWS_PER_KEYWORD_LIMIT", 10)
 NEWS_REPORT_MAX_ARTICLES = _env_int("NEWS_REPORT_MAX_ARTICLES", 50)

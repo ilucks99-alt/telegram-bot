@@ -80,7 +80,7 @@ def handle_macro_news_command(db: InvestmentDB, chat_id) -> None:
 # Keyword sources
 # =========================================================
 def _macro_keywords() -> List[str]:
-    return list(config.NEWS_KEYWORDS[:10])
+    return list(config.NEWS_KEYWORDS)
 
 
 def _portfolio_keyword_sections(db: InvestmentDB) -> Dict[str, List[str]]:
