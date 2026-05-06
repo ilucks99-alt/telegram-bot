@@ -39,12 +39,19 @@ _NAVER_WORLD_MAP: Dict[str, str] = {
     "^VIX": ".VIX",
 }
 
-# Yahoo 심볼 → FRED series id. FRED 는 D-1 ~ D-2 lag 있지만 daily 종가용으로 충분.
+# Yahoo 심볼 → 네이버 marketindex (category, reutersCode).
+# api.stock.naver.com/marketindex/{category}/{reutersCode} — closePrice + fluctuations(signed).
+# Render 에서 stooq/FRED 가 막히거나 느려서 환율·원자재는 네이버로 우선 우회.
+_NAVER_MARKETINDEX_MAP: Dict[str, Tuple[str, str]] = {
+    "KRW=X": ("exchange", "FX_USDKRW"),  # USD/KRW (하나은행 고시)
+    "GC=F": ("metals", "GCcv1"),         # COMEX Gold (USD/oz)
+    "CL=F": ("energy", "CLcv1"),         # NYMEX WTI (USD/bbl)
+}
+
+# Yahoo 심볼 → FRED series id. 네이버에 클린 매핑이 없는 미 국채 yield 만 FRED 로.
+# 단일 요청이라 Render egress latency 영향 적게 받음.
 _FRED_MAP: Dict[str, str] = {
     "^TNX": "DGS10",                # US 10Y Treasury (yield, %)
-    "KRW=X": "DEXKOUS",             # USD/KRW 환율
-    "GC=F": "GOLDAMGBD228NLBM",     # London Gold AM fix (USD/oz)
-    "CL=F": "DCOILWTICO",           # WTI Crude Oil (USD/bbl)
 }
 
 # Yahoo 심볼 → Stooq 심볼 (cloud IP 에서 막히지만 로컬 fallback 으로 유지)
@@ -238,6 +245,38 @@ def _fetch_naver_world(code: str, timeout: float = 5.0) -> Optional[Dict[str, fl
     return {"price": price, "prev": prev}
 
 
+def _fetch_naver_marketindex(category: str, code: str, timeout: float = 5.0) -> Optional[Dict[str, float]]:
+    """api.stock.naver.com/marketindex/{category}/{code} — 환율/원자재.
+    closePrice (콤마 박힌 문자열) + fluctuations (signed float). prev = close - fluctuations."""
+    url = f"https://api.stock.naver.com/marketindex/{category}/{code}"
+    try:
+        resp = requests.get(url, timeout=timeout, headers=_NAVER_HEADERS)
+    except Exception as e:
+        logger.warning(
+            "naver-mi fetch error | category=%s code=%s | %s: %s",
+            category, code, type(e).__name__, e,
+        )
+        return None
+    if not resp.ok:
+        logger.warning("naver-mi http error | category=%s code=%s status=%s", category, code, resp.status_code)
+        return None
+    try:
+        d = resp.json() or {}
+    except Exception:
+        return None
+    # FX_USDKRW 만 exchangeInfo 래퍼 형식, 나머지(metals/energy)는 평면.
+    if category == "exchange":
+        d = d.get("exchangeInfo") or d
+    price = _to_float(d.get("closePrice"))
+    fluct = _to_float(d.get("fluctuations"))  # 이미 signed (음수 가능)
+    if price is None or fluct is None:
+        return None
+    prev = price - fluct
+    if prev <= 0:
+        return None
+    return {"price": price, "prev": prev}
+
+
 def _fetch_fred(series_id: str, timeout: float = 15.0) -> Optional[Dict[str, float]]:
     """FRED observations — 최근 2개 non-null 관측치로 close + prev close 산출.
     FRED 결측은 '.' 문자열로 옴. limit=10 으로 받아 결측 스킵."""
@@ -393,9 +432,14 @@ def _fetch_one(symbol: str, timeout: float = 6.0) -> Optional[Dict[str, float]]:
         result = _fetch_naver_world(naver_world, timeout=min(timeout, 5.0))
         if result is not None:
             return result
+    naver_mi = _NAVER_MARKETINDEX_MAP.get(symbol)
+    if naver_mi:
+        cat, code = naver_mi
+        result = _fetch_naver_marketindex(cat, code, timeout=min(timeout, 5.0))
+        if result is not None:
+            return result
 
-    # 2) FRED (cloud-friendly, key 필요). Render egress 가 FRED 까지 latency 가 큰
-    # 환경에서 6s 로는 ReadTimeout 자주 발생 → 15s 로 여유 확보.
+    # 2) FRED — 네이버에 매핑 없는 US10Y 단일 케이스만. Render egress latency 흡수용 15s.
     fred_series = _FRED_MAP.get(symbol)
     if fred_series:
         result = _fetch_fred(fred_series, timeout=15.0)
