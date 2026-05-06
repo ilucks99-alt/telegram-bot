@@ -240,8 +240,8 @@ def _fetch_fred(series_id: str, timeout: float = 6.0) -> Optional[Dict[str, floa
     }
     try:
         resp = requests.get(url, params=params, timeout=timeout, headers=_BROWSER_HEADERS)
-    except Exception:
-        logger.warning("fred fetch error | series=%s", series_id, exc_info=False)
+    except Exception as e:
+        logger.warning("fred fetch error | series=%s | %s: %s", series_id, type(e).__name__, e)
         return None
     if not resp.ok:
         logger.warning("fred http error | series=%s status=%s", series_id, resp.status_code)
@@ -270,8 +270,8 @@ def _fetch_stooq(stooq_symbol: str, timeout: float = 5.0) -> Optional[Dict[str, 
     url = f"https://stooq.com/q/l/?s={stooq_symbol}&f=sd2cp&h&e=csv"
     try:
         resp = requests.get(url, timeout=timeout, headers=_BROWSER_HEADERS)
-    except Exception:
-        logger.warning("stooq fetch error | symbol=%s", stooq_symbol, exc_info=False)
+    except Exception as e:
+        logger.warning("stooq fetch error | symbol=%s | %s: %s", stooq_symbol, type(e).__name__, e)
         return None
     if not resp.ok:
         logger.warning("stooq http error | symbol=%s status=%s", stooq_symbol, resp.status_code)
