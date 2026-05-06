@@ -163,6 +163,12 @@ class InvestmentDB:
             else pd.Series("", index=df.index)
         )
         df["Manager"] = detail.where(detail != "", primary)
+        # Manager placeholder 정리 — 빈값/'해당없음'/'0'/'-' 등은 빈문자로 normalize.
+        # 다운스트림 (search 의 not_blank 가드, top_managers 의 ne(""), 뉴스 키워드 추출)이
+        # 자연스럽게 스킵하게 됨.
+        df["Manager"] = df["Manager"].replace(
+            {"해당없음": "", "0": "", "-": "", "N/A": "", "n/a": "", "없음": "", "미정": ""}
+        )
 
         required = [
             "Project_ID", "Asset_Name", "Asset_Class", "Manager", "Region",
