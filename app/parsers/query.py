@@ -56,6 +56,16 @@ def build_fixed_query_advice() -> str:
     )
 
 
+def build_gemini_failure_advice() -> str:
+    """Gemini 호출 자체가 실패(None/parse 실패)했을 때 — 정상 advice 와 분리해서
+    '서비스 일시 장애' 임을 명시. 사용자가 본인 질문 모호 vs 시스템 장애를 구분 가능."""
+    return (
+        "⚠ 자연어 해석 일시 불가\n"
+        "Gemini 응답이 비어있거나 파싱에 실패했습니다.\n"
+        "잠시 후 다시 시도하거나, 펀드 ID(BS00001234)를 직접 입력해 주세요."
+    )
+
+
 _DATE_FULL_PAT = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _DATE_MONTH_PAT = re.compile(r"^\d{4}-\d{2}$")
 
@@ -214,18 +224,20 @@ def parse_query(user_question: str) -> Dict[str, Any]:
         return {"mode": "query", "query_json": normalize_query_json(shortcut), "advice_text": None}
 
     if not gemini.is_available():
-        return {"mode": "advice", "query_json": None, "advice_text": build_fixed_query_advice()}
+        logger.warning("query parse: Gemini unavailable (no API key or SDK missing)")
+        return {"mode": "advice", "query_json": None, "advice_text": build_gemini_failure_advice()}
 
     prompt = render_prompt("query_parser.txt", user_question=user_question)
     raw = gemini.generate_json(prompt, max_output_tokens=600, temperature=0.1)
     if not raw:
-        return {"mode": "advice", "query_json": None, "advice_text": build_fixed_query_advice()}
+        logger.warning("query parse: Gemini returned empty response")
+        return {"mode": "advice", "query_json": None, "advice_text": build_gemini_failure_advice()}
 
     try:
         data = safe_json_parse(raw)
     except Exception:
-        logger.exception("query JSON parse failed")
-        return {"mode": "advice", "query_json": None, "advice_text": build_fixed_query_advice()}
+        logger.exception("query parse: JSON parse failed")
+        return {"mode": "advice", "query_json": None, "advice_text": build_gemini_failure_advice()}
 
     mode = str(data.get("mode", "")).strip().lower()
     if mode == "query":

@@ -8,7 +8,7 @@ from app.constants import (
 )
 from app.logger import get_logger
 from app.parsers import render_prompt, safe_json_parse
-from app.parsers.query import _normalize_filter_dict
+from app.parsers.query import _normalize_filter_dict, build_gemini_failure_advice
 from app.services import gemini
 
 logger = get_logger(__name__)
@@ -101,18 +101,20 @@ def is_unprocessable_analysis(analysis_json: Dict[str, Any]) -> bool:
 
 def parse_analysis(user_question: str) -> Dict[str, Any]:
     if not gemini.is_available():
-        return {"mode": "advice", "analysis_json": None, "advice_text": build_fixed_analysis_advice()}
+        logger.warning("analysis parse: Gemini unavailable (no API key or SDK missing)")
+        return {"mode": "advice", "analysis_json": None, "advice_text": build_gemini_failure_advice()}
 
     prompt = render_prompt("analysis_parser.txt", user_question=user_question)
     raw = gemini.generate_json(prompt, max_output_tokens=700, temperature=0.1)
     if not raw:
-        return {"mode": "advice", "analysis_json": None, "advice_text": build_fixed_analysis_advice()}
+        logger.warning("analysis parse: Gemini returned empty response")
+        return {"mode": "advice", "analysis_json": None, "advice_text": build_gemini_failure_advice()}
 
     try:
         data = safe_json_parse(raw)
     except Exception:
-        logger.exception("analysis JSON parse failed")
-        return {"mode": "advice", "analysis_json": None, "advice_text": build_fixed_analysis_advice()}
+        logger.exception("analysis parse: JSON parse failed")
+        return {"mode": "advice", "analysis_json": None, "advice_text": build_gemini_failure_advice()}
 
     mode = str(data.get("mode", "")).strip().lower()
     if mode == "analysis":
