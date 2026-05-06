@@ -100,11 +100,14 @@ def _generate(prompt: str, max_output_tokens: int, temperature: float, json_mode
             return None
         except Exception as e:
             last_err = e
-            if _is_retryable(e) and idx + 1 < len(_models_to_try()):
+            # 어떤 종류 에러든 fallback 모델 한 번 더 시도. 기존엔 _is_retryable 만 fallback
+            # 트리거였는데, "404 model not found"(preview retire) 같은 비-retryable 에러가
+            # 떨어지면 silent fail 되던 함정을 차단.
+            if idx + 1 < len(_models_to_try()):
+                tag = "retryable" if _is_retryable(e) else type(e).__name__
                 logger.warning(
-                    "Gemini primary model %s returned retryable error (%s); trying fallback",
-                    model,
-                    type(e).__name__,
+                    "Gemini primary model %s failed (%s); trying fallback",
+                    model, tag,
                 )
                 continue
             logger.exception("Gemini call failed on model=%s", model)
