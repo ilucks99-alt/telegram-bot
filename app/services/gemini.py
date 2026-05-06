@@ -1,3 +1,4 @@
+import json
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 from typing import List, Optional
 
@@ -13,28 +14,97 @@ except ImportError:
     genai = None
     genai_types = None
 
+try:
+    from google.oauth2.service_account import Credentials as _SACredentials
+except ImportError:
+    _SACredentials = None
+
 _client: Optional["genai.Client"] = None
+_mode: str = ""  # "vertex" | "api_key" — 진단용
 # Dedicated executor so generate_content can be enforced with a wall-clock timeout.
 # The upstream call is not actually cancelled (SDK doesn't expose cancellation),
 # but the webhook thread is freed so Telegram doesn't retry the update.
 _timeout_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="gemini")
 
 
+def _vertex_credentials():
+    """GOOGLE_SA_JSON 에서 Vertex AI 용 자격증명 + project_id 추출.
+    Sheets 와 동일한 SA 재사용 — Vertex AI User 역할만 추가돼있으면 됨."""
+    if _SACredentials is None:
+        return None, None
+    raw = (config.GOOGLE_SA_JSON or "").strip()
+    if not raw:
+        return None, None
+    try:
+        sa_info = json.loads(raw)
+    except Exception:
+        logger.exception("vertex: failed to parse GOOGLE_SA_JSON")
+        return None, None
+    project_id = sa_info.get("project_id")
+    if not project_id:
+        logger.warning("vertex: project_id missing in GOOGLE_SA_JSON")
+        return None, None
+    try:
+        creds = _SACredentials.from_service_account_info(
+            sa_info,
+            scopes=["https://www.googleapis.com/auth/cloud-platform"],
+        )
+    except Exception:
+        logger.exception("vertex: credentials build failed")
+        return None, None
+    return creds, project_id
+
+
 def is_available() -> bool:
-    return bool(config.GEMINI_API_KEY) and genai is not None
+    if genai is None:
+        return False
+    if config.USE_VERTEX_AI:
+        creds, project_id = _vertex_credentials()
+        return creds is not None and project_id is not None
+    return bool(config.GEMINI_API_KEY)
 
 
 def get_client():
-    global _client
-    if not is_available():
+    global _client, _mode
+    if genai is None:
         return None
-    if _client is None:
-        _client = genai.Client(api_key=config.GEMINI_API_KEY)
-        logger.info(
-            "Gemini client initialized | primary=%s | fallback=%s",
-            config.GEMINI_MODEL,
-            config.GEMINI_FALLBACK_MODEL,
-        )
+    if _client is not None:
+        return _client
+
+    if config.USE_VERTEX_AI:
+        creds, project_id = _vertex_credentials()
+        if creds is None or project_id is None:
+            logger.error("vertex mode requested but credentials/project missing")
+            return None
+        try:
+            _client = genai.Client(
+                vertexai=True,
+                project=project_id,
+                location=config.VERTEX_LOCATION,
+                credentials=creds,
+            )
+            _mode = "vertex"
+            logger.info(
+                "Gemini client initialized (Vertex AI) | project=%s | location=%s | primary=%s | fallback=%s",
+                project_id,
+                config.VERTEX_LOCATION,
+                config.GEMINI_MODEL,
+                config.GEMINI_FALLBACK_MODEL,
+            )
+            return _client
+        except Exception:
+            logger.exception("vertex client init failed")
+            return None
+
+    if not config.GEMINI_API_KEY:
+        return None
+    _client = genai.Client(api_key=config.GEMINI_API_KEY)
+    _mode = "api_key"
+    logger.info(
+        "Gemini client initialized (Developer API) | primary=%s | fallback=%s",
+        config.GEMINI_MODEL,
+        config.GEMINI_FALLBACK_MODEL,
+    )
     return _client
 
 

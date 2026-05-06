@@ -34,6 +34,11 @@ FRED_API_KEY = _env("FRED_API_KEY")  # 매크로 지표용 (https://fred.stlouis
 GEMINI_MODEL = _env("GEMINI_MODEL", "gemini-2.5-flash")
 GEMINI_FALLBACK_MODEL = _env("GEMINI_FALLBACK_MODEL", "gemini-2.5-flash-lite")
 GEMINI_TIMEOUT_SECONDS = _env_int("GEMINI_TIMEOUT_SECONDS", 20)
+# Vertex AI 모드 — Render egress IP 가 Gemini Developer API 에서 차단될 때 우회용.
+# GOOGLE_SA_JSON 의 service account 자격증명을 그대로 재사용 (Vertex AI User 역할 필요).
+# project_id 는 SA JSON 안에서 자동 추출.
+USE_VERTEX_AI = _env_bool("USE_VERTEX_AI", False)
+VERTEX_LOCATION = _env("VERTEX_LOCATION", "us-central1")
 
 # =========================================================
 # Paths
