@@ -88,7 +88,8 @@ class InvestmentDB:
     _DATASET_COLUMN_RENAME = {
         "프로젝트명": "Asset_Name",
         "Asset_Class_EN": "Asset_Class",
-        "Manager_EN": "Manager",
+        "Manager_EN": "Manager_Primary",     # 기존 운용사 (fallback)
+        "Manager_EN_2": "Manager_Detail",    # 신규 세부 운용사 (primary, 분석 기준)
         "Region_EN": "Region",
         "최초인출일": "Initial_Date",
         "만기일": "Maturity_Date",
@@ -147,6 +148,20 @@ class InvestmentDB:
         if "Project_ID" in df.columns:
             pid_col = df["Project_ID"].astype(str).str.strip()
             df = df[pid_col.str.match(r"^BS\d", na=False)].copy()
+
+        # 운용사 통합: Manager_EN_2(상세) 우선, 비어있거나 컬럼 없으면 Manager_EN(기존) 사용.
+        # 신규 엑셀은 두 컬럼 모두 / 구버전은 Manager_EN 만 가질 수 있어 둘 다 방어.
+        primary = (
+            df["Manager_Primary"].fillna("").astype(str).str.strip()
+            if "Manager_Primary" in df.columns
+            else pd.Series("", index=df.index)
+        )
+        detail = (
+            df["Manager_Detail"].fillna("").astype(str).str.strip()
+            if "Manager_Detail" in df.columns
+            else pd.Series("", index=df.index)
+        )
+        df["Manager"] = detail.where(detail != "", primary)
 
         required = [
             "Project_ID", "Asset_Name", "Asset_Class", "Manager", "Region",
@@ -312,9 +327,16 @@ class InvestmentDB:
         return out
 
     def _exclude_matured(self, df: pd.DataFrame) -> pd.DataFrame:
+        """만기 지난 펀드 제외 — 단, Outstanding/NAV 가 남아있는(잔존 포지션) 펀드는 유지.
+        예: CD&R Fund VIII 처럼 만기 2022 지났지만 Outstanding 48억·NAV 0.6억 남은 케이스."""
         current_year = get_kst_today_year()
+        outstanding = pd.to_numeric(df.get("Outstanding"), errors="coerce").fillna(0)
+        nav = pd.to_numeric(df.get("NAV"), errors="coerce").fillna(0)
+        active_balance = (outstanding > 0) | (nav > 0)
         return df[
-            df["Maturity_Year"].isna() | (df["Maturity_Year"] >= current_year)
+            df["Maturity_Year"].isna()
+            | (df["Maturity_Year"] >= current_year)
+            | active_balance
         ].copy()
 
     def _apply_filters(self, base_df: pd.DataFrame, filters: Dict[str, Any]) -> pd.DataFrame:
