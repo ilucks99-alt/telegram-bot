@@ -57,6 +57,25 @@ def handle_portfolio_news_command(db: InvestmentDB, chat_id) -> None:
     threading.Thread(target=_worker, daemon=True).start()
 
 
+def handle_macro_news_command(db: InvestmentDB, chat_id) -> None:
+    """/매크로뉴스 — 거시 뉴스 + 매크로 지표 수동 호출 (스케줄 슬롯 무시)."""
+    import threading
+
+    send_message(chat_id, "📰 거시 뉴스 + 매크로 지표 수집 중...")
+
+    def _worker():
+        try:
+            run_scheduled_news_report(db, chat_id, force=True)
+        except Exception:
+            logger.exception("macro news command worker failed")
+            try:
+                send_message(chat_id, "매크로 뉴스 처리 중 오류가 발생했습니다.")
+            except Exception:
+                pass
+
+    threading.Thread(target=_worker, daemon=True).start()
+
+
 # =========================================================
 # Keyword sources
 # =========================================================

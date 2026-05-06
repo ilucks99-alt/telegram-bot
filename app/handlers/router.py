@@ -10,7 +10,11 @@ from app.handlers.lookthrough import (
     handle_lookthrough_command,
     handle_lookthrough_followup,
 )
-from app.handlers.news import handle_news_search_command, handle_portfolio_news_command
+from app.handlers.news import (
+    handle_macro_news_command,
+    handle_news_search_command,
+    handle_portfolio_news_command,
+)
 from app.handlers.query import handle_query_command, handle_search_followup
 from app.handlers.task import (
     handle_cancel_command,
@@ -42,6 +46,7 @@ HELP_TEXT = """
 
 📰 [뉴스]
 /검색 키워드 — 키워드 뉴스 요약
+/매크로뉴스 — 거시 뉴스 + 매크로 지표 즉시 호출
 /포트폴리오뉴스 — GP(해외+국내) + LookThrough 발행인 통합 뉴스
 
 📋 [업무 지시]
@@ -190,6 +195,13 @@ def process_user_message(db: InvestmentDB, chat_id: int, text: str, ctx: Dict[st
             send_message(chat_id, "포트폴리오 뉴스 호출 권한이 없습니다.")
             return
         handle_portfolio_news_command(db, chat_id)
+        return
+
+    if raw.startswith("/매크로뉴스"):
+        if str(chat_id) != str(config.OWNER_CHAT_ID):
+            send_message(chat_id, "매크로 뉴스 호출 권한이 없습니다.")
+            return
+        handle_macro_news_command(db, chat_id)
         return
 
     if raw.startswith("/검색"):
