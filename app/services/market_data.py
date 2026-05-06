@@ -150,6 +150,20 @@ _INDICATORS_DOMESTIC: List[Tuple[str, str, str]] = [
     ("^TNX", "US 10Y", "yield"),
 ]
 
+# 수동 /매크로뉴스 호출용 — 글로벌 + 국내 지표 통합 (중복 dedup, 10개).
+_INDICATORS_ALL: List[Tuple[str, str, str]] = [
+    ("KRW=X", "USD/KRW", "price"),
+    ("^TNX", "US 10Y", "yield"),
+    ("^VIX", "VIX", "price"),
+    ("^GSPC", "S&P 500", "price"),
+    ("GC=F", "Gold", "price"),
+    ("CL=F", "WTI", "price"),
+    ("^KS11", "KOSPI", "price"),
+    ("^KQ11", "KOSDAQ", "price"),
+    ("^KS200", "KOSPI 200", "price"),
+    ("^N225", "Nikkei 225", "price"),
+]
+
 
 def _to_float(v: Any) -> Optional[float]:
     """네이버 응답은 '7,259.22' 콤마 박힌 문자열일 수 있어 정규화."""
@@ -224,7 +238,7 @@ def _fetch_naver_world(code: str, timeout: float = 5.0) -> Optional[Dict[str, fl
     return {"price": price, "prev": prev}
 
 
-def _fetch_fred(series_id: str, timeout: float = 6.0) -> Optional[Dict[str, float]]:
+def _fetch_fred(series_id: str, timeout: float = 15.0) -> Optional[Dict[str, float]]:
     """FRED observations — 최근 2개 non-null 관측치로 close + prev close 산출.
     FRED 결측은 '.' 문자열로 옴. limit=10 으로 받아 결측 스킵."""
     api_key = (config.FRED_API_KEY or "").strip()
@@ -380,10 +394,11 @@ def _fetch_one(symbol: str, timeout: float = 6.0) -> Optional[Dict[str, float]]:
         if result is not None:
             return result
 
-    # 2) FRED (cloud-friendly, key 필요)
+    # 2) FRED (cloud-friendly, key 필요). Render egress 가 FRED 까지 latency 가 큰
+    # 환경에서 6s 로는 ReadTimeout 자주 발생 → 15s 로 여유 확보.
     fred_series = _FRED_MAP.get(symbol)
     if fred_series:
-        result = _fetch_fred(fred_series, timeout=min(timeout, 6.0))
+        result = _fetch_fred(fred_series, timeout=15.0)
         if result is not None:
             return result
 
@@ -429,11 +444,19 @@ def _snapshot_entries(indicators: List[Tuple[str, str, str]]) -> List[str]:
     return [line for _, line in lines]
 
 
-def build_macro_briefing(focus: str = "global") -> Optional[str]:
-    """매크로 지표 블록 빌드. focus="domestic" 이면 국내 중심.
+def build_macro_briefing(focus: str = "all") -> Optional[str]:
+    """매크로 지표 블록 빌드.
+    focus="all"(기본) → 글로벌+국내 통합 10개. focus="domestic"/"global" 은 레거시 분리 셋.
     하나도 못 가져오면 None 반환."""
-    indicators = _INDICATORS_DOMESTIC if focus == "domestic" else _INDICATORS_GLOBAL
-    title = "📊 국내 매크로 (전일 종가 대비)" if focus == "domestic" else "📊 매크로 지표 (전일 종가 대비)"
+    if focus == "domestic":
+        indicators = _INDICATORS_DOMESTIC
+        title = "📊 국내 매크로 (전일 종가 대비)"
+    elif focus == "global":
+        indicators = _INDICATORS_GLOBAL
+        title = "📊 매크로 지표 (전일 종가 대비)"
+    else:
+        indicators = _INDICATORS_ALL
+        title = "📊 매크로 지표 (전일 종가 대비)"
     try:
         entries = _snapshot_entries(indicators)
     except Exception:
