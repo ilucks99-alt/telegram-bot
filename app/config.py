@@ -30,6 +30,7 @@ def _env_bool(key: str, default: bool) -> bool:
 TELEGRAM_TOKEN = _env("TELEGRAM_TOKEN")
 TELEGRAM_WEBHOOK_SECRET = _env("TELEGRAM_WEBHOOK_SECRET", "change-me")
 GEMINI_API_KEY = _env("GEMINI_API_KEY")
+FRED_API_KEY = _env("FRED_API_KEY")  # 매크로 지표용 (https://fred.stlouisfed.org/docs/api/api_key.html)
 GEMINI_MODEL = _env("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
 GEMINI_FALLBACK_MODEL = _env("GEMINI_FALLBACK_MODEL", "gemini-2.5-flash-lite")
 GEMINI_TIMEOUT_SECONDS = _env_int("GEMINI_TIMEOUT_SECONDS", 20)

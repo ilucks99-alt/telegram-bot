@@ -1,10 +1,13 @@
-"""매크로 지표 스냅샷 — Stooq(API key 불필요) 우선, Yahoo fallback.
+"""매크로 지표 스냅샷 — 다중 소스 폴백 체인.
 
-- 1차: Stooq `/q/l/?s=...&f=sd2cp&h&e=csv` 단일 quote 엔드포인트 (close + prev close).
-       cloud IP 친화적이고 key 가 필요없어 안정적.
-- 2차 (Stooq 미지원 또는 N/D): Yahoo Finance chart API (브라우저 헤더 + crumb).
-       Yahoo 가 cloud IP 에 429 광범위 throttle 강화 중이라 사실상 실패 가능성이 높음.
-- 6개 지표를 ThreadPool 로 병렬 조회. 개별 실패는 해당 지표만 스킵.
+Render 같은 cloud datacenter IP 에서는 Yahoo / Stooq 가 광범위 차단/throttle 되므로
+cloud 친화적 소스를 1·2차로 두고 기존 소스는 3·4차 보험으로만 유지.
+
+우선순위:
+1) 네이버 금융 (api.stock.naver.com / polling.finance.naver.com) — key 불필요, KR/JP/US 지수 + VIX 다 커버
+2) FRED (api.stlouisfed.org) — 무료 key 필요, US10Y / 환율 / 원자재 daily
+3) Stooq (/q/l) — cloud IP 에서 막히지만 로컬·일부 환경에서는 동작
+4) Yahoo (chart API) — cloud IP 에 광범위 429, 거의 실패 가정
 """
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
@@ -12,26 +15,49 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
+from app import config
 from app.logger import get_logger
 
 logger = get_logger(__name__)
 
 _YF_HOSTS = ("query1.finance.yahoo.com", "query2.finance.yahoo.com")
 
-# Yahoo 심볼 → Stooq 심볼 매핑. 매핑이 있으면 Stooq 먼저, 실패 시 Yahoo 로 폴백.
-# Stooq 단일 quote 엔드포인트에서 N/D 떨어지는 심볼(VIX, ^TNX, KOSDAQ, KOSPI200)은
-# 매핑하지 않고 Yahoo 만 시도 — 거기서도 실패하면 해당 지표만 silent skip.
-_STOOQ_MAP: Dict[str, str] = {
-    "^GSPC": "^spx",     # S&P 500
-    "KRW=X": "usdkrw",   # USD/KRW
-    "GC=F": "xauusd",    # Gold spot (xauusd 가 gc.f 보다 안정적)
-    "CL=F": "cl.f",      # WTI 원유 선물
-    "^KS11": "^kospi",   # KOSPI
-    "^N225": "^nkx",     # Nikkei 225
+# Yahoo 심볼 → 네이버 국내 지수 코드 (polling.finance.naver.com)
+_NAVER_DOMESTIC_MAP: Dict[str, str] = {
+    "^KS11": "KOSPI",
+    "^KQ11": "KOSDAQ",
+    "^KS200": "KPI200",
 }
 
-# 봇 같은 UA(Mozilla/5.0 compatible; InvestBot/1.0)는 cloud IP 대역에서 401/빈응답으로
-# 자주 떨어진다. 실제 Chrome UA + Accept-Language + Origin/Referer 셋이 가장 안정적.
+# Yahoo 심볼 → 네이버 해외 지수 코드 (api.stock.naver.com/index/{code}/basic)
+# 네이버는 Reuters 스타일 dot-prefix 코드를 씀 (.INX = S&P, .N225 = Nikkei 등).
+_NAVER_WORLD_MAP: Dict[str, str] = {
+    "^GSPC": ".INX",
+    "^DJI": ".DJI",
+    "^IXIC": ".IXIC",
+    "^N225": ".N225",
+    "^VIX": ".VIX",
+}
+
+# Yahoo 심볼 → FRED series id. FRED 는 D-1 ~ D-2 lag 있지만 daily 종가용으로 충분.
+_FRED_MAP: Dict[str, str] = {
+    "^TNX": "DGS10",                # US 10Y Treasury (yield, %)
+    "KRW=X": "DEXKOUS",             # USD/KRW 환율
+    "GC=F": "GOLDAMGBD228NLBM",     # London Gold AM fix (USD/oz)
+    "CL=F": "DCOILWTICO",           # WTI Crude Oil (USD/bbl)
+}
+
+# Yahoo 심볼 → Stooq 심볼 (cloud IP 에서 막히지만 로컬 fallback 으로 유지)
+_STOOQ_MAP: Dict[str, str] = {
+    "^GSPC": "^spx",
+    "KRW=X": "usdkrw",
+    "GC=F": "xauusd",
+    "CL=F": "cl.f",
+    "^KS11": "^kospi",
+    "^N225": "^nkx",
+}
+
+# 봇 같은 UA 는 cloud IP 대역에서 401/빈응답으로 자주 떨어진다. 실제 Chrome UA 유지.
 _BROWSER_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -40,9 +66,19 @@ _BROWSER_HEADERS = {
     ),
     "Accept": "application/json,text/plain,*/*",
     "Accept-Language": "en-US,en;q=0.9,ko;q=0.8",
+    "Connection": "keep-alive",
+}
+
+_NAVER_HEADERS = {
+    **_BROWSER_HEADERS,
+    "Referer": "https://m.stock.naver.com/",
+    "Origin": "https://m.stock.naver.com",
+}
+
+_YAHOO_HEADERS = {
+    **_BROWSER_HEADERS,
     "Origin": "https://finance.yahoo.com",
     "Referer": "https://finance.yahoo.com/",
-    "Connection": "keep-alive",
 }
 
 _session: Optional[requests.Session] = None
@@ -51,22 +87,18 @@ _session_lock = Lock()
 
 
 def _build_session() -> Tuple[requests.Session, Optional[str]]:
-    """Yahoo 쿠키(B) + crumb 을 미리 적재한 세션 생성. 실패해도 세션 자체는 반환."""
+    """Yahoo 쿠키(B) + crumb 적재 세션. 실패해도 세션 자체는 반환."""
     s = requests.Session()
-    s.headers.update(_BROWSER_HEADERS)
+    s.headers.update(_YAHOO_HEADERS)
     crumb: Optional[str] = None
-    # 1) fc.yahoo.com → B 쿠키 세팅 (401 응답이지만 Set-Cookie 가 박힘)
     try:
         s.get("https://fc.yahoo.com", timeout=5, allow_redirects=True)
     except Exception:
         pass
-    # 2) finance.yahoo.com 메인 페이지 한번 들러서 추가 consent 쿠키 처리
     try:
         s.get("https://finance.yahoo.com/", timeout=5)
     except Exception:
         pass
-    # 3) crumb 발급 (실패해도 chart 엔드포인트는 보통 통과 — 보험성).
-    # 정상 crumb 은 짧은 영숫자+특수문자 문자열이라 공백·HTML 태그·과대 길이는 모두 reject.
     for host in _YF_HOSTS:
         try:
             r = s.get(f"https://{host}/v1/test/getcrumb", timeout=5)
@@ -93,11 +125,11 @@ def _get_session() -> Tuple[requests.Session, Optional[str]]:
 
 
 def _reset_session() -> None:
-    """403/401 등 권한 실패 시 다음 호출에서 세션을 재구축하도록 무효화."""
     global _session, _crumb
     with _session_lock:
         _session = None
         _crumb = None
+
 
 # (symbol, Korean label, kind). kind="yield" 는 bp 로 diff 표기, 그 외는 %.
 _INDICATORS_GLOBAL: List[Tuple[str, str, str]] = [
@@ -109,8 +141,6 @@ _INDICATORS_GLOBAL: List[Tuple[str, str, str]] = [
     ("CL=F", "WTI", "price"),
 ]
 
-# 장 마감 후 보고용 — 국내 중심. 한국 채권금리는 Yahoo 가 직접 제공하지 않아
-# 글로벌 영향 큰 US 10Y 만 유지하고 한국·일본 주가지수 + 환율로 구성.
 _INDICATORS_DOMESTIC: List[Tuple[str, str, str]] = [
     ("^KS11", "KOSPI", "price"),
     ("^KQ11", "KOSDAQ", "price"),
@@ -121,24 +151,120 @@ _INDICATORS_DOMESTIC: List[Tuple[str, str, str]] = [
 ]
 
 
-def _parse_meta(data: Dict[str, Any]) -> Optional[Dict[str, float]]:
-    result = (data.get("chart") or {}).get("result") or []
-    if not result:
+def _to_float(v: Any) -> Optional[float]:
+    """네이버 응답은 '7,259.22' 콤마 박힌 문자열일 수 있어 정규화."""
+    if v is None:
         return None
-    meta = result[0].get("meta") or {}
-    price = meta.get("regularMarketPrice")
-    prev = meta.get("chartPreviousClose") or meta.get("previousClose")
-    if price is None or prev is None:
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v).replace(",", "").strip()
+    if not s:
         return None
     try:
-        return {"price": float(price), "prev": float(prev)}
-    except (TypeError, ValueError):
+        return float(s)
+    except ValueError:
         return None
+
+
+def _fetch_naver_domestic(code: str, timeout: float = 5.0) -> Optional[Dict[str, float]]:
+    """polling.finance.naver.com — KOSPI/KOSDAQ/KPI200. closePriceRaw + compareToPreviousClosePriceRaw."""
+    url = f"https://polling.finance.naver.com/api/realtime/domestic/index/{code}"
+    try:
+        resp = requests.get(url, timeout=timeout, headers=_NAVER_HEADERS)
+    except Exception:
+        logger.warning("naver-domestic fetch error | code=%s", code, exc_info=False)
+        return None
+    if not resp.ok:
+        logger.warning("naver-domestic http error | code=%s status=%s", code, resp.status_code)
+        return None
+    try:
+        datas = (resp.json() or {}).get("datas") or []
+    except Exception:
+        return None
+    if not datas:
+        return None
+    d = datas[0]
+    price = _to_float(d.get("closePriceRaw") or d.get("closePrice"))
+    diff = _to_float(d.get("compareToPreviousClosePriceRaw") or d.get("compareToPreviousClosePrice"))
+    if price is None or diff is None:
+        return None
+    direction = ((d.get("compareToPreviousPrice") or {}).get("code") or "").strip()
+    # code: '2' 상승, '5' 하락, 그외 보합
+    signed_diff = -diff if direction == "5" else diff
+    prev = price - signed_diff
+    if prev <= 0:
+        return None
+    return {"price": price, "prev": prev}
+
+
+def _fetch_naver_world(code: str, timeout: float = 5.0) -> Optional[Dict[str, float]]:
+    """api.stock.naver.com/index/{code}/basic — .INX/.N225/.VIX 등."""
+    url = f"https://api.stock.naver.com/index/{code}/basic"
+    try:
+        resp = requests.get(url, timeout=timeout, headers=_NAVER_HEADERS)
+    except Exception:
+        logger.warning("naver-world fetch error | code=%s", code, exc_info=False)
+        return None
+    if not resp.ok:
+        logger.warning("naver-world http error | code=%s status=%s", code, resp.status_code)
+        return None
+    try:
+        d = resp.json() or {}
+    except Exception:
+        return None
+    price = _to_float(d.get("closePrice"))
+    diff = _to_float(d.get("compareToPreviousClosePrice"))
+    if price is None or diff is None:
+        return None
+    direction = ((d.get("compareToPreviousPrice") or {}).get("code") or "").strip()
+    signed_diff = -diff if direction == "5" else diff
+    prev = price - signed_diff
+    if prev <= 0:
+        return None
+    return {"price": price, "prev": prev}
+
+
+def _fetch_fred(series_id: str, timeout: float = 6.0) -> Optional[Dict[str, float]]:
+    """FRED observations — 최근 2개 non-null 관측치로 close + prev close 산출.
+    FRED 결측은 '.' 문자열로 옴. limit=10 으로 받아 결측 스킵."""
+    api_key = (config.FRED_API_KEY or "").strip()
+    if not api_key:
+        return None
+    url = "https://api.stlouisfed.org/fred/series/observations"
+    params = {
+        "series_id": series_id,
+        "api_key": api_key,
+        "file_type": "json",
+        "sort_order": "desc",
+        "limit": "10",
+    }
+    try:
+        resp = requests.get(url, params=params, timeout=timeout, headers=_BROWSER_HEADERS)
+    except Exception:
+        logger.warning("fred fetch error | series=%s", series_id, exc_info=False)
+        return None
+    if not resp.ok:
+        logger.warning("fred http error | series=%s status=%s", series_id, resp.status_code)
+        return None
+    try:
+        obs = (resp.json() or {}).get("observations") or []
+    except Exception:
+        return None
+    values: List[float] = []
+    for o in obs:
+        v = _to_float(o.get("value"))
+        if v is None:
+            continue
+        values.append(v)
+        if len(values) >= 2:
+            break
+    if len(values) < 2:
+        return None
+    return {"price": values[0], "prev": values[1]}
 
 
 def _fetch_stooq(stooq_symbol: str, timeout: float = 5.0) -> Optional[Dict[str, float]]:
-    """Stooq 단일 quote — close + previous close 함께. apikey 불필요.
-    flag `sd2cp` = Symbol, Date, Close, Prev. `N/D` 또는 apikey 안내문이 오면 None."""
+    """Stooq 단일 quote — flag sd2cp = Symbol, Date, Close, Prev. cloud IP 에선 자주 막힘."""
     if not stooq_symbol:
         return None
     url = f"https://stooq.com/q/l/?s={stooq_symbol}&f=sd2cp&h&e=csv"
@@ -152,7 +278,6 @@ def _fetch_stooq(stooq_symbol: str, timeout: float = 5.0) -> Optional[Dict[str, 
         return None
     body = (resp.text or "").strip()
     if not body or "apikey" in body.lower():
-        # 2026-04 부터 일부 엔드포인트가 apikey 안내문으로 응답 — 단일 quote 는 영향 없지만 보호선
         return None
     lines = body.splitlines()
     if len(lines) < 2:
@@ -171,13 +296,23 @@ def _fetch_stooq(stooq_symbol: str, timeout: float = 5.0) -> Optional[Dict[str, 
         return None
 
 
-def _fetch_yahoo(symbol: str, timeout: float = 6.0) -> Optional[Dict[str, float]]:
-    """query1 → query2 fallback. 401/403 만나면 세션 재구축 후 1회 재시도.
-    모든 시도 실패 시 None 을 반환해 호출자가 해당 지표를 스킵.
+def _parse_yahoo_meta(data: Dict[str, Any]) -> Optional[Dict[str, float]]:
+    result = (data.get("chart") or {}).get("result") or []
+    if not result:
+        return None
+    meta = result[0].get("meta") or {}
+    price = meta.get("regularMarketPrice")
+    prev = meta.get("chartPreviousClose") or meta.get("previousClose")
+    if price is None or prev is None:
+        return None
+    try:
+        return {"price": float(price), "prev": float(prev)}
+    except (TypeError, ValueError):
+        return None
 
-    참고: 2026-04 현재 Yahoo 가 cloud/주거 IP 양쪽에 429 광범위 throttle 중이라
-    실제로는 거의 실패. 다만 Stooq 미커버 심볼(VIX, ^TNX, KOSDAQ, KOSPI200)은
-    여기 외엔 대안이 없어 시도는 유지."""
+
+def _fetch_yahoo(symbol: str, timeout: float = 6.0) -> Optional[Dict[str, float]]:
+    """query1 → query2. 401/403/429 시 1회만 세션 재구축. cloud IP 에선 거의 실패 예상."""
     session, crumb = _get_session()
     params: Dict[str, str] = {"interval": "1d", "range": "5d"}
     if crumb:
@@ -199,7 +334,6 @@ def _fetch_yahoo(symbol: str, timeout: float = 6.0) -> Optional[Dict[str, float]
                 host, symbol, resp.status_code,
             )
             if not auth_failed_once:
-                # 세션이 만료/차단됐을 가능성 — 한 번만 재구축 후 재시도
                 _reset_session()
                 session, crumb = _get_session()
                 if crumb:
@@ -215,10 +349,7 @@ def _fetch_yahoo(symbol: str, timeout: float = 6.0) -> Optional[Dict[str, float]
                 continue
 
         if not resp.ok:
-            logger.warning(
-                "yahoo http error | host=%s symbol=%s status=%s",
-                host, symbol, resp.status_code,
-            )
+            logger.warning("yahoo http error | host=%s symbol=%s status=%s", host, symbol, resp.status_code)
             continue
 
         try:
@@ -227,23 +358,43 @@ def _fetch_yahoo(symbol: str, timeout: float = 6.0) -> Optional[Dict[str, float]
             logger.warning("yahoo json parse failed | host=%s symbol=%s", host, symbol)
             continue
 
-        parsed = _parse_meta(data)
+        parsed = _parse_yahoo_meta(data)
         if parsed is not None:
             return parsed
-        # 200 + 빈 result 는 다음 host 시도
 
     logger.warning("yahoo fetch exhausted | symbol=%s", symbol)
     return None
 
 
 def _fetch_one(symbol: str, timeout: float = 6.0) -> Optional[Dict[str, float]]:
-    """Stooq 매핑이 있으면 우선 시도, 실패 또는 미매핑이면 Yahoo 로 폴백."""
+    """소스 폴백 체인: 네이버 → FRED → Stooq → Yahoo. 첫 성공에서 종료."""
+    # 1) 네이버 (cloud-friendly, key 불필요)
+    naver_kr = _NAVER_DOMESTIC_MAP.get(symbol)
+    if naver_kr:
+        result = _fetch_naver_domestic(naver_kr, timeout=min(timeout, 5.0))
+        if result is not None:
+            return result
+    naver_world = _NAVER_WORLD_MAP.get(symbol)
+    if naver_world:
+        result = _fetch_naver_world(naver_world, timeout=min(timeout, 5.0))
+        if result is not None:
+            return result
+
+    # 2) FRED (cloud-friendly, key 필요)
+    fred_series = _FRED_MAP.get(symbol)
+    if fred_series:
+        result = _fetch_fred(fred_series, timeout=min(timeout, 6.0))
+        if result is not None:
+            return result
+
+    # 3) Stooq (cloud IP 에선 거의 실패, 로컬 보험)
     stooq_sym = _STOOQ_MAP.get(symbol)
     if stooq_sym:
         result = _fetch_stooq(stooq_sym, timeout=min(timeout, 5.0))
         if result is not None:
             return result
-        logger.info("stooq miss → yahoo fallback | symbol=%s (stooq=%s)", symbol, stooq_sym)
+
+    # 4) Yahoo (마지막 수단)
     return _fetch_yahoo(symbol, timeout=timeout)
 
 
@@ -255,7 +406,7 @@ def _format_indicator(label: str, data: Dict[str, float], kind: str) -> str:
     arrow = "▲" if diff > 0 else ("▼" if diff < 0 else "─")
 
     if kind == "yield":
-        bp = diff * 100.0  # yield 는 이미 % 단위, 1% = 100bp
+        bp = diff * 100.0  # yield 는 % 단위, 1% = 100bp
         return f"- {label}: {price:.2f}% ({arrow}{abs(bp):.0f}bp)"
     return f"- {label}: {price:,.2f} ({arrow}{abs(pct):.2f}%)"
 
@@ -279,9 +430,8 @@ def _snapshot_entries(indicators: List[Tuple[str, str, str]]) -> List[str]:
 
 
 def build_macro_briefing(focus: str = "global") -> Optional[str]:
-    """매크로 지표 블록을 빌드.
-    focus="domestic" 이면 국내 중심(KOSPI/KOSDAQ 등), 그 외엔 글로벌 셋.
-    하나도 못 가져오면 None 을 반환해 호출자가 스킵하게 한다."""
+    """매크로 지표 블록 빌드. focus="domestic" 이면 국내 중심.
+    하나도 못 가져오면 None 반환."""
     indicators = _INDICATORS_DOMESTIC if focus == "domestic" else _INDICATORS_GLOBAL
     title = "📊 국내 매크로 (전일 종가 대비)" if focus == "domestic" else "📊 매크로 지표 (전일 종가 대비)"
     try:
