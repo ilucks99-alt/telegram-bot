@@ -345,7 +345,15 @@ def is_task_active(chat_id) -> bool:
     return get_task_by_assignee(chat_id) is not None
 
 
-def update_task_fields(task_id: str, updates: Dict[str, Any]) -> None:
+def update_task_fields(
+    task_id: str,
+    updates: Dict[str, Any],
+    *,
+    update_timestamp: bool = True,
+) -> None:
+    """update_timestamp=False 로 호출하면 updated_at 자동 갱신을 끈다.
+    overdue/cooldown 판정의 기준 시각이 alert 발송 같은 메타 업데이트로 reset 되는 걸
+    막기 위함 (unack_alert_sent / due_reminder_sent 같은 marker-only 갱신)."""
     ws = _tab("Tasks")
     if ws is None:
         return
@@ -355,7 +363,8 @@ def update_task_fields(task_id: str, updates: Dict[str, Any]) -> None:
 
     headers = ws.row_values(1)
     updates = dict(updates)
-    updates.setdefault("updated_at", now_ts())
+    if update_timestamp:
+        updates.setdefault("updated_at", now_ts())
 
     for key, val in updates.items():
         if key in headers:
@@ -490,17 +499,6 @@ def find_similar_past_tasks(instruction: str, limit: int = 3) -> List[Dict[str, 
     return [t for _, t in scored[:limit]]
 
 
-# =========================================================
-# News dedup (persistent across restarts)
-# =========================================================
-def count_active_tasks_for_assignee(chat_id) -> int:
-    chat_id_str = str(chat_id)
-    return sum(
-        1 for t in _read_all_tasks()
-        if t.get("assignee_chat_id") == chat_id_str and t.get("status") in ACTIVE_STATUSES
-    )
-
-
 def count_queued_tasks_for_assignee(chat_id) -> int:
     chat_id_str = str(chat_id)
     return sum(
@@ -509,6 +507,9 @@ def count_queued_tasks_for_assignee(chat_id) -> int:
     )
 
 
+# =========================================================
+# News dedup (persistent across restarts)
+# =========================================================
 def is_news_slot_sent(slot_key: str) -> bool:
     ws = _tab("NewsDedup")
     if ws is None:

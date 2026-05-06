@@ -212,13 +212,28 @@ async def cron_tick_url(secret: str):
     return {"ok": True, "status": "scheduled"}
 
 
+def _run_locked(target):
+    """legacy cron 핸들러용 — _tick_lock 으로 직렬화. 동일 슬롯 동시 발사 시 중복 발송 방지."""
+    if not _tick_lock.acquire(blocking=False):
+        logger.info("cron skipped: tick already in progress")
+        return
+    try:
+        target()
+    except Exception:
+        logger.exception("legacy cron target failed")
+    finally:
+        _tick_lock.release()
+
+
 # Legacy endpoints (kept for manual testing)
 @app.post("/cron/news")
 async def cron_news(authorization: Optional[str] = Header(None)):
     _check_cron_secret(authorization)
     import threading
     threading.Thread(
-        target=lambda: run_scheduled_news_report(get_db(), config.OWNER_CHAT_ID),
+        target=lambda: _run_locked(
+            lambda: run_scheduled_news_report(get_db(), config.OWNER_CHAT_ID)
+        ),
         daemon=True,
     ).start()
     return {"ok": True, "status": "scheduled"}
@@ -229,7 +244,9 @@ async def cron_news_portfolio(authorization: Optional[str] = Header(None)):
     _check_cron_secret(authorization)
     import threading
     threading.Thread(
-        target=lambda: run_portfolio_news_report(get_db(), config.OWNER_CHAT_ID),
+        target=lambda: _run_locked(
+            lambda: run_portfolio_news_report(get_db(), config.OWNER_CHAT_ID)
+        ),
         daemon=True,
     ).start()
     return {"ok": True, "status": "scheduled"}
@@ -240,7 +257,7 @@ async def cron_task_check(authorization: Optional[str] = Header(None)):
     _check_cron_secret(authorization)
     import threading
     threading.Thread(
-        target=lambda: check_and_report_overdue_tasks(get_db()),
+        target=lambda: _run_locked(lambda: check_and_report_overdue_tasks(get_db())),
         daemon=True,
     ).start()
     return {"ok": True, "status": "scheduled"}

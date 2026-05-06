@@ -139,25 +139,7 @@ def _reset_session() -> None:
 
 
 # (symbol, Korean label, kind). kind="yield" 는 bp 로 diff 표기, 그 외는 %.
-_INDICATORS_GLOBAL: List[Tuple[str, str, str]] = [
-    ("KRW=X", "USD/KRW", "price"),
-    ("^TNX", "US 10Y", "yield"),
-    ("^VIX", "VIX", "price"),
-    ("^GSPC", "S&P 500", "price"),
-    ("GC=F", "Gold", "price"),
-    ("CL=F", "WTI", "price"),
-]
-
-_INDICATORS_DOMESTIC: List[Tuple[str, str, str]] = [
-    ("^KS11", "KOSPI", "price"),
-    ("^KQ11", "KOSDAQ", "price"),
-    ("^KS200", "KOSPI 200", "price"),
-    ("KRW=X", "USD/KRW", "price"),
-    ("^N225", "Nikkei 225", "price"),
-    ("^TNX", "US 10Y", "yield"),
-]
-
-# 수동 /매크로뉴스 호출용 — 글로벌 + 국내 지표 통합 (중복 dedup, 10개).
+# 글로벌 + 국내 통합 셋 — 매크로 보고는 항상 이 10개 기준.
 _INDICATORS_ALL: List[Tuple[str, str, str]] = [
     ("KRW=X", "USD/KRW", "price"),
     ("^TNX", "US 10Y", "yield"),
@@ -493,18 +475,11 @@ def _snapshot_entries(indicators: List[Tuple[str, str, str]]) -> Tuple[List[str]
 
 
 def build_macro_briefing(focus: str = "all") -> Optional[str]:
-    """매크로 지표 블록 빌드. 헤더에 N/M 표기, 누락 항목은 footer 에 명시.
-    focus="all"(기본) → 글로벌+국내 통합 10개. focus="domestic"/"global" 은 레거시 분리 셋.
+    """매크로 지표 블록 빌드 (글로벌+국내 통합 10개).
+    헤더에 N/M 표기, 누락 항목은 footer 에 명시. focus 인자는 호환용으로만 남김.
     하나도 못 가져오면 None 반환."""
-    if focus == "domestic":
-        indicators = _INDICATORS_DOMESTIC
-        title_base = "📊 국내 매크로 (전일 종가 대비)"
-    elif focus == "global":
-        indicators = _INDICATORS_GLOBAL
-        title_base = "📊 매크로 지표 (전일 종가 대비)"
-    else:
-        indicators = _INDICATORS_ALL
-        title_base = "📊 매크로 지표 (전일 종가 대비)"
+    indicators = _INDICATORS_ALL
+    title_base = "📊 매크로 지표 (전일 종가 대비)"
     try:
         entries, missing = _snapshot_entries(indicators)
     except Exception:

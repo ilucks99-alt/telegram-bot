@@ -34,6 +34,10 @@ def _parse_due(due_str: str) -> Optional[str]:
     """
     'HH:MM' (오늘) 또는 'YYYY-MM-DD HH:MM' 을 KST 'YYYY-MM-DD HH:MM:SS' 로 정규화.
     파싱 실패 시 None.
+
+    HH:MM 단축 형식이고 같은 날 그 시각이 이미 지난 경우 다음날로 자동 roll.
+    (16시에 due=09:00 입력 → 즉시 overdue 되는 사용자 실수 방지)
+    명시적 YYYY-MM-DD HH:MM 입력은 의도된 일자로 간주해 그대로 유지.
     """
     s = (due_str or "").strip()
     if not s:
@@ -42,6 +46,9 @@ def _parse_due(due_str: str) -> Optional[str]:
         if len(s) <= 5 and ":" in s:
             today = get_kst_today_str()
             dt = datetime.strptime(f"{today} {s}", "%Y-%m-%d %H:%M").replace(tzinfo=KST)
+            if dt < datetime.now(KST):
+                from datetime import timedelta
+                dt = dt + timedelta(days=1)
         else:
             dt = datetime.strptime(s, "%Y-%m-%d %H:%M").replace(tzinfo=KST)
     except ValueError:
@@ -633,7 +640,11 @@ def check_unack_alerts(db: InvestmentDB) -> int:
                 f"- 담당자가 아직 확인 버튼을 누르지 않았습니다.\n"
                 f"- 다른 채널(전화 등)로 연락이 필요할 수 있습니다.",
             )
-            sheets.update_task_fields(t["task_id"], {"unack_alert_sent": now_ts()})
+            # update_timestamp=False: alert 발송 시각이 task 의 updated_at 을 갱신하면
+            # overdue 30분 timer 가 alert 마다 reset 되어 overdue 종료가 무한 연기됨.
+            sheets.update_task_fields(
+                t["task_id"], {"unack_alert_sent": now_ts()}, update_timestamp=False,
+            )
             count += 1
         except Exception:
             logger.exception("unack alert send failed | task=%s", t.get("task_id"))
@@ -695,7 +706,10 @@ def check_due_reminders(db: InvestmentDB) -> int:
         except Exception:
             logger.exception("due reminder owner send failed | task=%s", t.get("task_id"))
         try:
-            sheets.update_task_fields(t["task_id"], {"due_reminder_sent": now_ts()})
+            # update_timestamp=False: marker-only 갱신이라 overdue timer reset 방지.
+            sheets.update_task_fields(
+                t["task_id"], {"due_reminder_sent": now_ts()}, update_timestamp=False,
+            )
         except Exception:
             logger.exception("due_reminder_sent update failed | task=%s", t.get("task_id"))
         count += 1

@@ -45,8 +45,9 @@ def _normalize_counterparty(name: str) -> str:
     s = _FKA_PARENS_RE.sub("", s).strip()
     s = _KOREAN_LIST_RE.sub("", s).strip()
     s = _SECURITY_SUFFIX_RE.sub("", s).strip()
-    if " " not in s and len(s) >= 12:
+    if " " not in s and len(s) >= 8:
         # CamelCase 슬러그 띄우기. 두 번 적용해 XMLParser 같은 경계도 분리.
+        # 임계값 8자 — VingroupJSC(11), YayoiCo(7+) 같은 짧은 슬러그도 잡히게.
         s = _re.sub(r"(?<=[a-z])(?=[A-Z])", " ", s)
         s = _re.sub(r"(?<=[A-Z])(?=[A-Z][a-z])", " ", s)
     for _ in range(3):
@@ -213,6 +214,24 @@ class InvestmentDB:
         df["Strategy_Norm"] = df["Strategy"].apply(normalize_text)
         df["Sector_Norm"] = df["Sector"].apply(normalize_text)
         df["Project_ID_Norm"] = df["Project_ID"].apply(normalize_text)
+
+        # 데이터 정합성 진단 — std 매핑이 안 된 raw 값들을 1회 경고로 노출.
+        # 엑셀 업데이트 시 새 자산군/지역 라벨이 들어와서 기존 분석/필터에서 빠지는 회귀를
+        # 즉시 감지하기 위함. 매핑되지 않은 값은 _std_asset_class/_std_region 이 raw 그대로
+        # 통과시키므로 normalize_text(raw) 가 ASSET_CLASS_STD_MAP/REGION_STD_MAP key 셋에
+        # 없는지로 판별.
+        unmapped_ac = sorted({
+            v for v in df["Asset_Class"].dropna().unique()
+            if v and normalize_text(v) not in ASSET_CLASS_STD_MAP
+        })
+        if unmapped_ac:
+            logger.warning("Asset_Class unmapped (raw passthrough): %s", unmapped_ac)
+        unmapped_rg = sorted({
+            v for v in df["Region"].dropna().unique()
+            if v and normalize_text(v) not in REGION_STD_MAP
+        })
+        if unmapped_rg:
+            logger.warning("Region unmapped (raw passthrough): %s", unmapped_rg)
 
         self._load_lookthrough()
         logger.info(
@@ -1125,7 +1144,9 @@ class InvestmentDB:
     ) -> List[str]:
         import re as _re
         from app.constants import OVERSEAS_REGIONS
-        df = self.df
+        # 종료된 펀드(만기 + 잔존가치 0)는 GP 뉴스 키워드 후보에서 제외.
+        # 다른 search/analysis 경로는 _exclude_matured 를 통과시키는데 여기만 raw self.df 였음.
+        df = self._exclude_matured(self.df)
         if df is None or df.empty or "Manager" not in df.columns:
             return []
         if overseas_only and "Region_Std" in df.columns:

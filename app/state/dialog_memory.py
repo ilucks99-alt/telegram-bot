@@ -45,10 +45,3 @@ def get_context(chat_id) -> Optional[Dict[str, Any]]:
 def clear_context(chat_id) -> None:
     with _LOCK:
         _STORE.pop(str(chat_id), None)
-
-
-def touch(chat_id) -> None:
-    with _LOCK:
-        entry = _STORE.get(str(chat_id))
-        if entry:
-            entry["ts"] = time.time()
