@@ -283,7 +283,8 @@ def _fetch_fred(series_id: str, timeout: float = 15.0) -> Optional[Dict[str, flo
         return None
     try:
         obs = (resp.json() or {}).get("observations") or []
-    except Exception:
+    except Exception as e:
+        logger.warning("fred json parse failed | series=%s | %s: %s", series_id, type(e).__name__, e)
         return None
     values: List[float] = []
     for o in obs:
@@ -294,6 +295,10 @@ def _fetch_fred(series_id: str, timeout: float = 15.0) -> Optional[Dict[str, flo
         if len(values) >= 2:
             break
     if len(values) < 2:
+        logger.warning(
+            "fred insufficient values | series=%s obs_count=%d non_null=%d",
+            series_id, len(obs), len(values),
+        )
         return None
     return {"price": values[0], "prev": values[1]}
 

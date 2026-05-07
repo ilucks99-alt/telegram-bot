@@ -16,6 +16,8 @@ services:
         sync: false
       - key: GEMINI_MODEL
         value: gemini-3.1-flash-lite-preview
+      - key: FRED_API_KEY
+        sync: false
       - key: OWNER_CHAT_ID
         sync: false
       - key: GOOGLE_SA_JSON
