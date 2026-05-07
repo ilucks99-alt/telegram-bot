@@ -152,23 +152,22 @@ class InvestmentDB:
 
         # 운용사 통합: Manager_EN_2(상세) 우선, 비어있거나 컬럼 없으면 Manager_EN(기존) 사용.
         # 신규 엑셀은 두 컬럼 모두 / 구버전은 Manager_EN 만 가질 수 있어 둘 다 방어.
+        # placeholder 는 합본/디스플레이 빌드 전에 양쪽 컬럼에서 미리 제거 — 그래야
+        # detail="해당없음" 케이스에서 Manager 가 primary 로 fallback 하고, search 의
+        # not_blank 가드도 통과한다 (이전엔 detail 이 placeholder 면 Manager 가 빈문자가 돼
+        # 한화자산운용 같이 detail 이 대부분 placeholder 인 운용사가 검색에서 누락됐음).
+        _MGR_PLACEHOLDERS = {"해당없음": "", "0": "", "-": "", "N/A": "", "n/a": "", "없음": "", "미정": ""}
         primary = (
-            df["Manager_Primary"].fillna("").astype(str).str.strip()
+            df["Manager_Primary"].fillna("").astype(str).str.strip().replace(_MGR_PLACEHOLDERS)
             if "Manager_Primary" in df.columns
             else pd.Series("", index=df.index)
         )
         detail = (
-            df["Manager_Detail"].fillna("").astype(str).str.strip()
+            df["Manager_Detail"].fillna("").astype(str).str.strip().replace(_MGR_PLACEHOLDERS)
             if "Manager_Detail" in df.columns
             else pd.Series("", index=df.index)
         )
         df["Manager"] = detail.where(detail != "", primary)
-        # Manager placeholder 정리 — 빈값/'해당없음'/'0'/'-' 등은 빈문자로 normalize.
-        # 다운스트림 (search 의 not_blank 가드, top_managers 의 ne(""), 뉴스 키워드 추출)이
-        # 자연스럽게 스킵하게 됨.
-        df["Manager"] = df["Manager"].replace(
-            {"해당없음": "", "0": "", "-": "", "N/A": "", "n/a": "", "없음": "", "미정": ""}
-        )
 
         required = [
             "Project_ID", "Asset_Name", "Asset_Class", "Manager", "Region",
