@@ -215,7 +215,11 @@ class InvestmentDB:
 
         df["Asset_Class_Std"] = df["Asset_Class"].apply(self._std_asset_class)
         df["Region_Std"] = df["Region"].apply(self._std_region)
-        df["Manager_Norm"] = df["Manager"].apply(normalize_text)
+        # 검색용 — Manager_EN_1(primary) / Manager_EN_2(detail) 둘 다 매칭되도록 합본 정규화.
+        # 디스플레이용 Manager 컬럼은 detail 우선이라 primary 전용 키워드(예: 그룹사 'Blackstone')
+        # 가 detail("GSO Capital ...") 로 덮였을 때 검색에서 사라지는 회귀 방지.
+        # "+" 는 normalize_text 가 보존하는 구분자라 cross-field 오매칭(boundary 가로지르는 substring) 도 막음.
+        df["Manager_Norm"] = (primary + "+" + detail).apply(normalize_text)
         df["Asset_Name_Norm"] = df["Asset_Name"].apply(normalize_text)
         df["Strategy_Norm"] = df["Strategy"].apply(normalize_text)
         df["Sector_Norm"] = df["Sector"].apply(normalize_text)
