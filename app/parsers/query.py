@@ -172,7 +172,9 @@ def _normalize_filter_dict(filters: Dict[str, Any]) -> Dict[str, Any]:
     return out
 
 
-def normalize_query_json(query_json: Dict[str, Any]) -> Dict[str, Any]:
+#def normalize_query_json(query_json: Dict[str, Any]) -> Dict[str, Any]:
+def normalize_query_json(query_json: Dict[str, Any], user_question: str = "") -> Dict[str, Any]:
+   
     out: Dict[str, Any] = {
         "query_type": "summary_with_list",
         "filters": {},
@@ -187,6 +189,11 @@ def normalize_query_json(query_json: Dict[str, Any]) -> Dict[str, Any]:
         return out
 
     out["filters"] = _normalize_filter_dict(query_json.get("filters", {}) or {})
+    if out["filters"].get("manager") and user_question:
+        out["filters"]["manager"] = list(dict.fromkeys(
+            out["filters"]["manager"] + [user_question.strip()]
+        ))[:10]
+    
 
     sort = query_json.get("sort", {}) or {}
     sort_by = str(sort.get("by", "")).strip()
@@ -221,7 +228,8 @@ def parse_query(user_question: str) -> Dict[str, Any]:
     # ID-only 입력은 LLM 호출 없이 즉시 처리 (토큰 절감)
     shortcut = _try_pid_only_shortcut(user_question)
     if shortcut is not None:
-        return {"mode": "query", "query_json": normalize_query_json(shortcut), "advice_text": None}
+        #return {"mode": "query", "query_json": normalize_query_json(shortcut), "advice_text": None}
+        return {"mode": "query", "query_json": normalize_query_json(shortcut, user_question), "advice_text": None}
 
     if not gemini.is_available():
         logger.warning("query parse: Gemini unavailable (no API key or SDK missing)")
@@ -241,7 +249,7 @@ def parse_query(user_question: str) -> Dict[str, Any]:
 
     mode = str(data.get("mode", "")).strip().lower()
     if mode == "query":
-        normalized = normalize_query_json(data.get("query_json") or {})
+        normalized = normalize_query_json(data.get("query_json") or {}, user_question)
         if is_unprocessable_query(normalized):
             return {"mode": "advice", "query_json": None, "advice_text": build_fixed_query_advice()}
         return {"mode": "query", "query_json": normalized, "advice_text": None}
