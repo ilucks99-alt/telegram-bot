@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 from app import config
 from app.constants import (
     ASSET_CLASS_ALLOWED,
+    ASSET_CLASS_STD_MAP,
     CURRENCY_ALLOWED,
     REGION_ALLOWED,
     SORT_BY_ALLOWED,
@@ -12,6 +13,7 @@ from app.constants import (
 from app.logger import get_logger
 from app.parsers import render_prompt, safe_json_parse
 from app.services import gemini
+from app.util import normalize_text
 
 logger = get_logger(__name__)
 
@@ -101,7 +103,11 @@ def _norm_str_list(val: Any) -> List[str]:
 def _normalize_filter_dict(filters: Dict[str, Any]) -> Dict[str, Any]:
     out: Dict[str, Any] = {}
 
-    asset_classes = [x for x in _norm_str_list(filters.get("asset_class")) if x in ASSET_CLASS_ALLOWED]
+    asset_classes: List[str] = []
+    for raw in _norm_str_list(filters.get("asset_class")):
+        std = ASSET_CLASS_STD_MAP.get(normalize_text(raw), raw)
+        if std in ASSET_CLASS_ALLOWED and std not in asset_classes:
+            asset_classes.append(std)
     if asset_classes:
         out["asset_class"] = asset_classes
 
