@@ -19,7 +19,7 @@
 2. "전체 포트폴리오"→base_filters={}. 만기 경과 자산은 시스템 자동 제외.
 3. metric 미명시 시: 비중=commitment, 평균IRR=irr_weighted_commitment, 금액=문맥(commitment/called/outstanding/nav). "NAV 기준"/"잔액 기준"/"건수 기준"이면 그 metric.
 4. strategy/sector 영문 우선(senior, equity, mezzanine, core, value-add, opportunistic). 인프라 비민자=Non-PPP, 민자=BT 시작.
-5. 운용사명은 manager에 원본 그대로(시스템이 그룹 확장).
+5. 운용사명은 manager에 원본 그대로. 사용자가 한글 운용사명을 입력한 경우, 영문 표준명으로 바꾸더라도 원문 한글 운용사명도 함께 포함한다. 시스템이 그룹 확장.
 6. grouped_metric은 groupby/metrics 모두 배열. top_n 기본 50, sort_order 기본 desc.
 7. 애매하면 advice.
 
