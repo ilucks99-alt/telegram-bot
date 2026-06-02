@@ -8,7 +8,11 @@ from app.constants import (
 )
 from app.logger import get_logger
 from app.parsers import render_prompt, safe_json_parse
-from app.parsers.query import _normalize_filter_dict, build_gemini_failure_advice
+from app.parsers.query import (
+    _normalize_filter_dict,
+    build_gemini_failure_advice,
+    preserve_original_korean_managers,
+)
 from app.services import gemini
 
 logger = get_logger(__name__)
@@ -119,6 +123,13 @@ def parse_analysis(user_question: str) -> Dict[str, Any]:
     mode = str(data.get("mode", "")).strip().lower()
     if mode == "analysis":
         normalized = normalize_analysis_json(data.get("analysis_json") or {})
+        has_base_manager = bool((normalized.get("base_filters") or {}).get("manager"))
+        has_target_manager = bool((normalized.get("target_filters") or {}).get("manager"))
+        if has_base_manager != has_target_manager:
+            filter_key = "base_filters" if has_base_manager else "target_filters"
+            normalized[filter_key] = preserve_original_korean_managers(
+                normalized.get(filter_key, {}), user_question
+            )
         if is_unprocessable_analysis(normalized):
             return {"mode": "advice", "analysis_json": None, "advice_text": build_fixed_analysis_advice()}
         return {"mode": "analysis", "analysis_json": normalized, "advice_text": None}
