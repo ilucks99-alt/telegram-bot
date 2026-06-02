@@ -100,6 +100,76 @@ def _norm_str_list(val: Any) -> List[str]:
     return [str(x).strip() for x in val if str(x).strip()]
 
 
+_HANGUL_TOKEN_PAT = re.compile(r"[가-힣A-Za-z0-9&.\-]+")
+_HANGUL_PARTICLE_SUFFIXES = (
+    "으로", "에서", "에게", "까지", "부터", "처럼", "보다", "이며", "이고",
+    "은", "는", "이", "가", "을", "를", "과", "와", "의", "로", "중",
+)
+_MANAGER_KOREAN_STOPWORDS = {
+    normalize_text(x)
+    for x in [
+        "조회", "검색", "분석", "전체", "포트폴리오", "자산", "자산군", "펀드", "운용사",
+        "투자", "약정", "잔액", "콜", "인출", "회수", "수익률", "평균", "비중",
+        "높은", "낮은", "큰", "작은", "상위", "하위", "순", "기준", "목록",
+        "미국", "유럽", "아시아", "글로벌", "국내", "해외", "한국", "캐나다", "중동",
+        "부동산", "인프라", "사모", "대출", "사모대출", "벤처", "민자", "비민자",
+        "전략", "섹터", "코어", "밸류애드", "오퍼튜니스틱", "시니어", "메자닌",
+        "만기", "최초", "룩쓰루", "가능", "나온", "중인", "이상", "이하", "초과", "미만",
+    ]
+}
+
+
+def _strip_hangul_particle(token: str) -> str:
+    for suffix in _HANGUL_PARTICLE_SUFFIXES:
+        if token.endswith(suffix) and len(token) > len(suffix) + 1:
+            return token[: -len(suffix)]
+    return token
+
+
+def _extract_korean_manager_candidates(user_question: str) -> List[str]:
+    """Return likely Korean manager-name tokens from the original user text.
+
+    LLMs often translate a Korean 운용사명 into an English standard name.  For
+    search we keep those English names, but also OR-search the original Korean
+    surface form so Korean manager values stored in the portfolio are not lost.
+    This runs only when the LLM already identified a manager filter; the stopword
+    list prevents generic query terms such as "부동산"/"펀드" from becoming
+    manager keywords.
+    """
+    candidates: List[str] = []
+    seen = set()
+    for match in _HANGUL_TOKEN_PAT.finditer(user_question or ""):
+        token = _strip_hangul_particle(match.group(0).strip("-/.,:;()[]{}<>\"'`"))
+        if not token or not re.search(r"[가-힣]", token):
+            continue
+        if len(token) < 2 or any(ch.isdigit() for ch in token):
+            continue
+        norm = normalize_text(token)
+        if norm in _MANAGER_KOREAN_STOPWORDS:
+            continue
+        if norm and norm not in seen:
+            seen.add(norm)
+            candidates.append(token)
+    return candidates
+
+
+def preserve_original_korean_managers(filters: Dict[str, Any], user_question: str) -> Dict[str, Any]:
+    """Append Korean manager surface forms from the user text to manager filters."""
+    managers = _norm_str_list(filters.get("manager"))
+    if not managers:
+        return filters
+
+    seen = {normalize_text(x) for x in managers}
+    for candidate in _extract_korean_manager_candidates(user_question):
+        norm = normalize_text(candidate)
+        if norm not in seen:
+            managers.append(candidate)
+            seen.add(norm)
+
+    filters["manager"] = managers[:10]
+    return filters
+
+
 def _normalize_filter_dict(filters: Dict[str, Any]) -> Dict[str, Any]:
     out: Dict[str, Any] = {}
 
@@ -248,6 +318,7 @@ def parse_query(user_question: str) -> Dict[str, Any]:
     mode = str(data.get("mode", "")).strip().lower()
     if mode == "query":
         normalized = normalize_query_json(data.get("query_json") or {})
+        normalized["filters"] = preserve_original_korean_managers(normalized.get("filters", {}), user_question)
         if is_unprocessable_query(normalized):
             return {"mode": "advice", "query_json": None, "advice_text": build_fixed_query_advice()}
         return {"mode": "query", "query_json": normalized, "advice_text": None}
