@@ -105,6 +105,10 @@ _HANGUL_PARTICLE_SUFFIXES = (
     "으로", "에서", "에게", "까지", "부터", "처럼", "보다", "이며", "이고",
     "은", "는", "이", "가", "을", "를", "과", "와", "의", "로", "중",
 )
+_MANAGER_VERB_SUFFIXES = (
+    "하는", "하고", "하며", "하면", "해서", "했다", "했던", "하는지", "하던",
+    "되는", "되고", "되며", "되면", "됐다", "되던",
+)
 _MANAGER_KOREAN_STOPWORDS = {
     normalize_text(x)
     for x in [
@@ -114,6 +118,7 @@ _MANAGER_KOREAN_STOPWORDS = {
         "미국", "유럽", "아시아", "글로벌", "국내", "해외", "한국", "캐나다", "중동",
         "부동산", "인프라", "사모", "대출", "사모대출", "벤처", "민자", "비민자",
         "전략", "섹터", "코어", "밸류애드", "오퍼튜니스틱", "시니어", "메자닌",
+        "운용", "운용하", "운용하는", "운용한", "운용중", "관리", "보유",
         "만기", "최초", "룩쓰루", "가능", "나온", "중인", "이상", "이하", "초과", "미만",
     ]
 }
@@ -124,6 +129,18 @@ def _strip_hangul_particle(token: str) -> str:
         if token.endswith(suffix) and len(token) > len(suffix) + 1:
             return token[: -len(suffix)]
     return token
+
+
+def _is_manager_noise_token(token: str) -> bool:
+    norm = normalize_text(token)
+    if not norm or norm in _MANAGER_KOREAN_STOPWORDS:
+        return True
+    # Korean helper verbs like "운용하는" are usually query grammar, not manager
+    # names.  Check both before and after particle stripping so "운용하는" does
+    # not become the bogus manager keyword "운용하" after removing "는".
+    if token.endswith(_MANAGER_VERB_SUFFIXES):
+        return True
+    return False
 
 
 def _extract_korean_manager_candidates(user_question: str) -> List[str]:
@@ -139,8 +156,13 @@ def _extract_korean_manager_candidates(user_question: str) -> List[str]:
     candidates: List[str] = []
     seen = set()
     for match in _HANGUL_TOKEN_PAT.finditer(user_question or ""):
-        token = _strip_hangul_particle(match.group(0).strip("-/.,:;()[]{}<>\"'`"))
+        raw_token = match.group(0).strip("-/.,:;()[]{}<>\"'`")
+        if _is_manager_noise_token(raw_token):
+            continue
+        token = _strip_hangul_particle(raw_token)
         if not token or not re.search(r"[가-힣]", token):
+            continue
+        if _is_manager_noise_token(token):
             continue
         if len(token) < 2 or any(ch.isdigit() for ch in token):
             continue
@@ -195,6 +217,8 @@ def _normalize_filter_dict(filters: Dict[str, Any]) -> Dict[str, Any]:
         "investment_type", "detail_type", "capital_structure",
     ]:
         vals = _norm_str_list(filters.get(key))
+        if key == "manager":
+            vals = [x for x in vals if not _is_manager_noise_token(x)]
         if vals:
             out[key] = vals[:10]
 
