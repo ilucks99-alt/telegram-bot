@@ -27,7 +27,7 @@
 3. "상위 N개"/"top N"→limit=N. "가장/최고/최저" 단독→limit=1. 그 외→9999.
 4. 국내 부동산=Asset_Class=Real_Estate+Region=KOR. 인프라 비민자=strategy "Non-PPP", 민자=strategy "BT" 시작.
 5. strategy/sector는 영문 우선(senior, equity, mezzanine, core, value-add, opportunistic). 한글→영문. 여러 전략은 AND. 국내는 PF대출/담보대출 그대로.
-6. 운용사명(BlackRock, HPS, GIP, 블랙스톤, TPG, Angelo Gordon, Apogem 등)은 manager에 그대로. 시스템이 그룹 확장. fund_name_keywords와 중복 금지.
+6. 운용사명(BlackRock, HPS, GIP, 블랙스톤, TPG, Angelo Gordon, Apogem 등)은 manager에 그대로. 시스템이 그룹 확장. fund_name_keywords와 중복 금지. "운용하는/운용한/관리하는" 같은 서술어는 조건값에 넣지 않는다.
 7. "USD 약정", "달러 펀드" → currency=["USD"]. "원화 펀드"→["KRW"].
 8. "BTL", "BTO" → investment_type. "오피스", "호텔" → detail_type 또는 sector(둘 다 OK). "대출자산", "지분", "메자닌" → capital_structure.
 9. "룩쓰루 가능", "하위자산 있는" → has_lookthrough=true. "다트렌치"/"여러 트렌치" → tranche_count_min=2.
