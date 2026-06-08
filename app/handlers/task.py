@@ -56,14 +56,18 @@ def _parse_due(due_str: str) -> Optional[str]:
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
-_TASK_COMMAND_SEPARATORS = {"｜": "|", "ㅣ": "|", "¦": "|"}
+_TASK_COMMAND_SEPARATORS = {"|": "|", "｜": "|", "ㅣ": "|", "¦": "|", "∣": "|", "│": "|", "┃": "|"}
+_TASK_COMMAND_IGNORED_CHARS = {"\u200b", "\u200c", "\u200d", "\ufeff"}
 _TASK_OPTION_KEYS = {"project", "due", "priority"}
 
 
 def _normalize_task_command_payload(payload: str) -> str:
     """Normalize common mobile/IME variants of the task-command separator."""
     normalized = str(payload or "")
+    for ch in _TASK_COMMAND_IGNORED_CHARS:
+        normalized = normalized.replace(ch, "")
     for src, dst in _TASK_COMMAND_SEPARATORS.items():
+        normalized = normalized.replace(f"\\{src}", dst)
         normalized = normalized.replace(src, dst)
     return normalized.strip()
 
@@ -78,11 +82,17 @@ def _parse_task_command(payload: str) -> Optional[Dict[str, Any]]:
     아니면 업무내용 일부로 보존합니다.
     """
     normalized = _normalize_task_command_payload(payload)
-    if "|" not in normalized:
-        return None
+    if "|" in normalized:
+        assignee_name, remainder = [s.strip() for s in normalized.split("|", 1)]
+    else:
+        # Some clients/users paste the README escaped form or otherwise lose the separator.
+        # Keep the legacy behavior for `/지시 이름` (invalid), but accept `/지시 이름 업무내용`.
+        parts = normalized.split(None, 1)
+        if len(parts) < 2:
+            return None
+        assignee_name, remainder = [s.strip() for s in parts]
 
-    assignee_name, remainder = [s.strip() for s in normalized.split("|", 1)]
-    if not assignee_name or not remainder:
+    if not assignee_name or not remainder:    
         return None
 
     project_id = ""
@@ -122,13 +132,19 @@ def _parse_task_command(payload: str) -> Optional[Dict[str, Any]]:
     }
 
 
+def _extract_task_command_payload(raw: str) -> str:
+    """Extract payload from /지시, /지시@botname, and legacy no-space /지시이름 forms."""
+    raw_text = (raw or "").strip()
+    command, _, rest = raw_text.partition(" ")
+    if command == "/지시" or command.startswith("/지시@"):
+        return rest.strip()
+    if raw_text.startswith("/지시"):
+        return raw_text[len("/지시"):].strip()
+    return raw_text
+
+
 def handle_task_command(db: InvestmentDB, owner_chat_id, raw: str) -> None:
-    # /지시 또는 /지시@botname 형태를 모두 안전하게 제거한다.
-    command, _, rest = (raw or "").partition(" ")
-    if command.startswith("/지시"):
-        payload = rest.strip()
-    else:
-        payload = (raw or "").replace("/지시", "", 1).strip()
+    payload = _extract_task_command_payload(raw)
 
     parsed = _parse_task_command(payload)
     if parsed is None:
@@ -138,7 +154,13 @@ def handle_task_command(db: InvestmentDB, owner_chat_id, raw: str) -> None:
         )
         return
 
-    assignee_chat_id = sheets.find_member_chat_id(parsed["assignee_name"])
+    try:
+        assignee_chat_id = sheets.find_member_chat_id(parsed["assignee_name"])
+    except Exception:
+        logger.exception("find_member_chat_id failed | assignee=%s", parsed["assignee_name"])
+        send_message(owner_chat_id, "담당자 등록 정보 조회 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
+        return 
+
     if not assignee_chat_id:
         send_message(
             owner_chat_id,
@@ -150,20 +172,40 @@ def handle_task_command(db: InvestmentDB, owner_chat_id, raw: str) -> None:
     project_id = parsed["project_id"]
     project_ctx = None
     if project_id:
-        project_ctx = db.project_context(project_id)
-        if project_ctx is None:
+        try:
+            project_ctx = db.project_context(project_id)
+        except Exception:
+            logger.exception("project context lookup failed | project_id=%s", project_id)
             send_message(
                 owner_chat_id,
-                f"⚠️ Project_ID {project_id}를 DB에서 찾지 못했습니다. project 연결 없이 진행합니다.",
+                f"⚠️ Project_ID {project_id}를 조회 중 오류가 발생했습니다. project 연결 없이 진행합니다.",
             )
             project_id = ""
+        else:
+            if project_ctx is None:
+                send_message(
+                    owner_chat_id,
+                    f"⚠️ Project_ID {project_id}를 DB에서 찾지 못했습니다. project 연결 없이 진행합니다.",
+                )
+                project_id = ""
 
-    queue_this = sheets.has_active_task_for_assignee(assignee_chat_id)
+    try:
+        queue_this = sheets.has_active_task_for_assignee(assignee_chat_id)
+    except Exception:
+        logger.exception("has_active_task_for_assignee failed | assignee_chat_id=%s", assignee_chat_id)
+        send_message(owner_chat_id, "담당자 업무 상태 조회 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
+        return
+    
     initial_status = "queued" if queue_this else "waiting_for_reply"
 
     # 큐 상한 체크 — 상한 초과 시 생성 자체를 거부해 담당자가 밀리지 않게 한다
     if queue_this:
-        current_queue = sheets.count_queued_tasks_for_assignee(assignee_chat_id)
+        try:
+            current_queue = sheets.count_queued_tasks_for_assignee(assignee_chat_id)
+        except Exception:
+            logger.exception("count_queued_tasks_for_assignee failed | assignee_chat_id=%s", assignee_chat_id)
+            send_message(owner_chat_id, "담당자 대기열 조회 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
+            return
         if current_queue >= config.TASK_QUEUE_MAX:
             send_message(
                 owner_chat_id,
@@ -218,7 +260,19 @@ def handle_task_command(db: InvestmentDB, owner_chat_id, raw: str) -> None:
             logger.exception("queue owner notify failed")
         return
 
-    _send_task_to_assignee(task, project_ctx)
+    try:
+        _send_task_to_assignee(task, project_ctx)
+    except Exception:
+        logger.exception("send task to assignee failed | task_id=%s", task_id)
+        try:
+            send_message(
+                owner_chat_id,
+                f"업무는 생성됐지만 담당자 발송 중 오류가 발생했습니다.\n"
+                f"- 업무번호: {task_id}\n"
+                f"잠시 후 /이력 {task_id} 로 상태를 확인해주세요.",
+            )
+        except Exception:
+            logger.exception("owner notify after assignee send failure failed | task_id=%s", task_id)
 
 
 def _send_task_to_assignee(task: Dict[str, Any], project_ctx: Optional[Dict[str, Any]]) -> None:
