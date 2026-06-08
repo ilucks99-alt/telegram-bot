@@ -56,35 +56,64 @@ def _parse_due(due_str: str) -> Optional[str]:
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
+_TASK_COMMAND_SEPARATORS = {"｜": "|", "ㅣ": "|", "¦": "|"}
+_TASK_OPTION_KEYS = {"project", "due", "priority"}
+
+
+def _normalize_task_command_payload(payload: str) -> str:
+    """Normalize common mobile/IME variants of the task-command separator."""
+    normalized = str(payload or "")
+    for src, dst in _TASK_COMMAND_SEPARATORS.items():
+        normalized = normalized.replace(src, dst)
+    return normalized.strip()
+
+
 def _parse_task_command(payload: str) -> Optional[Dict[str, Any]]:
     """
     파서: '이름 | 업무내용 [| project=BS00001505] [| due=HH:MM | due=YYYY-MM-DD HH:MM]'
-    첫 세그먼트(이름)와 둘째 세그먼트(업무내용)는 필수, 나머지는 key=value.
+    첫 구분자 앞은 이름, 뒤는 업무내용입니다. 이후 key=value 세그먼트는 옵션으로 처리합니다.
+
+    모바일 키보드에서 자주 입력되는 전각 파이프(｜), 한글 자모(ㅣ), broken bar(¦)도
+    일반 파이프(|)와 동일하게 인식합니다. 업무내용 안의 추가 파이프는 옵션 형식이
+    아니면 업무내용 일부로 보존합니다.
     """
-    segments = [s.strip() for s in payload.split("|")]
-    if len(segments) < 2:
+    normalized = _normalize_task_command_payload(payload)
+    if "|" not in normalized:
         return None
 
-    assignee_name = segments[0]
-    instruction = segments[1]
-    if not assignee_name or not instruction:
+    assignee_name, remainder = [s.strip() for s in normalized.split("|", 1)]
+    if not assignee_name or not remainder:
         return None
 
     project_id = ""
     due_at = ""
-    for seg in segments[2:]:
-        if "=" not in seg:
-            continue
-        k, v = seg.split("=", 1)
-        k = k.strip().lower()
-        v = v.strip()
-        if k == "project":
-            project_id = v
-        elif k == "due":
-            parsed = _parse_due(v)
-            if parsed:
-                due_at = parsed
+    instruction_parts: List[str] = []
 
+    for raw_seg in remainder.split("|"):
+        seg = raw_seg.strip()
+        if not seg:
+            continue
+
+        if "=" in seg:
+            k, v = seg.split("=", 1)
+            k = k.strip().lower()
+            v = v.strip()
+            if k in _TASK_OPTION_KEYS:
+                if k == "project":
+                    project_id = v
+                elif k == "due":
+                    parsed = _parse_due(v)
+                    if parsed:
+                        due_at = parsed
+                # priority 는 현재 시트 생성 흐름에서 별도 저장하지 않으므로 파싱만 허용한다.
+                continue
+
+        instruction_parts.append(seg)
+
+    instruction = " | ".join(instruction_parts).strip()
+    if not instruction:
+        return None
+        
     return {
         "assignee_name": assignee_name,
         "instruction": instruction,
@@ -94,7 +123,12 @@ def _parse_task_command(payload: str) -> Optional[Dict[str, Any]]:
 
 
 def handle_task_command(db: InvestmentDB, owner_chat_id, raw: str) -> None:
-    payload = raw.replace("/지시", "", 1).strip()
+    # /지시 또는 /지시@botname 형태를 모두 안전하게 제거한다.
+    command, _, rest = (raw or "").partition(" ")
+    if command.startswith("/지시"):
+        payload = rest.strip()
+    else:
+        payload = (raw or "").replace("/지시", "", 1).strip()
 
     parsed = _parse_task_command(payload)
     if parsed is None:
@@ -156,8 +190,13 @@ def handle_task_command(db: InvestmentDB, owner_chat_id, raw: str) -> None:
         send_message(owner_chat_id, "업무 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
         return
 
-    sheets.append_task_history(task_id, "system", f"업무 지시됨: {parsed['instruction']}")
-
+    try:
+        sheets.append_task_history(task_id, "system", f"업무 지시됨: {parsed['instruction']}")
+    except Exception:
+        # 히스토리 기록 실패가 업무 발송 자체를 막으면 사용자는 "아예 작동 안 함"으로 보게 된다.
+        # Tasks 행은 이미 생성됐으므로 로그만 남기고 담당자 발송은 계속 진행한다.
+        logger.exception("append initial task history failed | task_id=%s", task_id)
+    
     if queue_this:
         # 새로 추가됐으므로 방금 생성된 task 도 count 에 포함됨
         try:
