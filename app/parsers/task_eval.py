@@ -1,3 +1,4 @@
+import re
 from typing import Any, Dict, List, Optional
 
 from app.logger import get_logger
@@ -64,6 +65,52 @@ def _format_similar_tasks(similar: List[Dict[str, Any]]) -> str:
     return "\n\n".join(parts)
 
 
+_COMPLETE_SIGNALS = (
+    "이상입니다",
+    "끝",
+    "더 보완할 거 없음",
+    "더 보완할 것 없음",
+    "이게 전부입니다",
+    "완료",
+    "보고 부탁드립니다",
+    "보고 요청",
+)
+
+
+def _fallback_evaluation(raw: str, instruction: str, latest_reply: str) -> Dict[str, str]:
+    """Return a safe task evaluation when Gemini emits malformed/truncated JSON.
+
+    The task handler should not fail the user's reply just because the model
+    returned an unterminated JSON string. Prefer preserving the workflow by
+    inferring the intended result when possible and otherwise asking for one
+    concise clarification.
+    """
+    compact = re.sub(r"\s+", " ", raw or "")
+    latest = (latest_reply or "").strip()
+
+    inferred_complete = re.search(r'"result"\s*:\s*"complete"', compact)
+    if any(signal in latest for signal in _COMPLETE_SIGNALS) or inferred_complete:
+        return {
+            "result": "complete",
+            "message_to_assignee": "",
+            "message_to_owner": (
+                "[업무 결과 보고]\n"
+                f"- 업무: {instruction}\n\n"
+                "[팀원 답변]\n"
+                f"{latest[:4000]}"
+            ),
+        }
+
+    return {
+        "result": "feedback",
+        "message_to_assignee": (
+            "답변은 확인했습니다. 다만 자동 평가 응답이 일부 잘려서 세부 보완점을 안정적으로 읽지 못했습니다. "
+            "핵심 결론과 근거를 1~2줄로만 추가해 주시면 바로 보고에 반영하겠습니다."
+        ),
+        "message_to_owner": "",
+    }
+
+
 def evaluate_response(
     instruction: str,
     history: List[Dict[str, Any]],
@@ -83,16 +130,20 @@ def evaluate_response(
         latest_reply=latest_reply,
     )
 
-    raw = gemini.generate_json(prompt, max_output_tokens=900, temperature=0.2)
+    raw = gemini.generate_json(prompt, max_output_tokens=1600, temperature=0.2)
     if not raw:
         raise RuntimeError("Gemini 응답이 비어 있습니다.")
 
     try:
         data = safe_json_parse(raw)
-    except Exception:
-        logger.exception("task evaluation JSON parse failed | raw=%s", raw[:500])
-        raise
-
+    except Exception as exc:
+        logger.warning(
+            "task evaluation JSON parse failed; using fallback | error=%s | raw=%s",
+            exc,
+            raw[:500],
+        )
+        data = _fallback_evaluation(raw, instruction, latest_reply)
+    
     result = (data.get("result") or "").strip()
     if result not in ("feedback", "complete"):
         raise RuntimeError(f"Gemini 응답 result 값 오류: {data}")
