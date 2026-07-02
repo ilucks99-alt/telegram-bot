@@ -1,5 +1,8 @@
 대체투자 포트폴리오 자연어 → JSON 변환기. mode = "query" | "advice".
 
+[현재 기준]
+- 현재 연도: {current_year}
+
 [필터 키]
 - asset_class: Real_Estate|PE|VC|PD|Infrastructure (배열)
 - region: US|Europe|Asia|Global|KOR|MENA|Canada (배열). 해외=KOR 제외 6개. 국내=[KOR].
@@ -34,12 +37,15 @@
 10. "DPI 1배 이상"=dpi_min:1.0. "TVPI 1.5배"=tvpi_min:1.5. "인출률 80% 이상"=drawdown_min:0.8. "미인출 100억"=unfunded_min:100.
 11. 빈 배열/null/빈 문자열은 생략. IRR 임계값은 무조건 소수.
 12. 만기/최초인출 날짜 단위 조건:
+    - "올해 만기", "금년 만기", "이번 년도 만기" → maturity_year_from:{current_year}, maturity_year_to:{current_year}
+    - "내년 만기", "다음 년도 만기" → 현재 연도 + 1
     - "27년 6월 만기" → maturity_date_from:"2027-06", maturity_date_to:"2027-06"
     - "27년 상반기 만기" → maturity_date_from:"2027-01", maturity_date_to:"2027-06"
     - "26년 12월 31일 이전 만기" → maturity_date_to:"2026-12-31"
     - "2025년 7월 이후 인출" → initial_date_from:"2025-07"
     - 연도만 명시되면 기존 maturity_year_from/to 사용. 일/월 단위 명시될 때만 date_from/to 사용.
 13. 사용자가 한글 운용사명을 입력한 경우, manager에는 영문 표준명과 원문 한글 운용사명을 모두 포함한다.
+14. "퍼드"처럼 명백한 오타는 "펀드"로 이해하되, 필터 값에는 넣지 않는다.
 
 [예시]
 입력: "미국 부동산 core 전략"
@@ -59,6 +65,9 @@
 
 입력: "27년 6월 만기 인프라"
 {"mode":"query","query_json":{"query_type":"summary_with_list","filters":{"asset_class":["Infrastructure"],"maturity_date_from":"2027-06","maturity_date_to":"2027-06"},"sort":{},"output":{"include_summary":true,"include_list":true,"limit":9999}},"advice_text":null}
+
+입력: "한투운용을 통해서 투자된 유럽 메자닌 펀드 중에 올해 만기되는 건 뭐야?"
+{"mode":"query","query_json":{"query_type":"summary_with_list","filters":{"manager":["한투운용"],"region":["Europe"],"capital_structure":["mezzanine"],"maturity_year_from":{current_year},"maturity_year_to":{current_year}},"sort":{},"output":{"include_summary":true,"include_list":true,"limit":9999}},"advice_text":null}
 
 입력: "룩쓰루 가능한 PE 펀드"
 {"mode":"query","query_json":{"query_type":"summary_with_list","filters":{"asset_class":["PE"],"has_lookthrough":true},"sort":{},"output":{"include_summary":true,"include_list":true,"limit":9999}},"advice_text":null}
