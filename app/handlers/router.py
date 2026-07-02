@@ -1,3 +1,4 @@
+import re
 from typing import Any, Dict
 
 from app import config
@@ -26,11 +27,18 @@ from app.handlers.task import (
 from app.handlers.team import handle_register_command
 from app.logger import get_logger
 from app.parsers.followup import parse_followup
+from app.parsers.intent import classify_portfolio_intent
 from app.services import sheets
 from app.services.telegram import send_message
 from app.state import dialog_memory
 
 logger = get_logger(__name__)
+
+_DETAIL_WORDS_PAT = re.compile(r"(상세조회|상세|자세히|전체\s*데이터)(해줘|해주세요|해|요)?", re.IGNORECASE)
+_LOOKTHROUGH_WORDS_PAT = re.compile(
+    r"(룩쓰루|look\s*through|lookthrough|하위자산|보유자산|보유종목|드릴다운)(해줘|해주세요|해|요)?",
+    re.IGNORECASE,
+)
 
 
 HELP_TEXT = """
@@ -61,6 +69,8 @@ HELP_TEXT = """
 /help — 도움말
 /refresh — DB 다시 불러오기
 
+💡 슬래시 없이 자연어로 바로 입력해도 조회/분석/상세조회/룩쓰루를 자동 판단합니다.
+   예: "미국 부동산 IRR 높은 5개", "지역별 약정액", "BS00001234 상세", "BS00001234 룩쓰루"
 💡 조회/분석 직후 5분 이내엔 자연어 후속 가능: "1번 룩쓰루", "OpenAI 어디 있어?", "IRR 높은 순 3개"
 
 [필터 옵션]
@@ -100,6 +110,39 @@ def _try_followup(db: InvestmentDB, chat_id: int, text: str) -> bool:
         return True
     if kind == "exposure":
         handle_exposure_followup(db, chat_id, payload)
+        return True
+    return False
+
+
+def _try_natural_portfolio_command(
+    db: InvestmentDB,
+    chat_id: int,
+    raw: str,
+    ctx: Dict[str, Any],
+) -> bool:
+    routed = classify_portfolio_intent(raw)
+    intent = routed.get("intent")
+    logger.info(
+        "natural portfolio route | intent=%s confidence=%s reason=%s text=%s",
+        intent,
+        routed.get("confidence"),
+        routed.get("reason"),
+        raw[:200],
+    )
+
+    if intent == "query":
+        handle_query_command(db, chat_id, f"/조회 {raw}", ctx)
+        return True
+    if intent == "analysis":
+        handle_analysis_command(db, chat_id, f"/분석 {raw}", ctx)
+        return True
+    if intent == "detail":
+        args = _DETAIL_WORDS_PAT.sub(" ", raw).strip() or raw
+        handle_detail(db, chat_id, f"/상세조회 {args}", ctx)
+        return True
+    if intent == "lookthrough":
+        args = _LOOKTHROUGH_WORDS_PAT.sub(" ", raw).strip() or raw
+        handle_lookthrough_command(db, chat_id, f"/룩쓰루 {args}", ctx)
         return True
     return False
 
@@ -208,13 +251,16 @@ def process_user_message(db: InvestmentDB, chat_id: int, text: str, ctx: Dict[st
         handle_news_search_command(chat_id, raw)
         return
 
-    # 7) 명령어 없는 자유 텍스트 → 멀티턴 후속 질문 시도
+    # 7) 명령어 없는 자유 텍스트 → 멀티턴 후속 질문 우선, 아니면 자연어 의도 자동 라우팅
     if raw and not raw.startswith("/"):
         if _try_followup(db, chat_id, raw):
             return
-
+        if _try_natural_portfolio_command(db, chat_id, raw, ctx):
+            return
+    
     send_message(
         chat_id,
         "지원하지 않는 명령어입니다.\n"
-        "/조회, /분석, /상세조회, /검색, /등록, /지시 형식으로 입력해 주세요."
+        "자연어로 조회/분석/상세조회/룩쓰루 내용을 입력하거나,\n"
+        "/조회, /분석, /상세조회, /룩쓰루, /검색, /등록, /지시 형식으로 입력해 주세요."
     )
