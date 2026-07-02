@@ -13,7 +13,7 @@ from app.constants import (
 from app.logger import get_logger
 from app.parsers import render_prompt, safe_json_parse
 from app.services import gemini
-from app.util import normalize_text
+from app.util import get_kst_today_year, normalize_text
 
 logger = get_logger(__name__)
 
@@ -24,6 +24,16 @@ _PID_ONLY_PAT = re.compile(
     re.IGNORECASE,
 )
 _PID_FIND_PAT = re.compile(r"BS\d{6,10}", re.IGNORECASE)
+_THIS_YEAR_MATURITY_PAT = re.compile(
+    r"(올해|금년|이번\s*년(?:도)?|this\s+year).{0,12}만기|"
+    r"만기.{0,12}(올해|금년|이번\s*년(?:도)?|this\s+year)",
+    re.IGNORECASE,
+)
+_NEXT_YEAR_MATURITY_PAT = re.compile(
+    r"(내년|다음\s*년(?:도)?|next\s+year).{0,12}만기|"
+    r"만기.{0,12}(내년|다음\s*년(?:도)?|next\s+year)",
+    re.IGNORECASE,
+)
 
 
 def _try_pid_only_shortcut(question: str) -> Optional[Dict[str, Any]]:
@@ -43,6 +53,36 @@ def _try_pid_only_shortcut(question: str) -> Optional[Dict[str, Any]]:
             "limit": config.DEFAULT_LIMIT,
         },
     }
+
+
+def _apply_relative_maturity_filters(query_json: Dict[str, Any], user_question: str) -> Dict[str, Any]:
+    """Fill maturity year filters for common relative-year Korean expressions.
+
+    The LLM prompt also explains these expressions, but this deterministic
+    post-processing keeps queries like "올해 만기" stable even if the model omits
+    or misreads the current year.
+    """
+    text = user_question or ""
+    if "만기" not in text:
+        return query_json
+
+    filters = query_json.setdefault("filters", {})
+    if any(
+        filters.get(k) not in (None, "", [], {})
+        for k in ("maturity_year_from", "maturity_year_to", "maturity_date_from", "maturity_date_to")
+    ):
+        return query_json
+
+    year: Optional[int] = None
+    if _THIS_YEAR_MATURITY_PAT.search(text):
+        year = get_kst_today_year()
+    elif _NEXT_YEAR_MATURITY_PAT.search(text):
+        year = get_kst_today_year() + 1
+
+    if year is not None:
+        filters["maturity_year_from"] = year
+        filters["maturity_year_to"] = year
+    return query_json
 
 
 def build_fixed_query_advice() -> str:
@@ -120,6 +160,8 @@ _MANAGER_KOREAN_STOPWORDS = {
         "전략", "섹터", "코어", "밸류애드", "오퍼튜니스틱", "시니어", "메자닌",
         "운용", "운용하", "운용하는", "운용한", "운용중", "관리", "보유",
         "만기", "최초", "룩쓰루", "가능", "나온", "중인", "이상", "이하", "초과", "미만",
+        "통해", "통해서", "투자된", "투자한", "투자하는", "올해", "금년", "내년",
+        "이번", "다음", "년도", "뭐야", "무엇", "무엇이", "어떤", "중에", "퍼드",        
     ]
 }
 
@@ -327,7 +369,11 @@ def parse_query(user_question: str) -> Dict[str, Any]:
         logger.warning("query parse: Gemini unavailable (no API key or SDK missing)")
         return {"mode": "advice", "query_json": None, "advice_text": build_gemini_failure_advice()}
 
-    prompt = render_prompt("query_parser.txt", user_question=user_question)
+    prompt = render_prompt(
+        "query_parser.txt",
+        user_question=user_question,
+        current_year=get_kst_today_year(),
+    )
     raw = gemini.generate_json(prompt, max_output_tokens=600, temperature=0.1)
     if not raw:
         logger.warning("query parse: Gemini returned empty response")
@@ -341,7 +387,9 @@ def parse_query(user_question: str) -> Dict[str, Any]:
 
     mode = str(data.get("mode", "")).strip().lower()
     if mode == "query":
-        normalized = normalize_query_json(data.get("query_json") or {})
+        normalized = normalize_query_json(
+            _apply_relative_maturity_filters(data.get("query_json") or {}, user_question)
+        )
         normalized["filters"] = preserve_original_korean_managers(normalized.get("filters", {}), user_question)
         if is_unprocessable_query(normalized):
             return {"mode": "advice", "query_json": None, "advice_text": build_fixed_query_advice()}
