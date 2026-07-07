@@ -161,7 +161,7 @@ _MANAGER_KOREAN_STOPWORDS = {
         "운용", "운용하", "운용하는", "운용한", "운용중", "관리", "보유",
         "만기", "최초", "룩쓰루", "가능", "나온", "중인", "이상", "이하", "초과", "미만",
         "통해", "통해서", "투자된", "투자한", "투자하는", "올해", "금년", "내년",
-        "이번", "다음", "년도", "뭐야", "무엇", "무엇이", "어떤", "중에", "퍼드",        
+        "이번", "다음", "년도", "뭐야", "무엇", "무엇이", "어떤", "중에", "퍼드",
     ]
 }
 
@@ -232,6 +232,40 @@ def preserve_original_korean_managers(filters: Dict[str, Any], user_question: st
 
     filters["manager"] = managers[:10]
     return filters
+
+
+def clean_filters_with_gemini(filters: Dict[str, Any], user_question: str) -> Dict[str, Any]:
+    """Use Gemini to remove conversational noise from all parsed filters.
+
+    The first parser pass may accidentally place particles, question words, or
+    helper verbs into any string-list filter, not only manager. This focused
+    cleanup pass reviews the entire filter dict against the original question so
+    we do not need to enumerate every possible Korean phrasing in code.
+    """
+    if not filters or not gemini.is_available():
+        return filters
+
+    prompt = render_prompt(
+        "filter_cleaner.txt",
+        user_question=user_question,
+        filters=filters,
+    )
+    raw = gemini.generate_json(prompt, max_output_tokens=500, temperature=0.0)
+    if not raw:
+        logger.warning("filter cleanup: Gemini returned empty response")
+        return filters
+
+    try:
+        data = safe_json_parse(raw)
+    except Exception:
+        logger.exception("filter cleanup: JSON parse failed")
+        return filters
+
+    cleaned_filters = data.get("filters")
+    if not isinstance(cleaned_filters, dict):
+        return filters
+
+    return _normalize_filter_dict(cleaned_filters)
 
 
 def _normalize_filter_dict(filters: Dict[str, Any]) -> Dict[str, Any]:
@@ -391,6 +425,7 @@ def parse_query(user_question: str) -> Dict[str, Any]:
             _apply_relative_maturity_filters(data.get("query_json") or {}, user_question)
         )
         normalized["filters"] = preserve_original_korean_managers(normalized.get("filters", {}), user_question)
+        normalized["filters"] = clean_filters_with_gemini(normalized.get("filters", {}), user_question)
         if is_unprocessable_query(normalized):
             return {"mode": "advice", "query_json": None, "advice_text": build_fixed_query_advice()}
         return {"mode": "query", "query_json": normalized, "advice_text": None}
