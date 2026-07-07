@@ -11,6 +11,7 @@ from app.parsers import render_prompt, safe_json_parse
 from app.parsers.query import (
     _normalize_filter_dict,
     build_gemini_failure_advice,
+    clean_filters_with_gemini,
     preserve_original_korean_managers,
 )
 from app.services import gemini
@@ -130,6 +131,8 @@ def parse_analysis(user_question: str) -> Dict[str, Any]:
             normalized[filter_key] = preserve_original_korean_managers(
                 normalized.get(filter_key, {}), user_question
             )
+        normalized["base_filters"] = clean_filters_with_gemini(normalized.get("base_filters", {}), user_question)
+        normalized["target_filters"] = clean_filters_with_gemini(normalized.get("target_filters", {}), user_question)
         if is_unprocessable_analysis(normalized):
             return {"mode": "advice", "analysis_json": None, "advice_text": build_fixed_analysis_advice()}
         return {"mode": "analysis", "analysis_json": normalized, "advice_text": None}
