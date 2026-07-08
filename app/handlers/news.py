@@ -357,7 +357,11 @@ def _send_portfolio_report(chat_id, news_items: List[Dict[str, Any]]) -> str:
             return "empty"
 
         try:
-            summary = summarize_news("포트폴리오 (GP + LookThrough) 뉴스", news_items)
+            summary = summarize_news(
+                "포트폴리오 (GP + LookThrough) 뉴스",
+                news_items,
+                prompt_name="portfolio_news_summarizer.txt",
+            )
         except Exception:
             logger.exception("portfolio news summarize failed")
             summary = ""
