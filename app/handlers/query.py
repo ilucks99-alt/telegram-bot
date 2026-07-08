@@ -15,10 +15,10 @@ logger = get_logger(__name__)
 
 
 _RELAX_FILTER_GROUPS = [
+    ("capital_structure",),
     ("fund_name_keywords", "asset_name_keywords"),
-    ("strategy", "sector"),
+    ("investment_type", "detail_type"),
     ("manager",),
-    ("investment_type", "detail_type", "capital_structure"),
     ("currency",),
     ("has_lookthrough", "tranche_count_min"),
     ("irr_min", "irr_max", "dpi_min", "dpi_max", "tvpi_min", "tvpi_max", "drawdown_min", "drawdown_max"),
@@ -27,6 +27,7 @@ _RELAX_FILTER_GROUPS = [
     ("vintage_from", "vintage_to", "maturity_year_from", "maturity_year_to"),
     ("region",),
     ("asset_class",),
+    ("strategy", "sector"),
 ]
 
 
@@ -97,7 +98,7 @@ def handle_query_command(db: InvestmentDB, chat_id: int, raw: str, ctx: Dict[str
 
         logger.info("query_json=%s", json.dumps(query_json, ensure_ascii=False))
         retrieved, effective_query_json, retry_info = _search_with_auto_relaxation(db, query_json)
-        interpretation = _build_interpretation(effective_query_json, retry_info)     
+        interpretation = _build_interpretation(effective_query_json, retry_info)
         answer = build_search_answer(retrieved, interpretation)
         send_message(chat_id, answer)
 
