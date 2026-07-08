@@ -8,7 +8,7 @@
 - region: US|Europe|Asia|Global|KOR|MENA|Canada (배열). 해외=KOR 제외 6개. 국내=[KOR].
 - currency: KRW|USD|EUR|GBP|JPY|Unknown (배열)
 - manager, strategy, sector, project_id, fund_name_keywords, asset_name_keywords (배열)
-- investment_type, detail_type, capital_structure (배열, 자유 키워드 — BTO/BTL/Buyout/Office/Hotel/대출/지분/메자닌 등)
+- investment_type, detail_type, capital_structure (배열, 자유 키워드. capital_structure는 원문이 명시적으로 "자본구조"를 묻는 경우에만 사용)
 - has_lookthrough: true|false (룩쓰루 가능 펀드만 / 없는 펀드만)
 - tranche_count_min (int, 다트렌치 펀드 — 보통 2 이상)
 - vintage_from/to, maturity_year_from/to (int)
@@ -29,10 +29,10 @@
 2. "높은/큰 순"=desc, "낮은/작은 순"=asc, "빠른 만기"=maturity_year asc.
 3. "상위 N개"/"top N"→limit=N. "가장/최고/최저" 단독→limit=1. 그 외→9999.
 4. 국내 부동산=Asset_Class=Real_Estate+Region=KOR. 인프라 비민자=strategy "Non-PPP", 민자=strategy "BT" 시작.
-5. strategy/sector는 영문 우선(senior, equity, mezzanine, core, value-add, opportunistic). 한글→영문. 여러 전략은 AND. 국내는 PF대출/담보대출 그대로.
+5. 검색 조건은 가능한 한 strategy/sector를 우선 사용한다. strategy/sector는 영문 우선(senior, equity, mezzanine, core, value-add, opportunistic). 한글→영문. 여러 전략은 AND. 국내는 PF대출/담보대출 그대로.
 6. 운용사명(BlackRock, HPS, GIP, 블랙스톤, TPG, Angelo Gordon, Apogem 등)은 manager에 그대로. 시스템이 그룹 확장. fund_name_keywords와 중복 금지. "운용하는/운용한/관리하는" 같은 서술어는 조건값에 넣지 않는다.
 7. "USD 약정", "달러 펀드" → currency=["USD"]. "원화 펀드"→["KRW"].
-8. "BTL", "BTO" → investment_type. "오피스", "호텔" → detail_type 또는 sector(둘 다 OK). "대출자산", "지분", "메자닌" → capital_structure.
+8. "BTL", "BTO" → investment_type. "오피스", "호텔" → sector 우선(필요 시 detail_type). "메자닌", "지분/equity", "시니어/senior", "대출/debt"처럼 투자 성격을 나타내는 말은 strategy 우선. capital_structure는 대출/수익증권 같은 원천 자본구조 값이라 검색 조건으로 의미가 약하므로, 사용자가 "자본구조"라고 명시한 경우가 아니면 만들지 않는다.
 9. "룩쓰루 가능", "하위자산 있는" → has_lookthrough=true. "다트렌치"/"여러 트렌치" → tranche_count_min=2.
 10. "DPI 1배 이상"=dpi_min:1.0. "TVPI 1.5배"=tvpi_min:1.5. "인출률 80% 이상"=drawdown_min:0.8. "미인출 100억"=unfunded_min:100.
 11. 빈 배열/null/빈 문자열은 생략. IRR 임계값은 무조건 소수.
@@ -67,7 +67,7 @@
 {"mode":"query","query_json":{"query_type":"summary_with_list","filters":{"asset_class":["Infrastructure"],"maturity_date_from":"2027-06","maturity_date_to":"2027-06"},"sort":{},"output":{"include_summary":true,"include_list":true,"limit":9999}},"advice_text":null}
 
 입력: "한투운용을 통해서 투자된 유럽 메자닌 펀드 중에 올해 만기되는 건 뭐야?"
-{"mode":"query","query_json":{"query_type":"summary_with_list","filters":{"manager":["한투운용"],"region":["Europe"],"capital_structure":["mezzanine"],"maturity_year_from":{current_year},"maturity_year_to":{current_year}},"sort":{},"output":{"include_summary":true,"include_list":true,"limit":9999}},"advice_text":null}
+{"mode":"query","query_json":{"query_type":"summary_with_list","filters":{"manager":["한투운용"],"region":["Europe"],"strategy":["mezzanine"],"maturity_year_from":{current_year},"maturity_year_to":{current_year}},"sort":{},"output":{"include_summary":true,"include_list":true,"limit":9999}},"advice_text":null}
 
 입력: "룩쓰루 가능한 PE 펀드"
 {"mode":"query","query_json":{"query_type":"summary_with_list","filters":{"asset_class":["PE"],"has_lookthrough":true},"sort":{},"output":{"include_summary":true,"include_list":true,"limit":9999}},"advice_text":null}
