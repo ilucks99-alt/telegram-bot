@@ -234,6 +234,42 @@ def preserve_original_korean_managers(filters: Dict[str, Any], user_question: st
     return filters
 
 
+
+def prefer_strategy_sector_over_capital_structure(filters: Dict[str, Any], user_question: str) -> Dict[str, Any]:
+    """Avoid weak capital-structure filters unless explicitly requested.
+
+    The source capital-structure field mostly contains broad legal forms such as
+    loan/beneficiary-certificate, so user-facing investment terms are better
+    searched through Strategy/Sector.
+    """
+    if not filters or "capital_structure" not in filters:
+        return filters
+    if "자본구조" in (user_question or ""):
+        return filters
+
+    strategy_aliases = {
+        "mezzanine": "mezzanine",
+        "메자닌": "mezzanine",
+        "equity": "equity",
+        "지분": "equity",
+        "senior": "senior",
+        "시니어": "senior",
+    }
+    strategies = _norm_str_list(filters.get("strategy"))
+    seen = {normalize_text(x) for x in strategies}
+
+    for raw in _norm_str_list(filters.get("capital_structure")):
+        mapped = strategy_aliases.get(normalize_text(raw)) or strategy_aliases.get(raw.strip().lower())
+        if mapped and normalize_text(mapped) not in seen:
+            strategies.append(mapped)
+            seen.add(normalize_text(mapped))
+
+    if strategies:
+        filters["strategy"] = strategies[:10]
+    filters.pop("capital_structure", None)
+    return filters
+
+
 def clean_filters_with_gemini(filters: Dict[str, Any], user_question: str) -> Dict[str, Any]:
     """Use Gemini to remove conversational noise from all parsed filters.
 
@@ -426,6 +462,7 @@ def parse_query(user_question: str) -> Dict[str, Any]:
         )
         normalized["filters"] = preserve_original_korean_managers(normalized.get("filters", {}), user_question)
         normalized["filters"] = clean_filters_with_gemini(normalized.get("filters", {}), user_question)
+        normalized["filters"] = prefer_strategy_sector_over_capital_structure(normalized.get("filters", {}), user_question)        
         if is_unprocessable_query(normalized):
             return {"mode": "advice", "query_json": None, "advice_text": build_fixed_query_advice()}
         return {"mode": "query", "query_json": normalized, "advice_text": None}
