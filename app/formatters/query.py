@@ -125,7 +125,7 @@ def _humanize_filter_summary(filters: Dict[str, Any]) -> List[str]:
     return parts
 
 
-def summarize_query_json(query_json: Dict[str, Any]) -> str:
+def humanize_query_conditions(query_json: Dict[str, Any]) -> str:
     filters = query_json.get("filters", {}) or {}
     sort = query_json.get("sort", {}) or {}
     limit = int(query_json.get("output", {}).get("limit", config.DEFAULT_LIMIT) or config.DEFAULT_LIMIT)
@@ -153,8 +153,15 @@ def summarize_query_json(query_json: Dict[str, Any]) -> str:
         parts.append(f"표시건수={limit}")
 
     if not parts:
+        return "전체 포트폴리오 기준"
+    return f"{', '.join(parts)} 조건"
+
+
+def summarize_query_json(query_json: Dict[str, Any]) -> str:
+    condition_text = humanize_query_conditions(query_json)
+    if condition_text == "전체 포트폴리오 기준":
         return "전체 포트폴리오 기준 조회로 이해했습니다."
-    return f"{', '.join(parts)} 조건으로 조회했습니다."
+    return f"{condition_text}으로 조회했습니다."
 
 
 def build_search_answer(retrieved: Dict[str, Any], interpretation: str) -> str:
