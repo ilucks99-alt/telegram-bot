@@ -1,9 +1,10 @@
+import copy
 import json
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Tuple
 
 from app import config
 from app.db_engine import InvestmentDB
-from app.formatters.query import build_search_answer, summarize_query_json
+from app.formatters.query import build_search_answer, humanize_query_conditions, summarize_query_json
 from app.logger import get_logger
 from app.parsers.query import build_fixed_query_advice, parse_query
 from app.services.telegram import send_message
@@ -11,6 +12,57 @@ from app.state import dialog_memory, question_limit
 from app.util import get_sender_display_name
 
 logger = get_logger(__name__)
+
+
+_RELAX_FILTER_GROUPS = [
+    ("fund_name_keywords", "asset_name_keywords"),
+    ("strategy", "sector"),
+    ("manager",),
+    ("investment_type", "detail_type", "capital_structure"),
+    ("currency",),
+    ("has_lookthrough", "tranche_count_min"),
+    ("irr_min", "irr_max", "dpi_min", "dpi_max", "tvpi_min", "tvpi_max", "drawdown_min", "drawdown_max"),
+    ("commit_min", "commit_max", "called_min", "called_max", "repaid_min", "repaid_max", "outstanding_min", "outstanding_max", "nav_min", "nav_max", "unfunded_min", "unfunded_max"),
+    ("maturity_date_from", "maturity_date_to", "initial_date_from", "initial_date_to"),
+    ("vintage_from", "vintage_to", "maturity_year_from", "maturity_year_to"),
+    ("region",),
+    ("asset_class",),
+]
+
+
+def _search_with_auto_relaxation(db: InvestmentDB, query_json: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any], Optional[Dict[str, Any]]]:
+    retrieved = db.search(query_json)
+    if (retrieved.get("summary") or {}).get("count_projects_total", 0) > 0:
+        return retrieved, query_json, None
+
+    filters = query_json.get("filters", {}) or {}
+    if not filters or filters.get("project_id"):
+        return retrieved, query_json, None
+
+    relaxed_query = copy.deepcopy(query_json)
+    relaxed_filters = relaxed_query.setdefault("filters", {})
+    for group in _RELAX_FILTER_GROUPS:
+        if not any(relaxed_filters.get(key) not in (None, [], {}, "") for key in group):
+            continue
+        for key in group:
+            relaxed_filters.pop(key, None)
+        relaxed_retrieved = db.search(relaxed_query)
+        if (relaxed_retrieved.get("summary") or {}).get("count_projects_total", 0) > 0:
+            retry_info = {
+                "original_query_json": query_json,
+                "relaxed_query_json": copy.deepcopy(relaxed_query),
+            }
+            return relaxed_retrieved, retry_info["relaxed_query_json"], retry_info
+
+    return retrieved, query_json, None
+
+
+def _build_interpretation(query_json: Dict[str, Any], retry_info: Optional[Dict[str, Any]]) -> str:
+    if not retry_info:
+        return summarize_query_json(query_json)
+    original = humanize_query_conditions(retry_info["original_query_json"])
+    relaxed = humanize_query_conditions(retry_info["relaxed_query_json"])
+    return f"{original}으로 조회하였으나 결과가 없어서 {relaxed}으로 수정 조회했습니다."
 
 
 def _check_limit_or_reply(chat_id: int, ctx: Dict[str, Any]) -> bool:
@@ -44,12 +96,12 @@ def handle_query_command(db: InvestmentDB, chat_id: int, raw: str, ctx: Dict[str
             return
 
         logger.info("query_json=%s", json.dumps(query_json, ensure_ascii=False))
-        retrieved = db.search(query_json)
-        interpretation = summarize_query_json(query_json)
+        retrieved, effective_query_json, retry_info = _search_with_auto_relaxation(db, query_json)
+        interpretation = _build_interpretation(effective_query_json, retry_info)     
         answer = build_search_answer(retrieved, interpretation)
         send_message(chat_id, answer)
 
-        _store_query_context(chat_id, query_json, interpretation, retrieved)
+        _store_query_context(chat_id, effective_query_json, interpretation, retrieved)
 
     except Exception:
         logger.exception("query command failed")
@@ -73,11 +125,11 @@ def _store_query_context(chat_id, query_json, interpretation, retrieved):
 
 def handle_search_followup(db: InvestmentDB, chat_id: int, query_json: Dict[str, Any]) -> None:
     try:
-        retrieved = db.search(query_json)
-        interpretation = summarize_query_json(query_json)
+        retrieved, effective_query_json, retry_info = _search_with_auto_relaxation(db, query_json)
+        interpretation = _build_interpretation(effective_query_json, retry_info)
         answer = build_search_answer(retrieved, interpretation)
         send_message(chat_id, answer)
-        _store_query_context(chat_id, query_json, interpretation, retrieved)
+        _store_query_context(chat_id, effective_query_json, interpretation, retrieved)
     except Exception:
         logger.exception("query followup failed")
         send_message(chat_id, "후속 조회 처리 중 오류가 발생했습니다.")
