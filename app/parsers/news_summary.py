@@ -18,14 +18,14 @@ def _format_articles(articles: List[dict]) -> str:
     return "\n".join(lines)
 
 
-def summarize_news(query: str, articles: List[dict]) -> str:
+def summarize_news(query: str, articles: List[dict], prompt_name: str = "news_summarizer.txt") -> str:
     if not gemini.is_available():
         return "Gemini 미설정"
     if not articles:
         return f"검색 결과가 없습니다.\n검색어: {query}"
 
     prompt = render_prompt(
-        "news_summarizer.txt",
+        prompt_name,
         query=query,
         articles=_format_articles(articles),
     )
