@@ -43,7 +43,7 @@ _LOOKTHROUGH_WORDS_PAT = re.compile(
 
 HELP_TEXT = """
 한화생명 대체투자 포트폴리오 Bot
-(Dataset 기준: 26.5월 / LookThrough 기준: 26.3월)
+(Dataset 기준: 26.6월 / LookThrough 기준: 26.3월)
 
 📊 [포트폴리오]
 /조회 — 조건에 맞는 펀드 검색 (BS00000XXX 단독 입력도 가능)
