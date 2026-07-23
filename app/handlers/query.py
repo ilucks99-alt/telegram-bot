@@ -31,6 +31,11 @@ _RELAX_FILTER_GROUPS = [
 ]
 
 
+def _has_active_filters(filters: Dict[str, Any]) -> bool:
+    """Return whether a query still has a meaningful portfolio constraint."""
+    return any(value not in (None, [], {}, "") for value in filters.values())
+
+
 def _search_with_auto_relaxation(db: InvestmentDB, query_json: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any], Optional[Dict[str, Any]]]:
     retrieved = db.search(query_json)
     if (retrieved.get("summary") or {}).get("count_projects_total", 0) > 0:
@@ -45,6 +50,16 @@ def _search_with_auto_relaxation(db: InvestmentDB, query_json: Dict[str, Any]) -
     for group in _RELAX_FILTER_GROUPS:
         if not any(relaxed_filters.get(key) not in (None, [], {}, "") for key in group):
             continue
+
+        # A retry must retain at least one of the user's original constraints.
+        # Otherwise a no-result search can silently become a whole-portfolio
+        # lookup, which is neither a useful relaxation nor the requested query.
+        candidate_filters = copy.deepcopy(relaxed_filters)
+        for key in group:
+            candidate_filters.pop(key, None)
+        if not _has_active_filters(candidate_filters):
+            continue       
+        
         for key in group:
             relaxed_filters.pop(key, None)
         relaxed_retrieved = db.search(relaxed_query)
