@@ -7,6 +7,7 @@ from app.db_engine import InvestmentDB
 from app.formatters.query import build_search_answer, humanize_query_conditions, summarize_query_json
 from app.logger import get_logger
 from app.parsers.query import build_fixed_query_advice, parse_query
+from app.services.response_writer import write_natural_answer
 from app.services.telegram import send_message
 from app.state import dialog_memory, question_limit
 from app.util import get_sender_display_name
@@ -114,7 +115,13 @@ def handle_query_command(db: InvestmentDB, chat_id: int, raw: str, ctx: Dict[str
         logger.info("query_json=%s", json.dumps(query_json, ensure_ascii=False))
         retrieved, effective_query_json, retry_info = _search_with_auto_relaxation(db, query_json)
         interpretation = _build_interpretation(effective_query_json, retry_info)
-        answer = build_search_answer(retrieved, interpretation)
+        factual_answer = build_search_answer(retrieved, interpretation)
+        answer = write_natural_answer(
+            answer_kind="portfolio_query",
+            user_question=question,
+            interpretation=interpretation,
+            factual_answer=factual_answer,
+        )
         send_message(chat_id, answer)
 
         _store_query_context(chat_id, effective_query_json, interpretation, retrieved)
@@ -143,7 +150,13 @@ def handle_search_followup(db: InvestmentDB, chat_id: int, query_json: Dict[str,
     try:
         retrieved, effective_query_json, retry_info = _search_with_auto_relaxation(db, query_json)
         interpretation = _build_interpretation(effective_query_json, retry_info)
-        answer = build_search_answer(retrieved, interpretation)
+        factual_answer = build_search_answer(retrieved, interpretation)
+        answer = write_natural_answer(
+            answer_kind="portfolio_query_followup",
+            user_question=interpretation,
+            interpretation=interpretation,
+            factual_answer=factual_answer,
+        )
         send_message(chat_id, answer)
         _store_query_context(chat_id, effective_query_json, interpretation, retrieved)
     except Exception:
