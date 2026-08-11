@@ -1,3 +1,4 @@
+import json
 from typing import Any, Dict
 
 from app.constants import (
@@ -110,32 +111,53 @@ def parse_analysis(user_question: str) -> Dict[str, Any]:
         return {"mode": "advice", "analysis_json": None, "advice_text": build_gemini_failure_advice()}
 
     prompt = render_prompt("analysis_parser.txt", user_question=user_question)
-    raw = gemini.generate_json(prompt, max_output_tokens=700, temperature=0.1)
-    if not raw:
-        logger.warning("analysis parse: Gemini returned empty response")
-        return {"mode": "advice", "analysis_json": None, "advice_text": build_gemini_failure_advice()}
-
-    try:
-        data = safe_json_parse(raw)
-    except Exception:
-        logger.exception("analysis parse: JSON parse failed")
-        return {"mode": "advice", "analysis_json": None, "advice_text": build_gemini_failure_advice()}
-
-    mode = str(data.get("mode", "")).strip().lower()
-    if mode == "analysis":
-        normalized = normalize_analysis_json(data.get("analysis_json") or {})
-        has_base_manager = bool((normalized.get("base_filters") or {}).get("manager"))
-        has_target_manager = bool((normalized.get("target_filters") or {}).get("manager"))
-        if has_base_manager != has_target_manager:
-            filter_key = "base_filters" if has_base_manager else "target_filters"
-            normalized[filter_key] = preserve_original_korean_managers(
-                normalized.get(filter_key, {}), user_question
+    previous = ""
+    last_advice = ""
+    for attempt in range(3):
+        attempt_prompt = prompt
+        if attempt:
+            attempt_prompt += (
+                "\n\n[재검토 요청]\n"
+                "이전 응답이 비었거나 JSON/분석 스키마 검증에 실패했다. 원문을 모집단, 비교 대상, "
+                "그룹 기준, 계산 지표, 정렬 조건으로 나누어 다시 해석하라. 원문에 없는 조건은 만들지 "
+                "말고, 실행 가능한 분석이 하나라도 있으면 analysis로 작성하라. 위 스키마의 JSON 객체만 "
+                f"출력하라.\n이전 응답: {previous or '(응답 없음)'}"
             )
-        normalized["base_filters"] = clean_filters_with_gemini(normalized.get("base_filters", {}), user_question)
-        normalized["target_filters"] = clean_filters_with_gemini(normalized.get("target_filters", {}), user_question)
-        if is_unprocessable_analysis(normalized):
-            return {"mode": "advice", "analysis_json": None, "advice_text": build_fixed_analysis_advice()}
-        return {"mode": "analysis", "analysis_json": normalized, "advice_text": None}
+        raw = gemini.generate_json(attempt_prompt, max_output_tokens=1000, temperature=0.0)
+        previous = raw or ""
+        if not raw:
+            logger.warning("analysis parse: Gemini returned empty response | attempt=%s", attempt + 1)
+            continue
+        try:
+            data = safe_json_parse(raw)
+        except Exception:
+            logger.exception("analysis parse: JSON parse failed | attempt=%s", attempt + 1)
+            continue
 
-    advice = str(data.get("advice_text") or "").strip() or build_fixed_analysis_advice()
-    return {"mode": "advice", "analysis_json": None, "advice_text": advice}
+        mode = str(data.get("mode", "")).strip().lower()
+        if mode == "analysis":
+            normalized = normalize_analysis_json(data.get("analysis_json") or {})
+            if is_unprocessable_analysis(normalized):
+                previous = json.dumps(data, ensure_ascii=False)
+                logger.info("analysis parse: unprocessable JSON; requesting repair | attempt=%s", attempt + 1)
+                continue
+            has_base_manager = bool((normalized.get("base_filters") or {}).get("manager"))
+            has_target_manager = bool((normalized.get("target_filters") or {}).get("manager"))
+            if has_base_manager != has_target_manager:
+                filter_key = "base_filters" if has_base_manager else "target_filters"
+                normalized[filter_key] = preserve_original_korean_managers(
+                    normalized.get(filter_key, {}), user_question
+                )
+            normalized["base_filters"] = clean_filters_with_gemini(normalized.get("base_filters", {}), user_question)
+            normalized["target_filters"] = clean_filters_with_gemini(normalized.get("target_filters", {}), user_question)
+            return {"mode": "analysis", "analysis_json": normalized, "advice_text": None}
+
+        if mode == "advice":
+            last_advice = str(data.get("advice_text") or "").strip()
+            if attempt == 0:
+                continue
+            return {"mode": "advice", "analysis_json": None, "advice_text": last_advice or build_fixed_analysis_advice()}
+
+    if last_advice:
+        return {"mode": "advice", "analysis_json": None, "advice_text": last_advice}
+    return {"mode": "advice", "analysis_json": None, "advice_text": build_gemini_failure_advice()}
