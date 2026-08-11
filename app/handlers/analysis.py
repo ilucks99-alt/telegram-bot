@@ -6,6 +6,7 @@ from app.db_engine import InvestmentDB
 from app.formatters.analysis import build_analysis_answer, summarize_analysis_json
 from app.logger import get_logger
 from app.parsers.analysis import build_fixed_analysis_advice, parse_analysis
+from app.services.response_writer import write_natural_answer
 from app.services.telegram import send_message
 from app.state import dialog_memory, question_limit
 from app.util import get_sender_display_name
@@ -46,7 +47,13 @@ def handle_analysis_command(db: InvestmentDB, chat_id: int, raw: str, ctx: Dict[
         logger.info("analysis_json=%s", json.dumps(analysis_json, ensure_ascii=False))
         retrieved = db.analyze(analysis_json)
         interpretation = summarize_analysis_json(analysis_json)
-        answer = build_analysis_answer(retrieved, interpretation)
+        factual_answer = build_analysis_answer(retrieved, interpretation)
+        answer = write_natural_answer(
+            answer_kind="portfolio_analysis",
+            user_question=question,
+            interpretation=interpretation,
+            factual_answer=factual_answer,
+        )
         send_message(chat_id, answer)
 
         dialog_memory.set_context(chat_id, "analysis", analysis_json, interpretation)
@@ -60,7 +67,13 @@ def handle_analysis_followup(db: InvestmentDB, chat_id: int, analysis_json: Dict
     try:
         retrieved = db.analyze(analysis_json)
         interpretation = summarize_analysis_json(analysis_json)
-        answer = build_analysis_answer(retrieved, interpretation)
+        factual_answer = build_analysis_answer(retrieved, interpretation)
+        answer = write_natural_answer(
+            answer_kind="portfolio_analysis_followup",
+            user_question=interpretation,
+            interpretation=interpretation,
+            factual_answer=factual_answer,
+        )
         send_message(chat_id, answer)
         dialog_memory.set_context(chat_id, "analysis", analysis_json, interpretation)
     except Exception:
