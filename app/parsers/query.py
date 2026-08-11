@@ -1,3 +1,4 @@
+import json
 import re
 from typing import Any, Dict, List, Optional
 
@@ -444,28 +445,50 @@ def parse_query(user_question: str) -> Dict[str, Any]:
         user_question=user_question,
         current_year=get_kst_today_year(),
     )
-    raw = gemini.generate_json(prompt, max_output_tokens=600, temperature=0.1)
-    if not raw:
-        logger.warning("query parse: Gemini returned empty response")
-        return {"mode": "advice", "query_json": None, "advice_text": build_gemini_failure_advice()}
+    previous = ""
+    last_advice = ""
+    for attempt in range(3):
+        attempt_prompt = prompt
+        if attempt:
+            attempt_prompt += (
+                "\n\n[재검토 요청]\n"
+                "이전 응답이 비었거나, JSON 문법/스키마 검증에 실패했거나, 실행 가능한 조건을 놓쳤다. "
+                "원문에 명시된 조건만 사용하고 임의 조건은 만들지 말 것. 복합 문장을 조건별로 다시 "
+                "분해하여 가능한 조회 조건, 정렬, 개수를 최대한 보존한 뒤 위 스키마의 JSON 객체만 출력하라. "
+                "정말 조회로 실행할 조건이 전혀 없을 때만 advice를 사용하라.\n"
+                f"이전 응답: {previous or '(응답 없음)'}"
+            )
+        raw = gemini.generate_json(attempt_prompt, max_output_tokens=1000, temperature=0.0)
+        previous = raw or ""
+        if not raw:
+            logger.warning("query parse: Gemini returned empty response | attempt=%s", attempt + 1)
+            continue
+        try:
+            data = safe_json_parse(raw)
+        except Exception:
+            logger.exception("query parse: JSON parse failed | attempt=%s", attempt + 1)
+            continue
+            
+        mode = str(data.get("mode", "")).strip().lower()
+        if mode == "query":
+            normalized = normalize_query_json(
+                _apply_relative_maturity_filters(data.get("query_json") or {}, user_question)
+            )
+            normalized["filters"] = preserve_original_korean_managers(normalized.get("filters", {}), user_question)
+            normalized["filters"] = prefer_strategy_sector_over_capital_structure(normalized.get("filters", {}), user_question)
+            if is_unprocessable_query(normalized):
+                previous = json.dumps(data, ensure_ascii=False)
+                logger.info("query parse: unprocessable JSON; requesting repair | attempt=%s", attempt + 1)
+                continue
+            normalized["filters"] = clean_filters_with_gemini(normalized.get("filters", {}), user_question)
+            return {"mode": "query", "query_json": normalized, "advice_text": None}
 
-    try:
-        data = safe_json_parse(raw)
-    except Exception:
-        logger.exception("query parse: JSON parse failed")
-        return {"mode": "advice", "query_json": None, "advice_text": build_gemini_failure_advice()}
+        if mode == "advice":
+            last_advice = str(data.get("advice_text") or "").strip()
+            if attempt == 0:
+                continue
+            return {"mode": "advice", "query_json": None, "advice_text": last_advice or build_fixed_query_advice()}
 
-    mode = str(data.get("mode", "")).strip().lower()
-    if mode == "query":
-        normalized = normalize_query_json(
-            _apply_relative_maturity_filters(data.get("query_json") or {}, user_question)
-        )
-        normalized["filters"] = preserve_original_korean_managers(normalized.get("filters", {}), user_question)
-        normalized["filters"] = clean_filters_with_gemini(normalized.get("filters", {}), user_question)
-        normalized["filters"] = prefer_strategy_sector_over_capital_structure(normalized.get("filters", {}), user_question)        
-        if is_unprocessable_query(normalized):
-            return {"mode": "advice", "query_json": None, "advice_text": build_fixed_query_advice()}
-        return {"mode": "query", "query_json": normalized, "advice_text": None}
-
-    advice_text = str(data.get("advice_text") or "").strip() or build_fixed_query_advice()
-    return {"mode": "advice", "query_json": None, "advice_text": advice_text}
+    if last_advice:
+        return {"mode": "advice", "query_json": None, "advice_text": last_advice}
+    return {"mode": "advice", "query_json": None, "advice_text": build_gemini_failure_advice()}
