@@ -534,6 +534,15 @@ class InvestmentDB:
 
         return self._exclude_matured(df)
 
+    def available_sectors(self, query_json: Dict[str, Any]) -> List[str]:
+        """Return real sectors matching all of the query's non-sector filters."""
+        filters = dict(query_json.get("filters", {}) or {})
+        filters.pop("sector", None)
+        matched = self._apply_filters(self.df, filters)
+        values = matched["Sector"].dropna().astype(str).str.strip()
+        counts = values[values != ""].value_counts()
+        return [str(value) for value in counts.index]
+
     @staticmethod
     def _project_level_df(df: pd.DataFrame) -> pd.DataFrame:
         if df.empty:
