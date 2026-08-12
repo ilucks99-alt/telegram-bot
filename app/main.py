@@ -9,6 +9,7 @@ from fastapi import FastAPI, Header, HTTPException, Query, Request
 from app import config
 from app.db_engine import InvestmentDB
 from app.handlers.news import run_portfolio_news_report, run_scheduled_news_report
+from app.handlers.query import handle_query_suggestion_callback
 from app.handlers.router import process_user_message
 from app.handlers.task import (
     check_and_report_overdue_tasks,
@@ -122,7 +123,10 @@ async def webhook(secret: str, request: Request):
 
         def _cb_worker():
             try:
-                handle_task_ack_callback(get_db(), callback)
+                if str(callback.get("data") or "").startswith("qs:"):
+                    handle_query_suggestion_callback(get_db(), callback)
+                else:
+                    handle_task_ack_callback(get_db(), callback)
             except Exception:
                 logger.exception("handle_task_ack_callback failed")
 
