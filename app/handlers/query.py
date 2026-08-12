@@ -1,4 +1,5 @@
 import copy
+from difflib import SequenceMatcher
 import json
 from typing import Any, Dict, Optional, Tuple
 
@@ -168,24 +169,57 @@ def _available_sectors(db: InvestmentDB, query_json: Dict[str, Any]):
 
 
 _SECTOR_PARENT_HINTS = {
-    "rail": ("transportation", "transport"),
-    "철도": ("transportation", "transport", "교통"),
-    "airport": ("transportation", "transport"),
-    "공항": ("transportation", "transport", "교통"),
-    "road": ("transportation", "transport"),
-    "도로": ("transportation", "transport", "교통"),
-    "solar": ("energy",),
-    "태양광": ("energy", "에너지"),
+    # 세부 표현 -> DB에서 흔히 쓰는 상위 섹터 후보. 한글/영문 질문 모두 처리한다.
+    "transportation": (
+        "rail", "railway", "철도", "airport", "공항", "road", "도로", "highway", "고속도로",
+        "port", "항만", "shipping", "해운", "mobility", "모빌리티", "transport", "교통",
+    ),
+    "energy": (
+        "solar", "태양광", "wind", "풍력", "offshorewind", "해상풍력", "power", "발전",
+        "battery", "배터리", "ess", "renewable", "신재생", "hydrogen", "수소", "lng", "가스",
+    ),
+    "environmental": (
+        "waste", "폐기물", "recycling", "재활용", "water", "수처리", "wastewater", "하수",
+        "environment", "환경", "circular", "순환경제",
+    ),
+    "social": (
+        "school", "학교", "education", "교육", "public", "공공", "community", "커뮤니티",
+    ),
+    "digital": (
+        "fiber", "광케이블", "broadband", "통신망", "telecom", "통신", "tower", "통신탑",
+    ),
+    "data center": ("datacenter", "데이터센터", "데이터 센터", "cloud", "클라우드"),
+    "logistics": ("warehouse", "창고", "distribution", "물류", "fulfillment", "풀필먼트"),
+    "healthcare": ("hospital", "병원", "clinic", "의료", "seniorhousing", "시니어하우징"),
+    "residential": ("housing", "주택", "apartment", "아파트", "multifamily", "임대주택"),
+    "office": ("오피스", "사무실"),
+    "retail": ("리테일", "상업시설", "shoppingmall", "쇼핑몰"),
 }
 
 
+def _compact(value: Any) -> str:
+    return "".join(ch for ch in str(value).strip().lower() if ch.isalnum())
+
+
 def _sector_replacement(sectors, available_sectors):
-    available_by_norm = {str(value).strip().lower(): str(value) for value in available_sectors}
+    available_by_norm = {_compact(value): str(value) for value in available_sectors}
     for sector in sectors:
-        for hint in _SECTOR_PARENT_HINTS.get(str(sector).strip().lower(), ()):
-            if hint in available_by_norm:
-                return available_by_norm[hint]
-    return None
+        normalized = _compact(sector)
+        for parent, aliases in _SECTOR_PARENT_HINTS.items():
+            parent_norm = _compact(parent)
+            alias_norms = {_compact(alias) for alias in aliases}
+            if normalized == parent_norm or parent_norm in normalized or normalized in alias_norms:
+                if _compact(parent) in available_by_norm:
+                    return available_by_norm[_compact(parent)]
+
+        # 오탈자나 Rail Infrastructure 같은 복합 영문 표현도 실제 DB 값과 연결한다.
+        ranked = sorted(
+            ((SequenceMatcher(None, normalized, key).ratio(), value) for key, value in available_by_norm.items()),
+            reverse=True,
+        )
+        if ranked and ranked[0][0] >= 0.78:
+            return ranked[0][1]
+     return None
 
 
 def _build_fallback_suggestions(query_json: Dict[str, Any], available_sectors):
@@ -201,12 +235,23 @@ def _build_fallback_suggestions(query_json: Dict[str, Any], available_sectors):
             "label": f"'{', '.join(sectors)}' 대신 '{replacement}'로 찾을까요?"[:35],
             "query_json": broader,
         })
-    if filters.get("region") == ["KOR"]:
+        regions = filters.get("region") or []
+    if "KOR" in regions:
         overseas = copy.deepcopy(query_json)
         overseas["filters"]["region"] = ["US", "Europe", "Asia", "Global", "MENA", "Canada"]
         suggestions.append({"label": "국내 대신 해외에서 찾을까요?", "query_json": overseas})
-    for key, label in (("strategy", "전략 조건 없이 찾을까요?"),
-                       ("manager", "운용사 조건 없이 찾을까요?")):
+
+    # 모델이 대안을 반환하지 못해도 특정 질문에 종속되지 않도록 모든 주요 조건을
+    # 한 번에 하나씩만 완화한다. 실제 결과가 있는지는 호출부에서 다시 검증한다.
+    relax_labels = (
+        ("strategy", "전략 조건 없이 찾을까요?"),
+        ("manager", "운용사 조건 없이 찾을까요?"),
+        ("asset_class", "자산군 조건 없이 찾을까요?"),
+        ("investment_type", "투자유형 조건 없이 찾을까요?"),
+        ("capital_structure", "자본구조 조건 없이 찾을까요?"),
+        ("currency", "통화 조건 없이 찾을까요?"),
+    )
+    for key, label in relax_labels:       
         if filters.get(key) not in (None, [], {}, ""):
             relaxed = copy.deepcopy(query_json)
             relaxed["filters"].pop(key, None)
