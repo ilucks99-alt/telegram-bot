@@ -137,14 +137,18 @@ def handle_query_command(db: InvestmentDB, chat_id: int, raw: str, ctx: Dict[str
 
 
 def _send_query_suggestions(db, chat_id, question, query_json):
-    candidates = suggest_queries(question, query_json)
-    if not candidates:
-        candidates = _build_fallback_suggestions(query_json)
+    available_sectors = _available_sectors(db, query_json)
+    candidates = suggest_queries(question, query_json, available_sectors)
     # 결과가 존재하는 대안만 노출한다. 누른 뒤 또 0건이 나오는 버튼은 만들지 않는다.
     candidates = [
         item for item in candidates
         if (db.search(item["query_json"]).get("summary") or {}).get("count_projects_total", 0) > 0
     ][:3]
+    if not candidates:
+        candidates = [
+            item for item in _build_fallback_suggestions(query_json, available_sectors)
+            if (db.search(item["query_json"]).get("summary") or {}).get("count_projects_total", 0) > 0
+        ][:3]
     if not candidates:
         send_message(chat_id, "조건에 맞는 조회 결과가 없습니다. 조건을 조금 넓혀 다시 질문해 주세요.")
         return
@@ -159,16 +163,49 @@ def _send_query_suggestions(db, chat_id, question, query_json):
     )
 
 
-def _build_fallback_suggestions(query_json: Dict[str, Any]):
+def _available_sectors(db: InvestmentDB, query_json: Dict[str, Any]):
+    return db.available_sectors(query_json)
+
+
+_SECTOR_PARENT_HINTS = {
+    "rail": ("transportation", "transport"),
+    "철도": ("transportation", "transport", "교통"),
+    "airport": ("transportation", "transport"),
+    "공항": ("transportation", "transport", "교통"),
+    "road": ("transportation", "transport"),
+    "도로": ("transportation", "transport", "교통"),
+    "solar": ("energy",),
+    "태양광": ("energy", "에너지"),
+}
+
+
+def _sector_replacement(sectors, available_sectors):
+    available_by_norm = {str(value).strip().lower(): str(value) for value in available_sectors}
+    for sector in sectors:
+        for hint in _SECTOR_PARENT_HINTS.get(str(sector).strip().lower(), ()):
+            if hint in available_by_norm:
+                return available_by_norm[hint]
+    return None
+
+
+def _build_fallback_suggestions(query_json: Dict[str, Any], available_sectors):
     """Provide useful choices even when the suggestion model is unavailable."""
     filters = query_json.get("filters", {}) or {}
     suggestions = []
+    sectors = filters.get("sector") or []
+    replacement = _sector_replacement(sectors, available_sectors)
+    if replacement:
+        broader = copy.deepcopy(query_json)
+        broader["filters"]["sector"] = [replacement]
+        suggestions.append({
+            "label": f"'{', '.join(sectors)}' 대신 '{replacement}'로 찾을까요?"[:35],
+            "query_json": broader,
+        })
     if filters.get("region") == ["KOR"]:
         overseas = copy.deepcopy(query_json)
         overseas["filters"]["region"] = ["US", "Europe", "Asia", "Global", "MENA", "Canada"]
         suggestions.append({"label": "국내 대신 해외에서 찾을까요?", "query_json": overseas})
-    for key, label in (("sector", "섹터 조건을 넓혀 찾을까요?"),
-                       ("strategy", "전략 조건을 넓혀 찾을까요?"),
+    for key, label in (("strategy", "전략 조건 없이 찾을까요?"),
                        ("manager", "운용사 조건 없이 찾을까요?")):
         if filters.get(key) not in (None, [], {}, ""):
             relaxed = copy.deepcopy(query_json)
