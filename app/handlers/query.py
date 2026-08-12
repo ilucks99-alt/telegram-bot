@@ -7,9 +7,10 @@ from app.db_engine import InvestmentDB
 from app.formatters.query import build_search_answer, humanize_query_conditions, summarize_query_json
 from app.logger import get_logger
 from app.parsers.query import build_fixed_query_advice, parse_query
+from app.parsers.query_suggestions import suggest_queries
 from app.services.response_writer import write_natural_answer
-from app.services.telegram import send_message
-from app.state import dialog_memory, question_limit
+from app.services.telegram import answer_callback_query, edit_message_text, send_message, send_message_with_keyboard
+from app.state import dialog_memory, query_suggestions, question_limit
 from app.util import get_sender_display_name
 
 logger = get_logger(__name__)
@@ -113,7 +114,11 @@ def handle_query_command(db: InvestmentDB, chat_id: int, raw: str, ctx: Dict[str
             return
 
         logger.info("query_json=%s", json.dumps(query_json, ensure_ascii=False))
-        retrieved, effective_query_json, retry_info = _search_with_auto_relaxation(db, query_json)
+        retrieved = db.search(query_json)
+        if (retrieved.get("summary") or {}).get("count_projects_total", 0) == 0:
+            _send_query_suggestions(db, chat_id, question, query_json)
+            return
+        effective_query_json, retry_info = query_json, None       
         interpretation = _build_interpretation(effective_query_json, retry_info)
         factual_answer = build_search_answer(retrieved, interpretation)
         answer = write_natural_answer(
@@ -129,6 +134,75 @@ def handle_query_command(db: InvestmentDB, chat_id: int, raw: str, ctx: Dict[str
     except Exception:
         logger.exception("query command failed")
         send_message(chat_id, "조회 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
+
+
+def _send_query_suggestions(db, chat_id, question, query_json):
+    candidates = suggest_queries(question, query_json)
+    if not candidates:
+        candidates = _build_fallback_suggestions(query_json)
+    # 결과가 존재하는 대안만 노출한다. 누른 뒤 또 0건이 나오는 버튼은 만들지 않는다.
+    candidates = [
+        item for item in candidates
+        if (db.search(item["query_json"]).get("summary") or {}).get("count_projects_total", 0) > 0
+    ][:3]
+    if not candidates:
+        send_message(chat_id, "조건에 맞는 조회 결과가 없습니다. 조건을 조금 넓혀 다시 질문해 주세요.")
+        return
+    token = query_suggestions.create(chat_id, candidates)
+    buttons = [[{"text": item["label"], "callback_data": f"qs:{token}:{idx}"}]
+               for idx, item in enumerate(candidates)]
+    buttons.append([{"text": "취소", "callback_data": f"qs:{token}:cancel"}])
+    send_message_with_keyboard(
+        chat_id,
+        "조건에 맞는 조회 결과가 없습니다. 아래 대안 중 하나를 선택하거나 취소해 주세요.",
+        {"inline_keyboard": buttons},
+    )
+
+
+def _build_fallback_suggestions(query_json: Dict[str, Any]):
+    """Provide useful choices even when the suggestion model is unavailable."""
+    filters = query_json.get("filters", {}) or {}
+    suggestions = []
+    if filters.get("region") == ["KOR"]:
+        overseas = copy.deepcopy(query_json)
+        overseas["filters"]["region"] = ["US", "Europe", "Asia", "Global", "MENA", "Canada"]
+        suggestions.append({"label": "국내 대신 해외에서 찾을까요?", "query_json": overseas})
+    for key, label in (("sector", "섹터 조건을 넓혀 찾을까요?"),
+                       ("strategy", "전략 조건을 넓혀 찾을까요?"),
+                       ("manager", "운용사 조건 없이 찾을까요?")):
+        if filters.get(key) not in (None, [], {}, ""):
+            relaxed = copy.deepcopy(query_json)
+            relaxed["filters"].pop(key, None)
+            if _has_active_filters(relaxed["filters"]):
+                suggestions.append({"label": label, "query_json": relaxed})
+    return suggestions[:3]
+
+
+def handle_query_suggestion_callback(db: InvestmentDB, callback: Dict[str, Any]) -> None:
+    callback_id = callback.get("id", "")
+    data = str(callback.get("data") or "")
+    message = callback.get("message") or {}
+    chat_id = (message.get("chat") or {}).get("id")
+    message_id = message.get("message_id")
+    parts = data.split(":", 2)
+    if len(parts) != 3 or parts[0] != "qs":
+        return
+    entry = query_suggestions.pop(parts[1], chat_id)
+    if not entry:
+        answer_callback_query(callback_id, "선택 시간이 만료되었습니다.")
+        return
+    if parts[2] == "cancel":
+        answer_callback_query(callback_id, "취소했습니다.")
+        edit_message_text(chat_id, message_id, "대안 조회를 취소했습니다.")
+        return
+    try:
+        selected = entry["suggestions"][int(parts[2])]
+    except (ValueError, IndexError, KeyError):
+        answer_callback_query(callback_id, "유효하지 않은 선택입니다.")
+        return
+    answer_callback_query(callback_id, "선택한 조건으로 조회합니다.")
+    edit_message_text(chat_id, message_id, f"선택: {selected['label']}")
+    handle_search_followup(db, chat_id, selected["query_json"])
 
 
 def _store_query_context(chat_id, query_json, interpretation, retrieved):
