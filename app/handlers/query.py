@@ -219,7 +219,7 @@ def _sector_replacement(sectors, available_sectors):
         )
         if ranked and ranked[0][0] >= 0.78:
             return ranked[0][1]
-     return None
+    return None
 
 
 def _build_fallback_suggestions(query_json: Dict[str, Any], available_sectors):
@@ -235,7 +235,7 @@ def _build_fallback_suggestions(query_json: Dict[str, Any], available_sectors):
             "label": f"'{', '.join(sectors)}' 대신 '{replacement}'로 찾을까요?"[:35],
             "query_json": broader,
         })
-        regions = filters.get("region") or []
+    regions = filters.get("region") or []
     if "KOR" in regions:
         overseas = copy.deepcopy(query_json)
         overseas["filters"]["region"] = ["US", "Europe", "Asia", "Global", "MENA", "Canada"]
