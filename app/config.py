@@ -54,7 +54,7 @@ TELEGRAM_FILE_DIR = _env("TELEGRAM_FILE_DIR", "/tmp/telegram_files")
 # =========================================================
 DEFAULT_LIMIT = _env_int("DEFAULT_LIMIT", 9999)
 MAX_LIMIT = _env_int("MAX_LIMIT", 9999)
-SEARCH_CONFIRM_THRESHOLD = _env_int("SEARCH_CONFIRM_THRESHOLD", 20)
+SEARCH_CONFIRM_THRESHOLD = _env_int("SEARCH_CONFIRM_THRESHOLD", 30)
 DAILY_QUESTION_LIMIT = _env_int("DAILY_QUESTION_LIMIT", 50)
 
 # =========================================================
