@@ -9,7 +9,7 @@ from fastapi import FastAPI, Header, HTTPException, Query, Request
 from app import config
 from app.db_engine import InvestmentDB
 from app.handlers.news import run_portfolio_news_report, run_scheduled_news_report
-from app.handlers.query import handle_query_suggestion_callback
+from app.handlers.query import handle_query_confirmation_callback, handle_query_suggestion_callback
 from app.handlers.router import process_user_message
 from app.handlers.task import (
     check_and_report_overdue_tasks,
@@ -125,6 +125,8 @@ async def webhook(secret: str, request: Request):
             try:
                 if str(callback.get("data") or "").startswith("qs:"):
                     handle_query_suggestion_callback(get_db(), callback)
+                elif str(callback.get("data") or "").startswith("qc:"):
+                    handle_query_confirmation_callback(get_db(), callback)
                 else:
                     handle_task_ack_callback(get_db(), callback)
             except Exception:
