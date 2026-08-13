@@ -11,7 +11,7 @@ from app.parsers.query import build_fixed_query_advice, parse_query
 from app.parsers.query_suggestions import suggest_queries
 from app.services.response_writer import write_natural_answer
 from app.services.telegram import answer_callback_query, edit_message_text, send_message, send_message_with_keyboard
-from app.state import dialog_memory, query_suggestions, question_limit
+from app.state import dialog_memory, query_confirmations, query_suggestions, question_limit
 from app.util import get_sender_display_name
 
 logger = get_logger(__name__)
@@ -121,16 +121,11 @@ def handle_query_command(db: InvestmentDB, chat_id: int, raw: str, ctx: Dict[str
             return
         effective_query_json, retry_info = query_json, None       
         interpretation = _build_interpretation(effective_query_json, retry_info)
-        factual_answer = build_search_answer(retrieved, interpretation)
-        answer = write_natural_answer(
-            answer_kind="portfolio_query",
-            user_question=question,
-            interpretation=interpretation,
-            factual_answer=factual_answer,
+        if _confirm_large_result_if_needed(chat_id, effective_query_json, retrieved):
+            return
+        _send_search_answer(
+            chat_id, question, effective_query_json, interpretation, retrieved, "portfolio_query"
         )
-        send_message(chat_id, answer)
-
-        _store_query_context(chat_id, effective_query_json, interpretation, retrieved)
 
     except Exception:
         logger.exception("query command failed")
@@ -287,6 +282,73 @@ def handle_query_suggestion_callback(db: InvestmentDB, callback: Dict[str, Any])
     handle_search_followup(db, chat_id, selected["query_json"])
 
 
+def handle_query_confirmation_callback(db: InvestmentDB, callback: Dict[str, Any]) -> None:
+    callback_id = callback.get("id", "")
+    data = str(callback.get("data") or "")
+    message = callback.get("message") or {}
+    chat_id = (message.get("chat") or {}).get("id")
+    message_id = message.get("message_id")
+    parts = data.split(":", 2)
+    if len(parts) != 3 or parts[0] != "qc":
+        return
+
+    entry = query_confirmations.pop(parts[1], chat_id)
+    if not entry:
+        answer_callback_query(callback_id, "선택 시간이 만료되었습니다.")
+        return
+    if parts[2] != "continue":
+        answer_callback_query(callback_id, "조회하지 않았습니다.")
+        edit_message_text(chat_id, message_id, "조회 결과가 많아 조회를 취소했습니다.")
+        return
+
+    answer_callback_query(callback_id, "조회를 계속합니다.")
+    edit_message_text(chat_id, message_id, "전체 조회를 진행합니다.")
+    handle_search_followup(db, chat_id, entry["query_json"], confirm_large_results=False)
+
+
+def _confirm_large_result_if_needed(
+    chat_id: int,
+    query_json: Dict[str, Any],
+    retrieved: Dict[str, Any],
+) -> bool:
+    result_count = len(retrieved.get("rows") or [])
+    if result_count <= config.SEARCH_CONFIRM_THRESHOLD:
+        return False
+
+    token = query_confirmations.create(chat_id, query_json)
+    keyboard = {
+        "inline_keyboard": [[
+            {"text": "계속 진행", "callback_data": f"qc:{token}:continue"},
+            {"text": "취소", "callback_data": f"qc:{token}:cancel"},
+        ]]
+    }
+    send_message_with_keyboard(
+        chat_id,
+        f"검색 결과가 {result_count}건입니다. {config.SEARCH_CONFIRM_THRESHOLD}건을 초과했습니다. 계속 진행할까요?",
+        keyboard,
+    )
+    return True
+
+
+def _send_search_answer(
+    chat_id: int,
+    user_question: str,
+    query_json: Dict[str, Any],
+    interpretation: str,
+    retrieved: Dict[str, Any],
+    answer_kind: str,
+) -> None:
+    factual_answer = build_search_answer(retrieved, interpretation)
+    answer = write_natural_answer(
+        answer_kind=answer_kind,
+        user_question=user_question,
+        interpretation=interpretation,
+        factual_answer=factual_answer,
+    )
+    send_message(chat_id, answer)
+    _store_query_context(chat_id, query_json, interpretation, retrieved)
+
+
 def _store_query_context(chat_id, query_json, interpretation, retrieved):
     rows = retrieved.get("rows") or []
     extras = {
@@ -302,19 +364,27 @@ def _store_query_context(chat_id, query_json, interpretation, retrieved):
     dialog_memory.set_context(chat_id, "query", query_json, interpretation, extras=extras)
 
 
-def handle_search_followup(db: InvestmentDB, chat_id: int, query_json: Dict[str, Any]) -> None:
+def handle_search_followup(
+    db: InvestmentDB,
+    chat_id: int,
+    query_json: Dict[str, Any],
+    confirm_large_results: bool = True,
+) -> None:
     try:
         retrieved, effective_query_json, retry_info = _search_with_auto_relaxation(db, query_json)
         interpretation = _build_interpretation(effective_query_json, retry_info)
-        factual_answer = build_search_answer(retrieved, interpretation)
-        answer = write_natural_answer(
-            answer_kind="portfolio_query_followup",
-            user_question=interpretation,
-            interpretation=interpretation,
-            factual_answer=factual_answer,
+        if confirm_large_results and _confirm_large_result_if_needed(
+            chat_id, effective_query_json, retrieved
+        ):
+            return
+        _send_search_answer(
+            chat_id,
+            interpretation,
+            effective_query_json,
+            interpretation,
+            retrieved,
+            "portfolio_query_followup",
         )
-        send_message(chat_id, answer)
-        _store_query_context(chat_id, effective_query_json, interpretation, retrieved)
     except Exception:
         logger.exception("query followup failed")
         send_message(chat_id, "후속 조회 처리 중 오류가 발생했습니다.")
