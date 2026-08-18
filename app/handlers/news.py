@@ -193,7 +193,10 @@ def _collect_articles(keywords: List[str]) -> List[Dict[str, Any]]:
 
 
 def collect_news_for_keywords(db: InvestmentDB) -> List[Dict[str, Any]]:
-    return _collect_articles(_macro_keywords())
+    items = _collect_articles(_macro_keywords())
+    for item in items:
+        item["section"] = "market"
+    return items
 
 
 def collect_portfolio_news(db: InvestmentDB) -> List[Dict[str, Any]]:
@@ -399,12 +402,103 @@ def _send_portfolio_report(chat_id, news_items: List[Dict[str, Any]]) -> str:
         return "error"
 
 
-def run_portfolio_news_report(db: InvestmentDB, chat_id, force: bool = False) -> str:
-    """포트폴리오 뉴스 자동 보고 — GP(해외+국내) + LookThrough 발행인 통합. tick에서 호출."""
+def _representative_portfolio_items(
+    news_items: List[Dict[str, Any]],
+    limit: int,
+) -> List[Dict[str, Any]]:
+    """Keep GP and LookThrough coverage balanced within the morning prompt budget."""
+    if limit <= 0:
+        return []
+    gp_items = [item for item in news_items if item.get("section") == "gp"]
+    lt_items = [item for item in news_items if item.get("section") == "lookthrough"]
+    result: List[Dict[str, Any]] = []
+    for slot in range(max(len(gp_items), len(lt_items))):
+        for items in (gp_items, lt_items):
+            if slot < len(items):
+                result.append(items[slot])
+                if len(result) >= limit:
+                    return result
+    return result
+
+
+def _send_morning_briefing(
+    chat_id,
+    macro_prefix: str,
+    market_items: List[Dict[str, Any]],
+    portfolio_items: List[Dict[str, Any]],
+) -> str:
+    """Send one concise morning briefing covering both markets and the portfolio."""
+    try:
+        slot = datetime.now(KST).strftime("%Y-%m-%d %H:%M")
+        all_items = market_items + portfolio_items
+        try:
+            summary = summarize_news(
+                "아침 시장 및 포트폴리오 브리핑",
+                all_items,
+                prompt_name="morning_news_summarizer.txt",
+            ) if all_items else "[뉴스 요약]\n- 신규 주요 뉴스 없음"
+        except Exception:
+            logger.exception("morning briefing summarize failed")
+            summary = ""
+
+        parts = [_html.escape(f"🌅 아침 시장 & 포트폴리오 브리핑 ({slot})", quote=False)]
+        if macro_prefix:
+            parts.extend(["", _html.escape(macro_prefix, quote=False)])
+        if summary:
+            parts.extend(["", _html.escape(summary, quote=False)])
+
+        def _links(label: str, items: List[Dict[str, Any]]) -> None:
+            if not items:
+                return
+            parts.extend(["", _html.escape(label, quote=False)])
+            for i, item in enumerate(items[:5], 1):
+                parts.append(_format_article_html(item, i))
+
+        _links("— 시장 대표 기사 —", market_items)
+        _links("— GP 대표 기사 —", [a for a in portfolio_items if a.get("section") == "gp"])
+        _links(
+            "— LookThrough 대표 기사 —",
+            [a for a in portfolio_items if a.get("section") == "lookthrough"],
+        )
+        send_long_message(
+            chat_id,
+            "\n".join(parts),
+            parse_mode="HTML",
+            disable_web_page_preview=True,
+        )
+        return "ok"
+    except Exception:
+        logger.exception("morning briefing send failed")
+        send_message(chat_id, "아침 시장 & 포트폴리오 브리핑 처리 중 오류가 발생했습니다.")
+        return "error"
+
+
+def run_morning_briefing_report(db: InvestmentDB, chat_id, force: bool = False) -> str:
+    """Morning scheduled report: market context plus GP/LookThrough news in one report."""
     if not config.NEWS_AUTO_REPORT_ENABLED:
         return "disabled"
+    if not force and not _matches_slot(config.NEWS_MORNING_BRIEFING_TIMES, "morning_briefing"):
+        return "skipped"
 
-    if not force and not _matches_slot(config.NEWS_PORTFOLIO_REPORT_TIMES, "portfolio_news"):
+    try:
+        macro_prefix = market_data.build_macro_briefing(focus="all") or ""
+    except Exception:
+        logger.exception("morning macro prefix build failed")
+        macro_prefix = ""
+
+    market_items = collect_news_for_keywords(db)[:config.NEWS_MORNING_MARKET_ARTICLE_LIMIT]
+    portfolio_items = _representative_portfolio_items(
+        collect_portfolio_news(db),
+        config.NEWS_MORNING_PORTFOLIO_ARTICLE_LIMIT,
+    )
+    return _send_morning_briefing(chat_id, macro_prefix, market_items, portfolio_items)
+
+
+def run_portfolio_news_report(db: InvestmentDB, chat_id, force: bool = False) -> str:
+    """On-demand GP/LookThrough report; scheduled delivery is part of the morning briefing."""
+    if not config.NEWS_AUTO_REPORT_ENABLED:
+        return "disabled"
+    if not force:
         return "skipped"
 
     news_items = collect_portfolio_news(db)
