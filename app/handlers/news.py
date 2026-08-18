@@ -38,6 +38,25 @@ def handle_news_search_command(chat_id, raw: str) -> None:
         send_message(chat_id, "뉴스 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
 
 
+def handle_morning_briefing_command(db: InvestmentDB, chat_id) -> None:
+    """수동 호출용 아침 시장+포트폴리오 통합 브리핑."""
+    import threading
+
+    send_message(chat_id, "🌅 시장 + 포트폴리오 통합 브리핑 수집 중...")
+
+    def _worker():
+        try:
+            run_morning_briefing_report(db, chat_id, force=True)
+        except Exception:
+            logger.exception("morning briefing command worker failed")
+            try:
+                send_message(chat_id, "통합 브리핑 처리 중 오류가 발생했습니다.")
+            except Exception:
+                pass
+
+    threading.Thread(target=_worker, daemon=True).start()
+
+
 def handle_portfolio_news_command(db: InvestmentDB, chat_id) -> None:
     """/포트폴리오뉴스 — GP(해외+국내) + LookThrough 발행인 통합 뉴스 수동 호출."""
     import threading
