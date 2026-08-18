@@ -13,7 +13,9 @@ def _format_articles(articles: List[dict]) -> str:
     for i, a in enumerate(articles, 1):
         ts = a["published_at"].astimezone(KST).strftime("%m-%d %H:%M")
         kw = a.get("keyword", "")
-        prefix = f"[{kw}] " if kw else ""
+        section = a.get("section", "")
+        tags = "/".join(str(v) for v in (section, kw) if v)
+        prefix = f"[{tags}] " if tags else ""
         lines.append(f"{i}. {prefix}{a['title']} ({a.get('source','')}, {ts})")
     return "\n".join(lines)
 
