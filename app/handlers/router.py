@@ -13,6 +13,7 @@ from app.handlers.lookthrough import (
 )
 from app.handlers.news import (
     handle_macro_news_command,
+    handle_morning_briefing_command,
     handle_news_search_command,
     handle_portfolio_news_command,
 )
@@ -54,8 +55,10 @@ HELP_TEXT = """
 
 📰 [뉴스]
 /검색 키워드 — 키워드 뉴스 요약
+/아침브리핑 — 시장 + GP + LookThrough 통합 브리핑 즉시 호출
 /매크로뉴스 — 거시 뉴스 + 매크로 지표 즉시 호출
-/포트폴리오뉴스 — GP(해외+국내) + LookThrough 발행인 통합 뉴스
+/포트폴리오뉴스 — GP + LookThrough 뉴스만 즉시 호출
+  · 자동 발송: 09:00 통합 브리핑 / 16:00 시장 업데이트
 
 📋 [업무 지시]
 /등록 이름 — 팀원 등록
@@ -233,6 +236,13 @@ def process_user_message(db: InvestmentDB, chat_id: int, text: str, ctx: Dict[st
         handle_exposure_command(db, chat_id, raw, ctx)
         return
 
+    if raw in ("/아침브리핑", "/뉴스브리핑"):
+        if str(chat_id) != str(config.OWNER_CHAT_ID):
+            send_message(chat_id, "통합 뉴스 브리핑 호출 권한이 없습니다.")
+            return
+        handle_morning_briefing_command(db, chat_id)
+        return
+
     if raw.startswith("/포트폴리오뉴스"):
         if str(chat_id) != str(config.OWNER_CHAT_ID):
             send_message(chat_id, "포트폴리오 뉴스 호출 권한이 없습니다.")
@@ -262,5 +272,5 @@ def process_user_message(db: InvestmentDB, chat_id: int, text: str, ctx: Dict[st
         chat_id,
         "지원하지 않는 명령어입니다.\n"
         "자연어로 조회/분석/상세조회/룩쓰루 내용을 입력하거나,\n"
-        "/조회, /분석, /상세조회, /룩쓰루, /검색, /등록, /지시 형식으로 입력해 주세요."
+        "/조회, /분석, /상세조회, /룩쓰루, /아침브리핑, /검색, /등록, /지시 형식으로 입력해 주세요."
     )
