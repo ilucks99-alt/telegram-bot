@@ -8,7 +8,11 @@ from fastapi import FastAPI, Header, HTTPException, Query, Request
 
 from app import config
 from app.db_engine import InvestmentDB
-from app.handlers.news import run_portfolio_news_report, run_scheduled_news_report
+from app.handlers.news import (
+    run_morning_briefing_report,
+    run_portfolio_news_report,
+    run_scheduled_news_report,
+)
 from app.handlers.query import handle_query_confirmation_callback, handle_query_suggestion_callback
 from app.handlers.router import process_user_message
 from app.handlers.task import (
@@ -188,9 +192,9 @@ def _run_tick():
         except Exception:
             logger.exception("cron tick: due-reminders failed")
         try:
-            run_portfolio_news_report(db, chat_id)
+            run_morning_briefing_report(db, chat_id)
         except Exception:
-            logger.exception("cron tick: portfolio-news failed")
+            logger.exception("cron tick: morning-briefing failed")
         try:
             run_scheduled_news_report(db, chat_id)
         except Exception:
@@ -251,7 +255,7 @@ async def cron_news_portfolio(authorization: Optional[str] = Header(None)):
     import threading
     threading.Thread(
         target=lambda: _run_locked(
-            lambda: run_portfolio_news_report(get_db(), config.OWNER_CHAT_ID)
+            lambda: run_portfolio_news_report(get_db(), config.OWNER_CHAT_ID, force=True)
         ),
         daemon=True,
     ).start()
