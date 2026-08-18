@@ -79,8 +79,11 @@ TASK_DUE_REMINDER_MINUTES = _env_int("TASK_DUE_REMINDER_MINUTES", 30)
 # News auto-report
 # =========================================================
 NEWS_AUTO_REPORT_ENABLED = _env_bool("NEWS_AUTO_REPORT_ENABLED", True)
-NEWS_REPORT_TIMES = [t.strip() for t in _env("NEWS_REPORT_TIMES", "08:30,16:00").split(",") if t.strip()]
-NEWS_PORTFOLIO_REPORT_TIMES = [t.strip() for t in _env("NEWS_PORTFOLIO_REPORT_TIMES", "09:00").split(",") if t.strip()]
+# 아침에는 시장+포트폴리오 통합 브리핑, 오후에는 시장 업데이트만 보낸다.
+NEWS_MORNING_BRIEFING_TIMES = [
+    t.strip() for t in _env("NEWS_MORNING_BRIEFING_TIMES", "09:00").split(",") if t.strip()
+]
+NEWS_REPORT_TIMES = [t.strip() for t in _env("NEWS_REPORT_TIMES", "16:00").split(",") if t.strip()]
 
 # 거시 뉴스 키워드 — 대체투자 PM 관점 시그널 기준 기본 12개.
 # 콤마(,) 구분 env `NEWS_KEYWORDS` 로 override 가능. 콤마 포함 키워드는 사용 불가.
@@ -117,6 +120,8 @@ NEWS_LOOKTHROUGH_ASSET_CLASSES = [
 # 보고서에 키워드별 최소 보장 건수 — 해외/국내 운용사 비율 불균형으로 한쪽이 잘리는 걸 방지.
 # round-robin 방식으로 각 키워드의 최신 N건을 우선 채운 뒤 NEWS_REPORT_MAX_ARTICLES 한도까지.
 NEWS_PER_KEYWORD_REPORT_QUOTA = _env_int("NEWS_PER_KEYWORD_REPORT_QUOTA", 3)
+NEWS_MORNING_MARKET_ARTICLE_LIMIT = _env_int("NEWS_MORNING_MARKET_ARTICLE_LIMIT", 20)
+NEWS_MORNING_PORTFOLIO_ARTICLE_LIMIT = _env_int("NEWS_MORNING_PORTFOLIO_ARTICLE_LIMIT", 30)
 
 # =========================================================
 # Google Sheets
