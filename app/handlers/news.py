@@ -1,6 +1,6 @@
 import html as _html
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Set
 
 from app import config
@@ -89,6 +89,25 @@ def handle_macro_news_command(db: InvestmentDB, chat_id) -> None:
             logger.exception("macro news command worker failed")
             try:
                 send_message(chat_id, "매크로 뉴스 처리 중 오류가 발생했습니다.")
+            except Exception:
+                pass
+
+    threading.Thread(target=_worker, daemon=True).start()
+
+
+def handle_alternative_news_command(db: InvestmentDB, chat_id) -> None:
+    """`대체투자뉴스` 수동 호출용 딜사이트·더벨 브리핑."""
+    import threading
+
+    send_message(chat_id, "🏦 딜사이트·더벨 대체투자 이슈 수집 중...")
+
+    def _worker():
+        try:
+            run_alternative_news_report(db, chat_id, force=True)
+        except Exception:
+            logger.exception("alternative news command worker failed")
+            try:
+                send_message(chat_id, "대체투자 뉴스 처리 중 오류가 발생했습니다.")
             except Exception:
                 pass
 
@@ -235,6 +254,53 @@ def collect_portfolio_news(db: InvestmentDB) -> List[Dict[str, Any]]:
     return items
 
 
+_ALTERNATIVE_NEWS_SOURCES = (
+    ("딜사이트", "dealsite.co.kr", ("딜사이트", "dealsite")),
+    ("더벨", "thebell.co.kr", ("더벨", "the bell", "thebell")),
+)
+
+
+def collect_alternative_news(db: InvestmentDB) -> List[Dict[str, Any]]:
+    """딜사이트·더벨의 최근 대체투자 기사만 수집한다.
+
+    원문을 무단 크롤링하지 않고 Google News RSS에 공개된 제목·출처·링크를
+    사용한다. 보고서에서는 그 제목에서 확인되는 범위만 요약한다.
+    """
+    del db  # 다른 collector와 동일한 호출 규약을 유지한다.
+    now = datetime.now(KST)
+    cutoff = now - timedelta(hours=max(1, config.ALTERNATIVE_NEWS_LOOKBACK_HOURS))
+    items: List[Dict[str, Any]] = []
+    seen = set()
+
+    for outlet, domain, source_aliases in _ALTERNATIVE_NEWS_SOURCES:
+        for topic in config.ALTERNATIVE_NEWS_TOPICS:
+            query = f"site:{domain} {topic} when:2d"
+            try:
+                found = search_google_news_rss(query, limit=config.ALTERNATIVE_NEWS_PER_QUERY_LIMIT)
+            except Exception:
+                logger.exception("alternative news fetch failed | outlet=%s topic=%s", outlet, topic)
+                continue
+            for item in found:
+                published = item.get("published_at")
+                if not published or published.astimezone(KST) < cutoff:
+                    continue
+                source = str(item.get("source", "")).lower()
+                title = str(item.get("title", ""))
+                # site: 필터가 무시되는 RSS fallback 결과를 방지한다.
+                if domain not in source and not any(alias in source for alias in source_aliases):
+                    continue
+                key = " ".join(title.lower().split())
+                if not key or key in seen:
+                    continue
+                seen.add(key)
+                enriched = dict(item)
+                enriched.update(keyword=topic, section=outlet, outlet=outlet)
+                items.append(enriched)
+
+    items.sort(key=lambda item: item["published_at"], reverse=True)
+    return items[:max(1, config.ALTERNATIVE_NEWS_MAX_ARTICLES)]
+
+
 # =========================================================
 # Reports
 # =========================================================
@@ -365,6 +431,49 @@ def run_scheduled_news_report(db: InvestmentDB, chat_id, force: bool = False) ->
         "거시 뉴스",
         macro_prefix=macro_prefix,
     )
+
+
+def run_alternative_news_report(db: InvestmentDB, chat_id, force: bool = False) -> str:
+    """매일 딜사이트·더벨 대체투자 핵심 이슈를 요약·분석해 전송한다."""
+    if not config.NEWS_AUTO_REPORT_ENABLED:
+        return "disabled"
+    if not force and not _matches_slot(config.ALTERNATIVE_NEWS_REPORT_TIMES, "alternative_news"):
+        return "skipped"
+
+    news_items = collect_alternative_news(db)
+    return _send_report(
+        chat_id,
+        "🏦 딜사이트·더벨 대체투자 데일리",
+        news_items,
+        "딜사이트·더벨 대체투자 주요 이슈",
+    ) if not news_items else _send_alternative_report(chat_id, news_items)
+
+
+def _send_alternative_report(chat_id, news_items: List[Dict[str, Any]]) -> str:
+    """전문 매체 브리핑을 매체별 링크와 함께 전송한다."""
+    try:
+        slot = datetime.now(KST).strftime("%Y-%m-%d %H:%M")
+        summary = summarize_news(
+            "딜사이트·더벨 대체투자 주요 이슈",
+            news_items,
+            prompt_name="alternative_news_summarizer.txt",
+        )
+        parts = [_html.escape(f"🏦 대체투자 데일리 ({slot})", quote=False)]
+        if summary:
+            parts.extend(["", _html.escape(summary, quote=False)])
+        for outlet, _domain, _aliases in _ALTERNATIVE_NEWS_SOURCES:
+            outlet_items = [item for item in news_items if item.get("outlet") == outlet]
+            if not outlet_items:
+                continue
+            parts.extend(["", _html.escape(f"— {outlet} ({len(outlet_items)}건) —", quote=False)])
+            for idx, item in enumerate(outlet_items[:7], 1):
+                parts.append(_format_article_html(item, idx))
+        send_long_message(chat_id, "\n".join(parts), parse_mode="HTML", disable_web_page_preview=True)
+        return "ok"
+    except Exception:
+        logger.exception("alternative news report failed")
+        send_message(chat_id, "대체투자 뉴스 보고 처리 중 오류가 발생했습니다.")
+        return "error"
 
 
 def _send_portfolio_report(chat_id, news_items: List[Dict[str, Any]]) -> str:
