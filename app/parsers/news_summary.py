@@ -16,7 +16,9 @@ def _format_articles(articles: List[dict]) -> str:
         section = a.get("section", "")
         tags = "/".join(str(v) for v in (section, kw) if v)
         prefix = f"[{tags}] " if tags else ""
-        lines.append(f"{i}. {prefix}{a['title']} ({a.get('source','')}, {ts})")
+        agendas = ", ".join(a.get("agendas", []))
+        agenda_suffix = f" | 탐색 아젠다: {agendas}" if agendas else ""
+        lines.append(f"{i}. {prefix}{a['title']} ({a.get('source','')}, {ts}){agenda_suffix}")
     return "\n".join(lines)
 
 
