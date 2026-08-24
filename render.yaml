@@ -41,6 +41,8 @@ services:
       - key: DAILY_QUESTION_LIMIT
         value: "50"
       - key: NEWS_REPORT_TIMES
-        value: "09:10,16:00"
+        value: "16:00"
+      - key: ALTERNATIVE_NEWS_REPORT_TIMES
+        value: "08:30"
       - key: NEWS_MANAGER_REPORT_TIMES
         value: "09:00"
