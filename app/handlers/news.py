@@ -274,7 +274,10 @@ def collect_alternative_news(db: InvestmentDB) -> List[Dict[str, Any]]:
 
     for outlet, domain, source_aliases in _ALTERNATIVE_NEWS_SOURCES:
         for topic in config.ALTERNATIVE_NEWS_TOPICS:
-            query = f"site:{domain} {topic} when:2d"
+            # OR 그룹을 괄호로 묶어 site: 조건이 모든 대안 키워드에
+            # 함께 적용되게 한다.
+            grouped_topic = f"({topic})" if " OR " in topic else topic
+            query = f"site:{domain} {grouped_topic} when:2d"
             try:
                 found = search_google_news_rss(query, limit=config.ALTERNATIVE_NEWS_PER_QUERY_LIMIT)
             except Exception:
