@@ -135,6 +135,7 @@ ALTERNATIVE_NEWS_MAX_ARTICLES = _env_int("ALTERNATIVE_NEWS_MAX_ARTICLES", 20)
 # 긴 검색어가 아니다. 예: `site:thebell.co.kr (IPO OR 상장 OR 중복상장) when:2d`.
 _ALTERNATIVE_NEWS_DEFAULT_TOPICS = (
     "대체투자",
+    "대체투자 시장 OR 투자심리 OR 딜시장",
     "사모펀드 OR PEF",
     "M&A OR 인수합병",
     "IPO OR 상장 OR 중복상장",
@@ -143,6 +144,8 @@ _ALTERNATIVE_NEWS_DEFAULT_TOPICS = (
     "부동산 OR 인프라",
     "사모대출 OR 인수금융",
     "연기금 OR 공제회 OR LP",
+    "출자사업 OR 위탁운용 OR 운용사 전략",
+    "세컨더리 OR 컨티뉴에이션펀드",
     "금융위 OR 공정위 OR 자본시장 규제",
 )
 _alternative_news_topics_env = _env("ALTERNATIVE_NEWS_TOPICS")
