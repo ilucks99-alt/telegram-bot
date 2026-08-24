@@ -123,6 +123,23 @@ NEWS_PER_KEYWORD_REPORT_QUOTA = _env_int("NEWS_PER_KEYWORD_REPORT_QUOTA", 3)
 NEWS_MORNING_MARKET_ARTICLE_LIMIT = _env_int("NEWS_MORNING_MARKET_ARTICLE_LIMIT", 20)
 NEWS_MORNING_PORTFOLIO_ARTICLE_LIMIT = _env_int("NEWS_MORNING_PORTFOLIO_ARTICLE_LIMIT", 30)
 
+# 딜사이트·더벨 대체투자 전문 브리핑. Google News의 site: 검색을
+# 이용해 제목/링크를 수집하며, 원문 유료 기사를 우회하지 않는다.
+ALTERNATIVE_NEWS_REPORT_TIMES = [
+    t.strip() for t in _env("ALTERNATIVE_NEWS_REPORT_TIMES", "08:30").split(",") if t.strip()
+]
+ALTERNATIVE_NEWS_LOOKBACK_HOURS = _env_int("ALTERNATIVE_NEWS_LOOKBACK_HOURS", 36)
+ALTERNATIVE_NEWS_PER_QUERY_LIMIT = _env_int("ALTERNATIVE_NEWS_PER_QUERY_LIMIT", 10)
+ALTERNATIVE_NEWS_MAX_ARTICLES = _env_int("ALTERNATIVE_NEWS_MAX_ARTICLES", 20)
+ALTERNATIVE_NEWS_TOPICS = [t.strip() for t in _env(
+    "ALTERNATIVE_NEWS_TOPICS",
+    # '대체투자'라는 단어가 제목에 없어도 LP/GP의 투자·회수에
+    # 영향을 주는 자본시장/규제 이슈(중복상장 등)를 놓치지 않도록 폭넓게 탐색한다.
+    "대체투자,사모펀드 OR PEF,M&A OR 인수합병,IPO OR 상장 OR 중복상장,"
+    "회수 OR 엑시트,블라인드펀드 OR 펀드결성,부동산 OR 인프라,사모대출 OR 인수금융,"
+    "연기금 OR 공제회 OR LP,금융위 OR 공정위 OR 자본시장 규제"
+).split(",") if t.strip()]
+
 # =========================================================
 # Google Sheets
 # =========================================================
