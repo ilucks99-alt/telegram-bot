@@ -9,6 +9,7 @@ from fastapi import FastAPI, Header, HTTPException, Query, Request
 from app import config
 from app.db_engine import InvestmentDB
 from app.handlers.news import (
+    run_alternative_news_report,
     run_morning_briefing_report,
     run_portfolio_news_report,
     run_scheduled_news_report,
@@ -199,6 +200,10 @@ def _run_tick():
             run_scheduled_news_report(db, chat_id)
         except Exception:
             logger.exception("cron tick: macro-news failed")
+        try:
+            run_alternative_news_report(db, chat_id)
+        except Exception:
+            logger.exception("cron tick: alternative-news failed")
     finally:
         _tick_lock.release()
 
