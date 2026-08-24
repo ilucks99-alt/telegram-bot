@@ -131,14 +131,26 @@ ALTERNATIVE_NEWS_REPORT_TIMES = [
 ALTERNATIVE_NEWS_LOOKBACK_HOURS = _env_int("ALTERNATIVE_NEWS_LOOKBACK_HOURS", 36)
 ALTERNATIVE_NEWS_PER_QUERY_LIMIT = _env_int("ALTERNATIVE_NEWS_PER_QUERY_LIMIT", 10)
 ALTERNATIVE_NEWS_MAX_ARTICLES = _env_int("ALTERNATIVE_NEWS_MAX_ARTICLES", 20)
-ALTERNATIVE_NEWS_TOPICS = [t.strip() for t in _env(
-    "ALTERNATIVE_NEWS_TOPICS",
-    # '대체투자'라는 단어가 제목에 없어도 LP/GP의 투자·회수에
-    # 영향을 주는 자본시장/규제 이슈(중복상장 등)를 놓치지 않도록 폭넓게 탐색한다.
-    "대체투자,사모펀드 OR PEF,M&A OR 인수합병,IPO OR 상장 OR 중복상장,"
-    "회수 OR 엑시트,블라인드펀드 OR 펀드결성,부동산 OR 인프라,사모대출 OR 인수금융,"
-    "연기금 OR 공제회 OR LP,금융위 OR 공정위 OR 자본시장 규제"
-).split(",") if t.strip()]
+# 아래 각 항목이 하나의 별도 RSS 검색어다. 콤마로 합쳐진 한 개의
+# 긴 검색어가 아니다. 예: `site:thebell.co.kr (IPO OR 상장 OR 중복상장) when:2d`.
+_ALTERNATIVE_NEWS_DEFAULT_TOPICS = (
+    "대체투자",
+    "사모펀드 OR PEF",
+    "M&A OR 인수합병",
+    "IPO OR 상장 OR 중복상장",
+    "회수 OR 엑시트",
+    "블라인드펀드 OR 펀드결성",
+    "부동산 OR 인프라",
+    "사모대출 OR 인수금융",
+    "연기금 OR 공제회 OR LP",
+    "금융위 OR 공정위 OR 자본시장 규제",
+)
+_alternative_news_topics_env = _env("ALTERNATIVE_NEWS_TOPICS")
+ALTERNATIVE_NEWS_TOPICS = (
+    [t.strip() for t in _alternative_news_topics_env.split(",") if t.strip()]
+    if _alternative_news_topics_env
+    else list(_ALTERNATIVE_NEWS_DEFAULT_TOPICS)
+)
 
 # =========================================================
 # Google Sheets
