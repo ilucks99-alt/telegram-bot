@@ -260,13 +260,79 @@ _ALTERNATIVE_NEWS_SOURCES = (
 )
 
 
+_ALTERNATIVE_NEWS_AGENDAS = {
+    "시장동향": ("대체투자", "시장", "업계", "전망", "동향", "거래량", "투자심리", "딜시장"),
+    "자금흐름": ("블라인드", "펀드", "결성", "출자", "lp", "펀딩", "모집", "드라이파우더"),
+    "거래·회수": ("ipo", "상장", "엑시트", "회수", "매각", "인수", "m&a", "세컨더리"),
+    "LP아젠다": ("연기금", "공제회", "보험사", "기관투자가", "위탁운용", "출자사업"),
+    "운용사전략": ("운용사", "pef", "gp", "조직개편", "대표", "인력", "전략"),
+    "정책·리스크": ("부실", "연체", "워크아웃", "소송", "규제", "금융위", "공정위", "중단"),
+    "자산군": ("부동산", "인프라", "데이터센터", "물류", "리츠", "신재생", "사모대출", "인수금융"),
+}
+
+
+def _alternative_article_metadata(title: str, published_at: datetime, now: datetime) -> Dict[str, Any]:
+    """제목만으로 설명 가능한 시장 아젠다와 선별 점수를 만든다.
+
+    점수는 기사 선택용일 뿐 시장 분위기 판단에 쓰지 않는다. 시장 전체와 LP의
+    움직임을 다룬 기사를 개별 자산 기사보다 조금 우대하고 최신성을 반영한다.
+    """
+    normalized = " ".join(title.lower().split())
+    agendas = [
+        name for name, keywords in _ALTERNATIVE_NEWS_AGENDAS.items()
+        if any(keyword in normalized for keyword in keywords)
+    ]
+    hours_old = max(0.0, (now - published_at.astimezone(KST)).total_seconds() / 3600)
+    market_scope = any(tag in agendas for tag in ("시장동향", "LP아젠다", "운용사전략"))
+    score = 1 + min(len(agendas), 3) + (2 if market_scope else 0) + max(0.0, 2.0 - hours_old / 18)
+    return {"agendas": agendas or ["기타"], "market_scope": market_scope, "priority_score": round(score, 2)}
+
+
+def _alternative_dedup_key(title: str) -> str:
+    """매체명·구두점 차이만 있는 동일 제목을 하나로 묶기 위한 키."""
+    value = re.sub(r"\s*[-–—|]\s*(딜사이트|더벨|thebell|dealsite)\s*$", "", title, flags=re.I)
+    return re.sub(r"[^0-9a-z가-힣]", "", value.lower())
+
+
+def _select_alternative_articles(items: List[Dict[str, Any]], limit: int) -> List[Dict[str, Any]]:
+    """중요도순으로 고르되 매체와 이슈 분류가 한쪽으로 쏠리지 않게 한다."""
+    ranked = sorted(
+        items,
+        key=lambda item: (item.get("priority_score", 0), item["published_at"]),
+        reverse=True,
+    )
+    selected: List[Dict[str, Any]] = []
+    selected_ids = set()
+
+    def add_first(predicate) -> None:
+        for item in ranked:
+            marker = id(item)
+            if marker not in selected_ids and predicate(item):
+                selected.append(item)
+                selected_ids.add(marker)
+                return
+
+    # 양 매체 최소 1건, 시장 전반 아젠다별 최소 1건을 먼저 확보한다.
+    for outlet, _domain, _aliases in _ALTERNATIVE_NEWS_SOURCES:
+        add_first(lambda item, outlet=outlet: item.get("outlet") == outlet)
+    for agenda in _ALTERNATIVE_NEWS_AGENDAS:
+        add_first(lambda item, agenda=agenda: agenda in item.get("agendas", []))
+    for item in ranked:
+        if len(selected) >= limit:
+            break
+        if id(item) not in selected_ids:
+            selected.append(item)
+            selected_ids.add(id(item))
+    return selected[:limit]
+
+
 def collect_alternative_news(db: InvestmentDB) -> List[Dict[str, Any]]:
     """딜사이트·더벨의 최근 대체투자 기사만 수집한다.
 
     원문을 무단 크롤링하지 않고 Google News RSS에 공개된 제목·출처·링크를
     사용한다. 보고서에서는 그 제목에서 확인되는 범위만 요약한다.
     """
-    del db  # 다른 collector와 동일한 호출 규약을 유지한다.
+    del db  # 포트폴리오 보유 연계는 별도 포트폴리오 뉴스가 담당한다.
     now = datetime.now(KST)
     cutoff = now - timedelta(hours=max(1, config.ALTERNATIVE_NEWS_LOOKBACK_HOURS))
     items: List[Dict[str, Any]] = []
@@ -292,16 +358,16 @@ def collect_alternative_news(db: InvestmentDB) -> List[Dict[str, Any]]:
                 # site: 필터가 무시되는 RSS fallback 결과를 방지한다.
                 if domain not in source and not any(alias in source for alias in source_aliases):
                     continue
-                key = " ".join(title.lower().split())
+                key = _alternative_dedup_key(title)
                 if not key or key in seen:
                     continue
                 seen.add(key)
                 enriched = dict(item)
                 enriched.update(keyword=topic, section=outlet, outlet=outlet)
+                enriched.update(_alternative_article_metadata(title, published, now))
                 items.append(enriched)
 
-    items.sort(key=lambda item: item["published_at"], reverse=True)
-    return items[:max(1, config.ALTERNATIVE_NEWS_MAX_ARTICLES)]
+    return _select_alternative_articles(items, max(1, config.ALTERNATIVE_NEWS_MAX_ARTICLES))
 
 
 # =========================================================
@@ -310,7 +376,7 @@ def collect_alternative_news(db: InvestmentDB) -> List[Dict[str, Any]]:
 def _format_article_html(item: Dict[str, Any], idx: int) -> str:
     """기사 한 건을 텔레그램 HTML 형식으로 렌더 — title 하이퍼링크 + (source) 이탤릭."""
     title = _html.escape(str(item.get("title", "") or ""))
-    link = str(item.get("link", "") or "")
+    link = _html.escape(str(item.get("link", "") or ""), quote=True)
     source = _html.escape(str(item.get("source", "") or ""))
     src_part = f" <i>({source})</i>" if source else ""
     if link:
