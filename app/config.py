@@ -146,7 +146,13 @@ _ALTERNATIVE_NEWS_DEFAULT_TOPICS = (
     "연기금 OR 공제회 OR LP",
     "출자사업 OR 위탁운용 OR 운용사 전략",
     "세컨더리 OR 컨티뉴에이션펀드",
-    "금융위 OR 공정위 OR 자본시장 규제",
+    # 규제 검색은 짧은 쿼리로 나눈다. 하나의 긴 OR 검색은 Google News가
+    # 일부 항을 생략하는 경우가 있고, 기존 검색에는 금감원·법령 개정이 빠져
+    # 규제 기사 후보 자체가 수집되지 않을 수 있었다.
+    "금융위 OR 금감원 OR 금융감독원",
+    "공정위 OR 기획재정부 OR 국토교통부",
+    "규제 OR 법개정 OR 법안 OR 시행령",
+    "감독 OR 검사 OR 제재 OR 가이드라인",
 )
 _alternative_news_topics_env = _env("ALTERNATIVE_NEWS_TOPICS")
 ALTERNATIVE_NEWS_TOPICS = (
