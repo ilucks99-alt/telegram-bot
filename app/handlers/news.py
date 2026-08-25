@@ -267,7 +267,12 @@ _ALTERNATIVE_NEWS_AGENDAS = {
     "거래·회수": ("ipo", "상장", "엑시트", "회수", "매각", "인수", "m&a", "세컨더리"),
     "LP아젠다": ("연기금", "공제회", "보험사", "기관투자가", "위탁운용", "출자사업"),
     "운용사전략": ("운용사", "pef", "gp", "조직개편", "대표", "인력", "전략"),
-    "정책·리스크": ("부실", "연체", "워크아웃", "소송", "규제", "금융위", "공정위", "중단"),
+    "규제환경": (
+        "규제", "금융위", "금융위원회", "금감원", "금융감독원", "공정위", "공정거래위원회",
+        "기획재정부", "국토교통부", "법개정", "법 개정", "법안", "시행령", "감독", "검사",
+        "제재", "가이드라인", "의무", "허가", "인가",
+    ),
+    "리스크": ("부실", "연체", "워크아웃", "소송", "중단"),
     "자산군": ("부동산", "인프라", "데이터센터", "물류", "리츠", "신재생", "사모대출", "인수금융"),
 }
 
@@ -313,7 +318,10 @@ def _select_alternative_articles(items: List[Dict[str, Any]], limit: int) -> Lis
                 selected_ids.add(marker)
                 return
 
-    # 양 매체 최소 1건, 시장 전반 아젠다별 최소 1건을 먼저 확보한다.
+    # 규제 기사가 있으면 cap이 작아도 먼저 한 건을 확보한다. 규제환경을
+    # 리스크와 별도 분류해 단순 소송/부실 기사가 그 자리를 대신하지 않게 한다.
+    add_first(lambda item: "규제환경" in item.get("agendas", []))
+    # 이어서 양 매체 최소 1건, 시장 전반 아젠다별 최소 1건을 확보한다.    
     for outlet, _domain, _aliases in _ALTERNATIVE_NEWS_SOURCES:
         add_first(lambda item, outlet=outlet: item.get("outlet") == outlet)
     for agenda in _ALTERNATIVE_NEWS_AGENDAS:
@@ -335,7 +343,11 @@ def collect_alternative_news(db: InvestmentDB) -> List[Dict[str, Any]]:
     """
     del db  # 포트폴리오 보유 연계는 별도 포트폴리오 뉴스가 담당한다.
     now = datetime.now(KST)
-    cutoff = now - timedelta(hours=max(1, config.ALTERNATIVE_NEWS_LOOKBACK_HOURS))
+    lookback_hours = max(1, config.ALTERNATIVE_NEWS_LOOKBACK_HOURS)
+    cutoff = now - timedelta(hours=lookback_hours)
+    # RSS 검색 범위가 후처리 lookback보다 짧으면 cutoff 안의 기사도 검색
+    # 단계에서 영구 누락된다. 일 단위 검색 범위를 올림해 두 범위를 맞춘다.
+    query_days = max(1, (lookback_hours + 23) // 24)
     items: List[Dict[str, Any]] = []
     seen = set()
 
@@ -344,7 +356,7 @@ def collect_alternative_news(db: InvestmentDB) -> List[Dict[str, Any]]:
             # OR 그룹을 괄호로 묶어 site: 조건이 모든 대안 키워드에
             # 함께 적용되게 한다.
             grouped_topic = f"({topic})" if " OR " in topic else topic
-            query = f"site:{domain} {grouped_topic} when:2d"
+            query = f"site:{domain} {grouped_topic} when:{query_days}d"
             try:
                 found = search_google_news_rss(query, limit=config.ALTERNATIVE_NEWS_PER_QUERY_LIMIT)
             except Exception:
@@ -368,7 +380,14 @@ def collect_alternative_news(db: InvestmentDB) -> List[Dict[str, Any]]:
                 enriched.update(_alternative_article_metadata(title, published, now))
                 items.append(enriched)
 
-    return _select_alternative_articles(items, max(1, config.ALTERNATIVE_NEWS_MAX_ARTICLES))
+    selected = _select_alternative_articles(items, max(1, config.ALTERNATIVE_NEWS_MAX_ARTICLES))
+    regulatory_found = sum("규제환경" in item.get("agendas", []) for item in items)
+    regulatory_selected = sum("규제환경" in item.get("agendas", []) for item in selected)
+    logger.info(
+        "alternative news coverage | candidates=%d selected=%d regulation=%d/%d",
+        len(items), len(selected), regulatory_selected, regulatory_found,
+    )
+    return selected
 
 
 # =========================================================
