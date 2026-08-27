@@ -117,26 +117,33 @@ class InvestmentDB:
         주의: pd.to_datetime(45832) 는 45832 나노초로 해석해 1970년이 나와버린다.
         따라서 numeric 우선 → Excel serial 로 처리하고, 나머지를 datetime 파싱한다.
         """
-        if pd.api.types.is_datetime64_any_dtype(s):
-            return s
-
         out = pd.Series(pd.NaT, index=s.index, dtype="datetime64[ns]")
 
         # 1) numeric → Excel serial (epoch 1899-12-30, 1900 leap-year bug 보정)
-        numeric = pd.to_numeric(s, errors="coerce")
+        # datetime64[us] can represent year 9999.  Do not treat its underlying
+        # integer representation as an Excel serial number.
+        if pd.api.types.is_datetime64_any_dtype(s):
+            numeric = pd.Series(float("nan"), index=s.index)
+        else:
+            numeric = pd.to_numeric(s, errors="coerce")
         serial_mask = numeric.notna()
         if serial_mask.any():
             serial_dt = pd.to_datetime(
                 numeric.where(serial_mask), unit="D", origin="1899-12-30", errors="coerce"
             )
-            # Excel max 2958465 = 9999-12-31 (만기 미정 placeholder) → NaT
-            serial_dt = serial_dt.where(serial_dt.dt.year < 9000, pd.NaT)
-            out = out.where(~serial_mask, serial_dt)
-
+            out.loc[serial_mask] = serial_dt.loc[serial_mask]
+            
         # 2) numeric 으로 잡히지 않은 값은 일반 datetime 문자열 시도
         str_mask = (~serial_mask) & s.notna()
         if str_mask.any():
-            out = out.where(~str_mask, pd.to_datetime(s.where(str_mask), errors="coerce"))
+            parsed = pd.to_datetime(s.loc[str_mask], errors="coerce", format="mixed")
+            # Pandas 3 may infer datetime64[us] and retain Excel's 9999-12-31
+            # "unknown maturity" placeholder. Assigning that array to the
+            # nanosecond output raises OutOfBoundsDatetime before ``where`` can
+            # replace it, so select only ns-representable values first.
+            in_ns_bounds = parsed.between(pd.Timestamp.min, pd.Timestamp.max)
+            safe = parsed.loc[in_ns_bounds].astype("datetime64[ns]")
+            out.loc[safe.index] = safe
 
         return out
 
