@@ -175,3 +175,40 @@ def build_exposure_answer(exp: Dict[str, Any]) -> str:
             lines += ["", "[상세]", f"/룩쓰루 {pid}"]
 
     return "\n".join(lines)
+
+
+def build_lookthrough_portfolio_answer(summary: Dict[str, Any]) -> str:
+    lines = ["[룩쓰루 포트폴리오 분석]"]
+    if not summary.get("lt_count"):
+        return "\n".join(lines + ["", "분석 가능한 LookThrough 데이터가 없습니다."])
+
+    lines += [
+        f"매칭 LT {summary['lt_count']:,}건 | 장부합계 {format_amount_uk(summary.get('lt_book_total'))}",
+        f"펀드 커버리지 {summary.get('fund_with_lt', 0):,}/{summary.get('fund_total', 0):,} "
+        f"({_fmt_share(summary.get('coverage'))})",
+    ]
+    if summary.get("unmatched_lt_count"):
+        lines.append(f"※ Dataset과 연결되지 않은 LT {summary['unmatched_lt_count']:,}건 제외")
+
+    for title, key, label in (
+        ("통화 집중도", "currency_share", "currency"),
+        ("자산유형 구성", "subtype_share", "sub_type"),
+    ):
+        rows = summary.get(key) or []
+        if rows:
+            lines += ["", f"[{title}]"]
+            for row in rows[:5]:
+                lines.append(
+                    f"- {row[label]}: {format_amount_uk(row.get('book'))} ({_fmt_share(row.get('share'))})"
+                )
+
+    tops = summary.get("top_counterparties") or []
+    if tops:
+        lines += ["", f"[발행인/거래상대방 TOP {len(tops)}]"]
+        for idx, row in enumerate(tops, 1):
+            lines.append(
+                f"{idx}. {row['name']} | {format_amount_uk(row.get('book'))} "
+                f"({_fmt_share(row.get('share'))})"
+            )
+        lines += ["", "발행인 상세: /익스포저 발행인 <이름>"]
+    return "\n".join(lines)
