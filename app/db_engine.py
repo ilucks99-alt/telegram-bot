@@ -310,10 +310,14 @@ class InvestmentDB:
         proj = self.df[self.df["Project_ID"] == project_id]
         if proj.empty:
             return pd.DataFrame()
-        key = proj.iloc[0].get("SubAsset_Key")
-        if pd.isna(key):
+
+        # 한 프로젝트가 여러 종목/트렌치 행으로 구성될 수 있다. 대표행 하나만
+        # 선택하면 첫 번째 종목ID에는 LT가 없고 두 번째 종목ID에만 LT가 연결된
+        # 프로젝트의 룩쓰루가 누락되므로, 프로젝트에 속한 모든 키를 조회한다.
+        keys = proj["SubAsset_Key"].dropna().unique()
+        if len(keys) == 0:          
             return pd.DataFrame()
-        return self.lt[self.lt["Fund_SubAsset_Key"] == key].copy()
+        return self.lt[self.lt["Fund_SubAsset_Key"].isin(keys)].copy()
 
     @staticmethod
     def _std_asset_class(x: str) -> str:
