@@ -17,12 +17,27 @@ SORT_BY_ALLOWED = {
 SORT_ORDER_ALLOWED = {"asc", "desc"}
 
 ANALYSIS_TYPE_ALLOWED = {"share", "grouped_metric"}
-GROUPBY_ALLOWED = {"asset_class", "region", "strategy", "manager", "sector", "vintage", "maturity_year"}
+# 한 번의 그룹 분석에 함께 표시할 수 있는 축과 지표 수. Telegram 메시지의
+# 가독성과 길이를 고려해 각각 5개까지 허용한다.
+MAX_ANALYSIS_GROUPBYS = 5
+MAX_ANALYSIS_METRICS = 5
+# Dataset 시트에서 프로젝트 단위로 안정적으로 집계할 수 있는 분류 축. 원천 데이터에
+# 이미 있는 통화/투자유형/세부유형/자본구조도 분석에서 활용한다.
+GROUPBY_ALLOWED = {
+    "asset_class", "region", "strategy", "manager", "sector", "vintage",
+    "maturity_year", "currency", "investment_type", "detail_type",
+    "capital_structure",
+}
 ANALYSIS_METRIC_ALLOWED = {
     "commitment",
     "called",
+    "repaid",    
     "outstanding",
     "nav",
+    "unfunded",
+    "drawdown",
+    "dpi",
+    "tvpi",
     "count",
     "irr_avg",
     "irr_weighted_commitment",
