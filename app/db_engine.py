@@ -703,11 +703,29 @@ class InvestmentDB:
             return safe_num(project_df["Commitment"].sum()) or 0.0
         if metric == "called":
             return safe_num(project_df["Called"].sum()) or 0.0
+        if metric == "repaid":
+            return safe_num(project_df["Repaid"].sum()) or 0.0
         if metric == "outstanding":
             return safe_num(project_df["Outstanding"].sum()) or 0.0
         if metric == "nav":
             return safe_num(project_df["NAV"].sum()) or 0.0
+        if metric == "unfunded":
+            return safe_num(project_df["Unfunded"].sum()) or 0.0
 
+        # 비율/배수는 개별 프로젝트의 단순평균이 아니라 포트폴리오 합계로 다시
+        # 계산한다. 큰 투자와 작은 투자가 같은 가중치를 갖는 왜곡을 피하기 위함이다.
+        called = safe_num(project_df["Called"].sum()) or 0.0
+        if metric == "drawdown":
+            commitment = safe_num(project_df["Commitment"].sum()) or 0.0
+            return safe_num(called / commitment) if commitment > 0 else None
+        if metric == "dpi":
+            repaid = safe_num(project_df["Repaid"].sum()) or 0.0
+            return safe_num(repaid / called) if called > 0 else None
+        if metric == "tvpi":
+            repaid = safe_num(project_df["Repaid"].sum()) or 0.0
+            nav = safe_num(project_df["NAV"].sum()) or 0.0
+            return safe_num((repaid + nav) / called) if called > 0 else None
+            
         valid = project_df.dropna(subset=["IRR"]).copy()
         if valid.empty:
             return None
@@ -740,6 +758,10 @@ class InvestmentDB:
             "sector": "Sector",
             "vintage": "Vintage",
             "maturity_year": "Maturity_Year",
+            "currency": "Currency",
+            "investment_type": "Investment_Type",
+            "detail_type": "Detail_Type",
+            "capital_structure": "Capital_Structure",
         }
         if groupby not in mapping:
             raise ValueError(f"지원하지 않는 groupby: {groupby}")
@@ -977,6 +999,7 @@ class InvestmentDB:
     # =========================================================
     # LookThrough — Phase 1: 단일 펀드 드릴다운
     # =========================================================
+
     def lookthrough_summary(self, project_id: str) -> Optional[Dict[str, Any]]:
         """단일 펀드의 LT 요약 (자산유형/통화 mix, 가중평균금리, top holdings, 만기 사다리).
         룩쓰루 데이터가 없는 펀드(`Sub_Asset_Count == 0`)는 None 반환."""
@@ -1078,6 +1101,63 @@ class InvestmentDB:
     # =========================================================
     # LookThrough — Phase 2: 익스포저 역방향 조회
     # =========================================================
+    def lookthrough_portfolio_summary(self, top_n: int = 10) -> Dict[str, Any]:
+        """조직 전체 LT의 커버리지와 집중도를 장부가 기준으로 요약한다."""
+        top_n = max(1, min(int(top_n), 20))
+        lt = self.lt
+        if lt is None or lt.empty:
+            return {"lt_count": 0, "top_n": top_n}
+
+        valid_keys = set(self.df["SubAsset_Key"].dropna().astype("Int64").tolist())
+        matched = lt[lt["Fund_SubAsset_Key"].isin(valid_keys)].copy()
+        total_book = safe_num(matched["Book_Value"].sum()) or 0.0
+        fund_total = int(self.df["Project_ID"].nunique())
+        fund_with_lt = int(matched["Fund_SubAsset_Key"].nunique())
+
+        def _mix(column: str, label: str) -> List[Dict[str, Any]]:
+            grouped = matched.groupby(column, dropna=False)["Book_Value"].sum().sort_values(ascending=False)
+            return [
+                {
+                    label: str(key).strip() if pd.notna(key) and str(key).strip() else "N/A",
+                    "book": safe_num(book) or 0.0,
+                    "share": (float(book) / total_book) if total_book else None,
+                }
+                for key, book in grouped.items()
+            ]
+
+        counterparties = matched.assign(
+            _Counterparty=matched["Counterparty"].where(
+                matched["Counterparty"].fillna("").str.strip().ne(""), matched["Holding_Name"]
+            )
+        )
+        cp_grouped = (
+            counterparties.groupby("_Counterparty", dropna=False)["Book_Value"]
+            .sum()
+            .sort_values(ascending=False)
+            .head(top_n)
+        )
+        top_counterparties = [
+            {
+                "name": str(name).strip() if pd.notna(name) and str(name).strip() else "N/A",
+                "book": safe_num(book) or 0.0,
+                "share": (float(book) / total_book) if total_book else None,
+            }
+            for name, book in cp_grouped.items()
+        ]
+
+        return {
+            "lt_count": int(len(matched)),
+            "lt_book_total": total_book,
+            "fund_total": fund_total,
+            "fund_with_lt": fund_with_lt,
+            "coverage": (fund_with_lt / fund_total) if fund_total else None,
+            "unmatched_lt_count": int(len(lt) - len(matched)),
+            "currency_share": _mix("Position_Currency", "currency"),
+            "subtype_share": _mix("Sub_Type", "sub_type"),
+            "top_counterparties": top_counterparties,
+            "top_n": top_n,
+        }
+
     def _exposure_match_mask(self, mode: str, query: str) -> pd.Series:
         if self.lt is None or self.lt.empty:
             return pd.Series(dtype=bool)
