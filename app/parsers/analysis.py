@@ -5,6 +5,8 @@ from app.constants import (
     ANALYSIS_METRIC_ALLOWED,
     ANALYSIS_TYPE_ALLOWED,
     GROUPBY_ALLOWED,
+    MAX_ANALYSIS_GROUPBYS,
+    MAX_ANALYSIS_METRICS,
     SORT_ORDER_ALLOWED,
 )
 from app.logger import get_logger
@@ -29,7 +31,10 @@ def build_fixed_analysis_advice() -> str:
         "- /분석 전체 포트폴리오에서 미국 비중\n"
         "- /분석 미국 부동산 투자 중 Core 전략 비중\n"
         "- /분석 자산군별 평균 IRR\n"
-        "- /분석 미국 부동산 전략별 평균 IRR"
+        "- /분석 미국 부동산 전략별 평균 IRR\n"
+        "- /분석 자산군별 미인출액과 인출률\n"
+        "- /분석 PE 빈티지별 DPI와 TVPI\n"
+        "- /분석 약정통화별 투자잔액"
     )
 
 
@@ -61,14 +66,18 @@ def normalize_analysis_json(analysis_json: Dict[str, Any]) -> Dict[str, Any]:
 
     groupby = analysis_json.get("groupby") or []
     if isinstance(groupby, list):
-        groupby = [g for g in groupby if g in GROUPBY_ALLOWED][:3]
+        groupby = list(dict.fromkeys(g for g in groupby if g in GROUPBY_ALLOWED))[
+            :MAX_ANALYSIS_GROUPBYS
+        ]
     else:
         groupby = [groupby] if groupby in GROUPBY_ALLOWED else []
     out["groupby"] = groupby
 
     metrics = analysis_json.get("metrics") or []
     if isinstance(metrics, list):
-        metrics = [m for m in metrics if m in ANALYSIS_METRIC_ALLOWED][:3]
+        metrics = list(dict.fromkeys(m for m in metrics if m in ANALYSIS_METRIC_ALLOWED))[
+            :MAX_ANALYSIS_METRICS
+        ]
     else:
         metrics = [metrics] if metrics in ANALYSIS_METRIC_ALLOWED else ["commitment"]
     out["metrics"] = metrics or ["commitment"]
