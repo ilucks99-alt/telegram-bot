@@ -79,6 +79,7 @@ class InvestmentDB:
     def __init__(self, path: str):
         self.path = path
         self.lt: pd.DataFrame = pd.DataFrame()
+        self.project_subasset_keys: Dict[str, tuple[int, ...]] = {}
         self.df = self._load()
 
     def refresh(self) -> None:
@@ -249,6 +250,7 @@ class InvestmentDB:
         if unmapped_rg:
             logger.warning("Region unmapped (raw passthrough): %s", unmapped_rg)
 
+        self._load_project_subasset_keys(df)        
         self._load_lookthrough()
         logger.info(
             "DB loaded | rows=%d | file=%s | lt_rows=%d",
@@ -256,6 +258,38 @@ class InvestmentDB:
         )
         return df
 
+    def _load_project_subasset_keys(self, dataset: pd.DataFrame) -> None:
+        """AI_PF 원천 시트에서 프로젝트별 전체 종목/트렌치 키를 읽는다.
+
+        Dataset은 프로젝트별 한 행이며 대표키를 VLOOKUP으로 가져오기 때문에 같은
+        Project_ID의 두 번째 이후 키가 사라질 수 있다. 원천 시트가 없는 구버전
+        파일에서는 Dataset의 대표키만 사용하는 기존 동작으로 안전하게 폴백한다.
+        """
+        pairs = dataset[["Project_ID", "SubAsset_Key"]].copy()
+        try:
+            source = pd.read_excel(
+                self.path,
+                sheet_name="AI_PF",
+                usecols=["프로젝트ID", "종목ID/트렌치ID"],
+            ).rename(columns={
+                "프로젝트ID": "Project_ID",
+                "종목ID/트렌치ID": "SubAsset_Key",
+            })
+            source["Project_ID"] = source["Project_ID"].fillna("").astype(str).str.strip()
+            source = source[source["Project_ID"].str.match(r"^BS\d", na=False)]
+            pairs = pd.concat([pairs, source], ignore_index=True)
+        except (ValueError, FileNotFoundError):
+            logger.warning(
+                "AI_PF project/subasset key source unavailable; using Dataset representative keys"
+            )
+
+        pairs["SubAsset_Key"] = pd.to_numeric(pairs["SubAsset_Key"], errors="coerce")
+        pairs = pairs.dropna(subset=["Project_ID", "SubAsset_Key"])
+        self.project_subasset_keys = {
+            str(project_id): tuple(int(key) for key in keys.drop_duplicates())
+            for project_id, keys in pairs.groupby("Project_ID")["SubAsset_Key"]
+        }
+    
     def _load_lookthrough(self) -> None:
         try:
             lt = pd.read_excel(self.path, sheet_name=config.LT_SHEET)
@@ -311,11 +345,12 @@ class InvestmentDB:
         if proj.empty:
             return pd.DataFrame()
 
-        # 한 프로젝트가 여러 종목/트렌치 행으로 구성될 수 있다. 대표행 하나만
-        # 선택하면 첫 번째 종목ID에는 LT가 없고 두 번째 종목ID에만 LT가 연결된
-        # 프로젝트의 룩쓰루가 누락되므로, 프로젝트에 속한 모든 키를 조회한다.
-        keys = proj["SubAsset_Key"].dropna().unique()
-        if len(keys) == 0:          
+        # Dataset에는 VLOOKUP으로 가져온 대표키 하나만 있을 수 있으므로 AI_PF
+        # 원천 시트에서 수집한 프로젝트의 전체 종목/트렌치 키를 우선 사용한다.
+        keys = self.project_subasset_keys.get(project_id)
+        if keys is None:
+            keys = tuple(int(key) for key in proj["SubAsset_Key"].dropna().unique())
+        if len(keys) == 0:
             return pd.DataFrame()
         return self.lt[self.lt["Fund_SubAsset_Key"].isin(keys)].copy()
 
@@ -903,6 +938,12 @@ class InvestmentDB:
         sub_key = p.get("SubAsset_Key")
         sub_key_int = int(sub_key) if pd.notna(sub_key) else None
 
+        lookthrough = self.lookthrough_summary(project_id)
+        effective_sub_asset_count = max(
+            int(p.get("Sub_Asset_Count") or 0),
+            int((lookthrough or {}).get("lt_count") or 0),
+        )
+        
         return {
             "project_id": str(p["Project_ID"]),
             "asset_name": str(p.get("Asset_Name") or ""),
@@ -932,9 +973,9 @@ class InvestmentDB:
             "dpi": dpi,
             "tvpi": tvpi,
             "tranche_count": int(p.get("Tranche_Count") or 0),
-            "sub_asset_count": int(p.get("Sub_Asset_Count") or 0),
+            "sub_asset_count": effective_sub_asset_count,
             "sub_asset_key": sub_key_int,
-            "lookthrough": self.lookthrough_summary(project_id),
+            "lookthrough": lookthrough,
         }
 
     def project_context(self, project_id: str) -> Optional[Dict[str, Any]]:
@@ -1028,7 +1069,7 @@ class InvestmentDB:
             "fund_nav": safe_num(p.get("NAV")),
             "fund_irr": safe_num(p.get("IRR")),
             "tranche_count": int(p.get("Tranche_Count") or 0),
-            "sub_asset_count": int(p.get("Sub_Asset_Count") or 0),
+            "sub_asset_count": max(int(p.get("Sub_Asset_Count") or 0), int(len(lt))),
             "lt_count": int(len(lt)),
             "lt_book_total": safe_num(lt["Book_Value"].sum()) if not lt.empty else 0.0,
             "subtype_share": [],
