@@ -11,8 +11,13 @@ def summarize_analysis_json(analysis_json: Dict[str, Any]) -> str:
     metric_label_map = {
         "commitment": "약정 기준",
         "called": "콜금액 기준",
+        "repaid": "상환액 기준",
         "outstanding": "투자잔액 기준",
         "nav": "NAV 기준",
+        "unfunded": "미인출액 기준",
+        "drawdown": "인출률 기준",
+        "dpi": "DPI 기준",
+        "tvpi": "TVPI 기준",
         "count": "건수 기준",
         "irr_avg": "단순평균 IRR 기준",
         "irr_weighted_commitment": "약정가중 평균 IRR 기준",
@@ -38,6 +43,8 @@ def summarize_analysis_json(analysis_json: Dict[str, Any]) -> str:
         groupby_label_map = {
             "asset_class": "자산군", "region": "지역", "strategy": "전략",
             "manager": "운용사", "sector": "섹터", "vintage": "Vintage", "maturity_year": "만기년도",
+            "currency": "약정통화", "investment_type": "투자유형",
+            "detail_type": "세부유형", "capital_structure": "자본구조",
         }
 
         groupby_text = "/".join([groupby_label_map.get(g, g) for g in groupby_list]) if groupby_list else "그룹"
@@ -54,8 +61,10 @@ def build_analysis_answer(retrieved: Dict[str, Any], interpretation: str) -> str
     if atype == "share":
         metric = retrieved.get("metric", "commitment")
         metric_label_map = {
-            "commitment": "약정액", "called": "콜금액", "outstanding": "투자잔액",
-            "nav": "NAV", "count": "건수", "irr_avg": "평균 IRR",
+            "commitment": "약정액", "called": "콜금액", "repaid": "상환액",
+            "outstanding": "투자잔액", "nav": "NAV", "unfunded": "미인출액",
+            "drawdown": "인출률", "dpi": "DPI", "tvpi": "TVPI",
+            "count": "건수", "irr_avg": "평균 IRR",
             "irr_weighted_commitment": "약정가중 IRR", "irr_weighted_called": "콜금액가중 IRR",
             "irr_weighted_outstanding": "잔액가중 IRR", "irr_weighted_nav": "NAV가중 IRR",
         }
@@ -76,8 +85,10 @@ def build_analysis_answer(retrieved: Dict[str, Any], interpretation: str) -> str
         def _fmt(v):
             if metric == "count":
                 return f"{int(v or 0)}건"
-            if metric.startswith("irr_"):
+            if metric.startswith("irr_") or metric == "drawdown":
                 return format_pct(v)
+            if metric in ("dpi", "tvpi"):
+                return "-" if v is None else f"{v:.2f}x"
             return format_amount_uk(v)
 
         lines.append(f"- 전체: {_fmt(base_value)} / {retrieved.get('base_project_count', 0)}건")
@@ -97,9 +108,13 @@ def build_analysis_answer(retrieved: Dict[str, Any], interpretation: str) -> str
         groupby_label_map = {
             "asset_class": "자산군", "region": "지역", "strategy": "전략",
             "manager": "운용사", "sector": "섹터", "vintage": "Vintage", "maturity_year": "만기",
+            "currency": "약정통화", "investment_type": "투자유형",
+            "detail_type": "세부유형", "capital_structure": "자본구조",
         }
         metric_label_map = {
-            "commitment": "약정", "called": "콜금액", "outstanding": "잔액", "nav": "NAV",
+            "commitment": "약정", "called": "콜금액", "repaid": "상환액",
+            "outstanding": "잔액", "nav": "NAV", "unfunded": "미인출액",
+            "drawdown": "인출률", "dpi": "DPI", "tvpi": "TVPI",
             "count": "건수", "irr_avg": "평균IRR",
             "irr_weighted_commitment": "IRR(약정가중)", "irr_weighted_called": "IRR(콜가중)",
             "irr_weighted_outstanding": "IRR(잔액가중)", "irr_weighted_nav": "IRR(NAV가중)",
@@ -117,8 +132,10 @@ def build_analysis_answer(retrieved: Dict[str, Any], interpretation: str) -> str
                 val = r.get(m)
                 if m == "count":
                     parts.append(f"{int(val or 0)}건")
-                elif m.startswith("irr_"):
+                elif m.startswith("irr_") or m == "drawdown":
                     parts.append(format_pct(val))
+                elif m in ("dpi", "tvpi"):
+                    parts.append("-" if val is None else f"{val:.2f}x")
                 else:
                     parts.append(format_amount_uk(val))
             lines.append(f"{idx}. {group_text} | {' | '.join(parts)} | {r.get('project_count', 0)}건")
