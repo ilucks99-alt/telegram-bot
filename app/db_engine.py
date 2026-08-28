@@ -1153,11 +1153,23 @@ class InvestmentDB:
         if lt is None or lt.empty:
             return {"lt_count": 0, "top_n": top_n}
 
-        valid_keys = set(self.df["SubAsset_Key"].dropna().astype("Int64").tolist())
+        # Dataset의 대표키만 쓰면 AI_PF의 두 번째 이후 종목ID에 연결된 LT가
+        # 미매칭으로 빠진다. 단일 펀드 조회와 동일하게 원천 시트의 전체 키를 쓴다.
+        valid_keys = {
+            key
+            for project_keys in self.project_subasset_keys.values()
+            for key in project_keys
+        }
         matched = lt[lt["Fund_SubAsset_Key"].isin(valid_keys)].copy()
         total_book = safe_num(matched["Book_Value"].sum()) or 0.0
         fund_total = int(self.df["Project_ID"].nunique())
-        fund_with_lt = int(matched["Fund_SubAsset_Key"].nunique())
+        matched_keys = set(matched["Fund_SubAsset_Key"].dropna().astype(int).tolist())
+        # 종목ID 수가 아니라 실제로 LT가 하나라도 연결된 프로젝트 수를 센다.
+        fund_with_lt = sum(
+            1
+            for project_keys in self.project_subasset_keys.values()
+            if matched_keys.intersection(project_keys)
+        )
 
         def _mix(column: str, label: str) -> List[Dict[str, Any]]:
             grouped = matched.groupby(column, dropna=False)["Book_Value"].sum().sort_values(ascending=False)
