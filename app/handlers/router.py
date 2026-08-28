@@ -8,6 +8,7 @@ from app.handlers.detail import handle_detail
 from app.handlers.lookthrough import (
     handle_exposure_command,
     handle_exposure_followup,
+    handle_lookthrough_analysis_command,
     handle_lookthrough_command,
     handle_lookthrough_followup,
 )
@@ -53,7 +54,10 @@ HELP_TEXT = """
 /상세조회 BS00000XXX — 단일 펀드 모든 데이터 + 룩쓰루 요약 (펀드명 키워드도 OK)
 /룩쓰루 BS00000XXX — 단일 펀드 하위자산 드릴다운 (펀드명 키워드도 OK)
 /익스포저 [발행인|종목] X — 특정 발행인/종목 보유 펀드 역조회
-
+/룩분석 [상위 개수] — 조직 전체 LT 커버리지·통화·자산유형·발행인 집중도
+  · 활용 흐름: "룩쓰루 가능한 PE 펀드" 조회 → 개별 룩쓰루 → 주요 발행인 익스포저 점검
+  · 룩쓰루 결과: 자산유형·통화 비중 / 가중평균 보유금리 / 만기구조 / TOP holdings
+  
 📰 [뉴스]
 /검색 키워드 — 키워드 뉴스 요약
 /아침브리핑 — 시장 + GP + LookThrough 통합 브리핑 즉시 호출
@@ -234,6 +238,10 @@ def process_user_message(db: InvestmentDB, chat_id: int, text: str, ctx: Dict[st
         handle_lookthrough_command(db, chat_id, raw, ctx)
         return
 
+    if raw.startswith("/룩분석"):
+        handle_lookthrough_analysis_command(db, chat_id, raw, ctx)
+        return
+    
     if raw.startswith("/익스포저"):
         handle_exposure_command(db, chat_id, raw, ctx)
         return
