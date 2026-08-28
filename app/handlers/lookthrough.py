@@ -2,7 +2,11 @@ from typing import Any, Dict, List
 
 from app import config
 from app.db_engine import InvestmentDB
-from app.formatters.lookthrough import build_exposure_answer, build_lookthrough_answer
+from app.formatters.lookthrough import (
+    build_exposure_answer,
+    build_lookthrough_answer,
+    build_lookthrough_portfolio_answer,
+)
 from app.logger import get_logger
 from app.services.telegram import send_long_message, send_message
 from app.state import dialog_memory, question_limit
@@ -166,6 +170,25 @@ def handle_exposure_command(db: InvestmentDB, chat_id: int, raw: str, ctx: Dict[
     except Exception:
         logger.exception("exposure command failed | mode=%s query=%s", mode, query)
         send_message(chat_id, "익스포저 처리 중 오류가 발생했습니다.")
+
+
+def handle_lookthrough_analysis_command(
+    db: InvestmentDB, chat_id: int, raw: str, ctx: Dict[str, Any]
+) -> None:
+    if not _check_limit_or_reply(chat_id, ctx):
+        return
+    args = raw[len("/룩분석"):].strip()
+    try:
+        top_n = int(args) if args else 10
+    except ValueError:
+        send_message(chat_id, "사용법: /룩분석 또는 /룩분석 15 (상위 1~20개)")
+        return
+    try:
+        answer = build_lookthrough_portfolio_answer(db.lookthrough_portfolio_summary(top_n))
+        send_long_message(chat_id, answer)
+    except Exception:
+        logger.exception("lookthrough portfolio analysis failed | top_n=%s", top_n)
+        send_message(chat_id, "룩쓰루 포트폴리오 분석 중 오류가 발생했습니다.")
 
 
 # =========================================================
