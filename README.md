@@ -53,6 +53,7 @@ app/
 | `MAIN_DB_XLSX` | 메인 포트폴리오 Excel 경로 |
 | `DAILY_QUESTION_LIMIT` | 사용자별 일일 조회/분석 한도 (기본 50) |
 | `NEWS_REPORT_TIMES` | `09:10,15:30` 형태 |
+| `GLOBAL_MARKET_NEWS_REPORT_TIMES` | 영문 원문 기반 글로벌 증시·매크로 브리핑 시각 (기본 `07:30`, KST) |
 
 ## 배포 순서 (Render 무료)
 
@@ -106,6 +107,7 @@ uvicorn app.main:app --reload --port 8000
 | `/조회 <자연어>` | 포트폴리오 조회 |
 | `/분석 <자연어>` | 비중 및 자산군·지역·전략·빈티지·통화·투자유형별 분석 (한 번에 그룹 기준·지표 각각 최대 5개) |
 | `/검색 <키워드>` | Google News 뉴스 요약 |
+| `/글로벌뉴스` | 영문 원문 기반 글로벌 증시·매크로 브리핑 즉시 호출 (owner 전용) |
 | `/등록 <이름>` | 팀원 등록 |
 | `/지시 이름 \| 업무 [\| priority=high] [\| due=2026-04-20 10:00] [\| project=BS00001505]` | owner 전용 업무 지시 |
 | `/cancel` | 진행 중 업무 세션 종료 |
