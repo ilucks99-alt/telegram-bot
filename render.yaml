@@ -42,6 +42,8 @@ services:
         value: "50"
       - key: NEWS_REPORT_TIMES
         value: "16:00"
+      - key: GLOBAL_MARKET_NEWS_REPORT_TIMES
+        value: "07:30"
       - key: ALTERNATIVE_NEWS_REPORT_TIMES
         value: "08:30"
       - key: NEWS_MANAGER_REPORT_TIMES
