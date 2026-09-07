@@ -85,6 +85,22 @@ NEWS_MORNING_BRIEFING_TIMES = [
 ]
 NEWS_REPORT_TIMES = [t.strip() for t in _env("NEWS_REPORT_TIMES", "16:00").split(",") if t.strip()]
 
+# 영문 원문 기반 글로벌 증시·매크로 브리핑. Google News의 US-English
+# edition만 조회하며 아래 검색어는 콤마 구분 환경변수로 교체할 수 있다.
+GLOBAL_MARKET_NEWS_REPORT_TIMES = [
+    t.strip() for t in _env("GLOBAL_MARKET_NEWS_REPORT_TIMES", "07:30").split(",") if t.strip()
+]
+GLOBAL_MARKET_NEWS_KEYWORDS = [t.strip() for t in _env(
+    "GLOBAL_MARKET_NEWS_KEYWORDS",
+    "global stock markets when:1d,"
+    "Wall Street S&P 500 Nasdaq when:1d,"
+    "European stocks STOXX when:1d,"
+    "Asian stocks Nikkei Hang Seng when:1d,"
+    "Federal Reserve inflation Treasury yields when:1d,"
+    "dollar oil gold global economy when:1d",
+).split(",") if t.strip()]
+GLOBAL_MARKET_NEWS_MAX_ARTICLES = _env_int("GLOBAL_MARKET_NEWS_MAX_ARTICLES", 24)
+
 # 거시 뉴스 키워드 — 대체투자 PM 관점 시그널 기준 기본 12개.
 # 콤마(,) 구분 env `NEWS_KEYWORDS` 로 override 가능. 콤마 포함 키워드는 사용 불가.
 NEWS_KEYWORDS = [t.strip() for t in _env(
