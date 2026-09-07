@@ -10,6 +10,7 @@ from app import config
 from app.db_engine import InvestmentDB
 from app.handlers.news import (
     run_alternative_news_report,
+    run_global_market_news_report,
     run_morning_briefing_report,
     run_portfolio_news_report,
     run_scheduled_news_report,
@@ -192,6 +193,10 @@ def _run_tick():
             check_due_reminders(db)
         except Exception:
             logger.exception("cron tick: due-reminders failed")
+        try:
+            run_global_market_news_report(db, chat_id)
+        except Exception:
+            logger.exception("cron tick: global-market-news failed")
         try:
             run_morning_briefing_report(db, chat_id)
         except Exception:
