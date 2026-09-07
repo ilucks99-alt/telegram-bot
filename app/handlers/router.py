@@ -14,6 +14,7 @@ from app.handlers.lookthrough import (
 )
 from app.handlers.news import (
     handle_alternative_news_command,
+    handle_global_market_news_command,
     handle_macro_news_command,
     handle_morning_briefing_command,
     handle_news_search_command,
@@ -62,9 +63,10 @@ HELP_TEXT = """
 /검색 키워드 — 키워드 뉴스 요약
 /아침브리핑 — 시장 + GP + LookThrough 통합 브리핑 즉시 호출
 /매크로뉴스 — 거시 뉴스 + 매크로 지표 즉시 호출
+/글로벌뉴스 — 영문 원문 기반 글로벌 증시 + 매크로 브리핑 즉시 호출
 /포트폴리오뉴스 — GP + LookThrough 뉴스만 즉시 호출
 /대체투자뉴스 — 딜사이트 + 더벨 주요 이슈 즉시 호출
-  · 자동 발송: 08:30 대체투자 / 09:00 통합 브리핑 / 16:00 시장 업데이트
+  · 자동 발송: 07:30 글로벌 / 08:30 대체투자 / 09:00 통합 / 16:00 시장 업데이트
 
 📋 [업무 지시]
 /등록 이름 — 팀원 등록
@@ -267,6 +269,13 @@ def process_user_message(db: InvestmentDB, chat_id: int, text: str, ctx: Dict[st
         handle_macro_news_command(db, chat_id)
         return
 
+    if raw.startswith("/글로벌뉴스"):
+        if str(chat_id) != str(config.OWNER_CHAT_ID):
+            send_message(chat_id, "글로벌 뉴스 호출 권한이 없습니다.")
+            return
+        handle_global_market_news_command(db, chat_id)
+        return
+    
     if raw.startswith("/대체투자뉴스"):
         if str(chat_id) != str(config.OWNER_CHAT_ID):
             send_message(chat_id, "대체투자 뉴스 호출 권한이 없습니다.")
