@@ -159,14 +159,26 @@ def _parse_rss_items(xml_text: str, seen: set) -> List[dict]:
     return out
 
 
-def search_google_news_rss(query: str, limit: int = 20) -> List[dict]:
+def search_google_news_rss(
+    query: str,
+    limit: int = 20,
+    locales: Optional[Tuple[str, ...]] = None,
+) -> List[dict]:
+    """Search Google News RSS in the requested editions.
+
+    ``locales`` defaults to both Korean and US-English for backwards
+    compatibility.  Callers that need original overseas coverage can request
+    only the English edition with ``("en",)``.
+    """
     effective_query = build_effective_query(query)
     encoded = urllib.parse.quote(effective_query)
 
-    locale_urls: List[Tuple[str, str]] = [
+    all_locale_urls: List[Tuple[str, str]] = [
         ("ko", f"https://news.google.com/rss/search?q={encoded}&hl=ko&gl=KR&ceid=KR:ko"),
         ("en", f"https://news.google.com/rss/search?q={encoded}&hl=en-US&gl=US&ceid=US:en"),
     ]
+    requested_locales = set(locales or ("ko", "en"))
+    locale_urls = [item for item in all_locale_urls if item[0] in requested_locales]
 
     results: List[dict] = []
     seen: set = set()
