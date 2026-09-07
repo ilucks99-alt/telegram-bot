@@ -96,6 +96,25 @@ def handle_macro_news_command(db: InvestmentDB, chat_id) -> None:
     threading.Thread(target=_worker, daemon=True).start()
 
 
+def handle_global_market_news_command(db: InvestmentDB, chat_id) -> None:
+    """``/글로벌뉴스`` — 영문 원문 기반 글로벌 증시·매크로 브리핑."""
+    import threading
+
+    send_message(chat_id, "🌍 해외 증시·매크로 원문 기사 수집 중...")
+
+    def _worker():
+        try:
+            run_global_market_news_report(db, chat_id, force=True)
+        except Exception:
+            logger.exception("global market news command worker failed")
+            try:
+                send_message(chat_id, "글로벌 뉴스 처리 중 오류가 발생했습니다.")
+            except Exception:
+                pass
+
+    threading.Thread(target=_worker, daemon=True).start()
+
+
 def handle_alternative_news_command(db: InvestmentDB, chat_id) -> None:
     """`대체투자뉴스` 수동 호출용 딜사이트·더벨 브리핑."""
     import threading
@@ -235,6 +254,69 @@ def collect_news_for_keywords(db: InvestmentDB) -> List[Dict[str, Any]]:
     items = _collect_articles(_macro_keywords())
     for item in items:
         item["section"] = "market"
+    return items
+
+
+def collect_global_market_news(db: InvestmentDB) -> List[Dict[str, Any]]:
+    """Collect English-edition articles and reject Korean republishers.
+
+    The source title is intentionally kept in English, while the dedicated
+    prompt produces a Korean briefing.  This gives the reader direct access to
+    the overseas article instead of a Korean secondary report.
+    """
+    del db
+    per_keyword_limit = max(3, config.NEWS_PER_KEYWORD_LIMIT)
+
+    def _fetch(keyword: str):
+        try:
+            return search_google_news_rss(keyword, limit=per_keyword_limit, locales=("en",))
+        except Exception:
+            logger.exception("global market news fetch failed | keyword=%s", keyword)
+            return []
+
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        futures = {
+            pool.submit(_fetch, keyword): keyword
+            for keyword in config.GLOBAL_MARKET_NEWS_KEYWORDS
+        }
+        per_keyword = {futures[future]: future.result() for future in as_completed(futures)}
+
+    cleaned: Dict[str, List[Dict[str, Any]]] = {}
+    seen = set()
+    for keyword in config.GLOBAL_MARKET_NEWS_KEYWORDS:
+        keyword_items: List[Dict[str, Any]] = []
+        found = per_keyword.get(keyword, [])
+        for item in found:
+            source = str(item.get("source", "")).strip()
+            title = str(item.get("title", "")).strip()
+            # English edition can occasionally surface Korean publishers.  A
+            # Hangul source/title is a secondary Korean article, not an overseas original.
+            if not source or re.search(r"[가-힣]", source + title):
+                continue
+            key = re.sub(r"[^0-9a-z]", "", title.lower())
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            enriched = dict(item)
+            enriched.update(keyword=keyword, section="global_market")
+            keyword_items.append(enriched)
+        keyword_items.sort(key=lambda item: item["published_at"], reverse=True)
+        cleaned[keyword] = keyword_items
+
+    # Round-robin preserves US/Europe/Asia and macro coverage even when one
+    # high-volume topic publishes substantially more headlines than the rest.
+    items: List[Dict[str, Any]] = []
+    cap = max(1, config.GLOBAL_MARKET_NEWS_MAX_ARTICLES)
+    for slot in range(per_keyword_limit):
+        for keyword in config.GLOBAL_MARKET_NEWS_KEYWORDS:
+            keyword_items = cleaned.get(keyword, [])
+            if slot < len(keyword_items):
+                items.append(keyword_items[slot])
+                if len(items) >= cap:
+                    break
+        if len(items) >= cap:
+            break
+    items.sort(key=lambda item: item["published_at"], reverse=True)
     return items
 
 
@@ -410,6 +492,7 @@ def _send_report(
     news_items: List[Dict[str, Any]],
     query: str,
     macro_prefix: str = "",
+    prompt_name: str = "news_summarizer.txt",    
 ) -> str:
     try:
         slot = datetime.now(KST).strftime("%Y-%m-%d %H:%M")
@@ -423,7 +506,7 @@ def _send_report(
             return "empty"
 
         try:
-            summary = summarize_news(query, news_items)
+            summary = summarize_news(query, news_items, prompt_name=prompt_name)
         except Exception:
             logger.exception("summarize_news failed | header=%s", header)
             summary = ""
@@ -519,6 +602,26 @@ def run_scheduled_news_report(db: InvestmentDB, chat_id, force: bool = False) ->
         news_items,
         "거시 뉴스",
         macro_prefix=macro_prefix,
+    )
+
+
+def run_global_market_news_report(db: InvestmentDB, chat_id, force: bool = False) -> str:
+    """Send a Korean digest backed only by English-edition overseas articles."""
+    if not config.NEWS_AUTO_REPORT_ENABLED:
+        return "disabled"
+    if not force and not _matches_slot(
+        config.GLOBAL_MARKET_NEWS_REPORT_TIMES,
+        "global_market_news",
+    ):
+        return "skipped"
+
+    news_items = collect_global_market_news(db)
+    return _send_report(
+        chat_id,
+        "🌍 글로벌 증시·매크로 해외기사 브리핑",
+        news_items,
+        "글로벌 증시와 매크로 동향",
+        prompt_name="global_market_news_summarizer.txt",
     )
 
 
