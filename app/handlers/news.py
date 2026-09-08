@@ -499,6 +499,19 @@ def _format_article_html(item: Dict[str, Any], idx: int) -> str:
     return f"{idx}. {title}{src_part}"
 
 
+def _format_summary_html(summary: str) -> str:
+    """Render the limited Markdown emitted by the summarizer as Telegram HTML.
+
+    Gemini occasionally emphasizes headings or keywords with ``**bold**`` even
+    though automated reports are sent with Telegram's HTML parse mode. Escape
+    the model output first, then translate only paired bold markers. Any
+    unmatched markers are removed so they do not leak into the report.
+    """
+    escaped = _html.escape(str(summary), quote=False)
+    escaped = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", escaped, flags=re.DOTALL)
+    return escaped.replace("**", "")
+
+
 def _send_report(
     chat_id,
     header: str,
@@ -531,7 +544,7 @@ def _send_report(
             parts.append(_html.escape(macro_prefix, quote=False))
         if summary:
             parts.append("")
-            parts.append(_html.escape(summary, quote=False))
+            parts.append(_format_summary_html(summary))
         parts.append("")
         parts.append(_html.escape(f"[수집 기사 {len(news_items)}건]", quote=False))
         for i, item in enumerate(news_items[:10], 1):
@@ -665,7 +678,7 @@ def _send_alternative_report(chat_id, news_items: List[Dict[str, Any]]) -> str:
         )
         parts = [_html.escape(f"🏦 대체투자 데일리 ({slot})", quote=False)]
         if summary:
-            parts.extend(["", _html.escape(summary, quote=False)])
+            parts.extend(["", _format_summary_html(summary)])
         for outlet, _domain, _aliases in _ALTERNATIVE_NEWS_SOURCES:
             outlet_items = [item for item in news_items if item.get("outlet") == outlet]
             if not outlet_items:
@@ -710,7 +723,7 @@ def _send_portfolio_report(chat_id, news_items: List[Dict[str, Any]]) -> str:
         parts.append(_html.escape(f"{header} ({slot})", quote=False))
         if summary:
             parts.append("")
-            parts.append(_html.escape(summary, quote=False))
+            parts.append(_format_summary_html(summary))
         parts.append("")
         parts.append(_html.escape(f"[수집 기사 {len(news_items)}건]", quote=False))
 
@@ -778,7 +791,7 @@ def _send_morning_briefing(
         if macro_prefix:
             parts.extend(["", _html.escape(macro_prefix, quote=False)])
         if summary:
-            parts.extend(["", _html.escape(summary, quote=False)])
+            parts.extend(["", _format_summary_html(summary)])
 
         def _links(label: str, items: List[Dict[str, Any]]) -> None:
             if not items:
