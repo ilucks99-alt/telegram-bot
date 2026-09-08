@@ -274,16 +274,29 @@ def collect_global_market_news(db: InvestmentDB) -> List[Dict[str, Any]]:
             logger.exception("global market news fetch failed | keyword=%s", keyword)
             return []
 
+    keyword_sections = {
+        **{keyword: "global_market" for keyword in config.GLOBAL_MARKET_NEWS_KEYWORDS},
+        **{
+            keyword: "economic_indicator"
+            for keyword in config.GLOBAL_ECONOMIC_INDICATOR_KEYWORDS
+        },
+        **{
+            keyword: "global_alternative_investment"
+            for keyword in config.GLOBAL_ALTERNATIVE_INVESTMENT_KEYWORDS
+        },
+    }
+    keywords = list(keyword_sections)
+
     with ThreadPoolExecutor(max_workers=5) as pool:
         futures = {
             pool.submit(_fetch, keyword): keyword
-            for keyword in config.GLOBAL_MARKET_NEWS_KEYWORDS
+            for keyword in keywords
         }
         per_keyword = {futures[future]: future.result() for future in as_completed(futures)}
 
     cleaned: Dict[str, List[Dict[str, Any]]] = {}
     seen = set()
-    for keyword in config.GLOBAL_MARKET_NEWS_KEYWORDS:
+    for keyword in keywords:
         keyword_items: List[Dict[str, Any]] = []
         found = per_keyword.get(keyword, [])
         for item in found:
@@ -298,7 +311,7 @@ def collect_global_market_news(db: InvestmentDB) -> List[Dict[str, Any]]:
                 continue
             seen.add(key)
             enriched = dict(item)
-            enriched.update(keyword=keyword, section="global_market")
+            enriched.update(keyword=keyword, section=keyword_sections[keyword])
             keyword_items.append(enriched)
         keyword_items.sort(key=lambda item: item["published_at"], reverse=True)
         cleaned[keyword] = keyword_items
@@ -308,7 +321,7 @@ def collect_global_market_news(db: InvestmentDB) -> List[Dict[str, Any]]:
     items: List[Dict[str, Any]] = []
     cap = max(1, config.GLOBAL_MARKET_NEWS_MAX_ARTICLES)
     for slot in range(per_keyword_limit):
-        for keyword in config.GLOBAL_MARKET_NEWS_KEYWORDS:
+        for keyword in keywords:
             keyword_items = cleaned.get(keyword, [])
             if slot < len(keyword_items):
                 items.append(keyword_items[slot])
