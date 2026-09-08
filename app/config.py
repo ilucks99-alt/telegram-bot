@@ -99,6 +99,30 @@ GLOBAL_MARKET_NEWS_KEYWORDS = [t.strip() for t in _env(
     "Federal Reserve inflation Treasury yields when:1d,"
     "dollar oil gold global economy when:1d",
 ).split(",") if t.strip()]
+# 실제 발표치·시장 예상치가 제목에 함께 담긴 기사를 별도로 확보한다. 일반 시장
+# 기사와 분리해 수집하므로 거래량이 많은 미국 증시 뉴스에 지표 기사가 밀리지 않는다.
+GLOBAL_ECONOMIC_INDICATOR_KEYWORDS = [t.strip() for t in _env(
+    "GLOBAL_ECONOMIC_INDICATOR_KEYWORDS",
+    "US CPI actual forecast when:2d,"
+    "US jobs report payrolls unemployment actual forecast when:2d,"
+    "US GDP actual forecast when:7d,"
+    "US PMI actual forecast when:7d,"
+    "Euro zone inflation GDP PMI actual forecast when:7d,"
+    "China GDP CPI PMI actual forecast when:7d,"
+    "Japan inflation GDP PMI actual forecast when:7d,"
+    "central bank rate decision forecast Fed ECB BOJ BOE when:7d",
+).split(",") if t.strip()]
+# 글로벌 대체투자도 국내 재가공 기사 대신 US-English edition의 외신 제목만
+# 사용한다. 자산군·투자 단계별 검색어를 나눠 특정 섹터 쏠림을 줄인다.
+GLOBAL_ALTERNATIVE_INVESTMENT_KEYWORDS = [t.strip() for t in _env(
+    "GLOBAL_ALTERNATIVE_INVESTMENT_KEYWORDS",
+    "global private equity deals fundraising exits when:7d,"
+    "global private credit direct lending when:7d,"
+    "global infrastructure investment deals when:7d,"
+    "global commercial real estate investment when:7d,"
+    "global venture capital funding exits when:7d,"
+    "global hedge funds alternative assets when:7d",
+).split(",") if t.strip()]
 GLOBAL_MARKET_NEWS_MAX_ARTICLES = _env_int("GLOBAL_MARKET_NEWS_MAX_ARTICLES", 24)
 
 # 거시 뉴스 키워드 — 대체투자 PM 관점 시그널 기준 기본 12개.
