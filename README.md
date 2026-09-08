@@ -54,6 +54,8 @@ app/
 | `DAILY_QUESTION_LIMIT` | 사용자별 일일 조회/분석 한도 (기본 50) |
 | `NEWS_REPORT_TIMES` | `09:10,15:30` 형태 |
 | `GLOBAL_MARKET_NEWS_REPORT_TIMES` | 영문 원문 기반 글로벌 증시·매크로 브리핑 시각 (기본 `07:30`, KST) |
+| `GLOBAL_ECONOMIC_INDICATOR_KEYWORDS` | 글로벌 뉴스의 발표치·예상치 수집용 영문 검색어 (쉼표 구분) |
+| `GLOBAL_ALTERNATIVE_INVESTMENT_KEYWORDS` | 글로벌 뉴스의 해외 대체투자 외신 수집용 영문 검색어 (쉼표 구분) |
 
 ## 배포 순서 (Render 무료)
 
