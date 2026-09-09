@@ -295,10 +295,18 @@ def collect_global_market_news(db: InvestmentDB) -> List[Dict[str, Any]]:
         per_keyword = {futures[future]: future.result() for future in as_completed(futures)}
 
     cleaned: Dict[str, List[Dict[str, Any]]] = {}
-    seen = set()
+    # A headline can be returned by both a broad market query and a dedicated
+    # indicator query.  Deduplicating globally here used to let the broad
+    # query (which is iterated first) consume the article, thereby stripping
+    # its economic_indicator tag.  Keep deduplication within each section and
+    # resolve cross-section duplicates after the important sections have been
+    # selected.
+    seen_by_section: Dict[str, set] = {}
     for keyword in keywords:
         keyword_items: List[Dict[str, Any]] = []
         found = per_keyword.get(keyword, [])
+        section = keyword_sections[keyword]
+        section_seen = seen_by_section.setdefault(section, set())
         for item in found:
             source = str(item.get("source", "")).strip()
             title = str(item.get("title", "")).strip()
@@ -307,28 +315,74 @@ def collect_global_market_news(db: InvestmentDB) -> List[Dict[str, Any]]:
             if not source or re.search(r"[가-힣]", source + title):
                 continue
             key = re.sub(r"[^0-9a-z]", "", title.lower())
-            if not key or key in seen:
+            if not key or key in section_seen:
                 continue
-            seen.add(key)
+            section_seen.add(key)
             enriched = dict(item)
-            enriched.update(keyword=keyword, section=keyword_sections[keyword])
+            enriched.update(keyword=keyword, section=section)
             keyword_items.append(enriched)
         keyword_items.sort(key=lambda item: item["published_at"], reverse=True)
         cleaned[keyword] = keyword_items
 
-    # Round-robin preserves US/Europe/Asia and macro coverage even when one
-    # high-volume topic publishes substantially more headlines than the rest.
-    items: List[Dict[str, Any]] = []
+    # Reserve room for five indicator headlines before filling the report with
+    # broad, high-volume market results.  Previously the global cap could be
+    # reached before usable actual/consensus headlines made it into the LLM
+    # context, producing a block made entirely of "확인 안 됨" values.
     cap = max(1, config.GLOBAL_MARKET_NEWS_MAX_ARTICLES)
-    for slot in range(per_keyword_limit):
-        for keyword in keywords:
-            keyword_items = cleaned.get(keyword, [])
-            if slot < len(keyword_items):
-                items.append(keyword_items[slot])
-                if len(items) >= cap:
-                    break
+    section_limits = {
+        "economic_indicator": min(5, cap),
+        "global_alternative_investment": min(5, max(0, cap - min(5, cap))),
+    }
+    ordered_candidates: List[Dict[str, Any]] = []
+    for target_section in (
+        "economic_indicator",
+        "global_alternative_investment",
+        "global_market",
+    ):
+        section_keywords = [
+            keyword for keyword in keywords if keyword_sections[keyword] == target_section
+        ]
+        section_count = 0
+        section_limit = section_limits.get(target_section, cap)
+        for slot in range(per_keyword_limit):
+            for keyword in section_keywords:
+                keyword_items = cleaned.get(keyword, [])
+                if slot < len(keyword_items):
+                    ordered_candidates.append(keyword_items[slot])
+                    section_count += 1
+                    if section_count >= section_limit:
+                        break
+            if section_count >= section_limit:
+                break
+
+    items: List[Dict[str, Any]] = []
+    final_seen = set()
+    for item in ordered_candidates:
+        key = re.sub(r"[^0-9a-z]", "", str(item.get("title", "")).lower())
+        if key in final_seen:
+            continue
+        final_seen.add(key)
+        items.append(item)
         if len(items) >= cap:
             break
+
+    # If a reserved section had fewer results, consume any remaining articles
+    # rather than returning a needlessly short report.
+    if len(items) < cap:
+        for slot in range(per_keyword_limit):
+            for keyword in keywords:
+                keyword_items = cleaned.get(keyword, [])
+                if slot < len(keyword_items):
+                    item = keyword_items[slot]
+                    key = re.sub(r"[^0-9a-z]", "", str(item.get("title", "")).lower())
+                    if key in final_seen:
+                        continue
+                    final_seen.add(key)
+                    items.append(item)
+                    if len(items) >= cap:
+                        break
+            if len(items) >= cap:
+                break
     items.sort(key=lambda item: item["published_at"], reverse=True)
     return items
 
